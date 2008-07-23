@@ -1,0 +1,36 @@
+
+<p>
+<a href="javascript:BOOTH.show_election();">back to election</a>
+</p>
+
+<h3>{$T.question.short_name} (<em>please select {$T.question.max} answer{#if $T.question.max > 1}s{#/if}</em>)</h3>
+
+<form onsubmit="return false;" class="prettyform" id="answer_form">
+<input type="hidden" name="question_num" value="{$T.question_num}" />
+
+<p>
+{$T.question.question}
+</p>
+
+
+{#foreach $T.question.answers as answer}
+<div id="answer_label_{$T.question_num}_{$T.answer$index}"><input type="checkbox" class="ballot_answer" id="answer_{$T.question_num}_{$T.answer$index}" name="answer_{$T.question_num}_{$T.answer$index}" value="yes" onclick="BOOTH.click_checkbox({$T.question_num}, {$T.answer$index}, this.checked);" /> {$T.answer}</div>
+{#/for}
+
+<div style="float: right;">
+<input type="button" onclick="BOOTH.show_confirm();" value="Done" />
+</div>
+
+{#if $T.question_num != 0}
+<input type="button" onclick="BOOTH.save_ballot_answer({$T.question_num}); BOOTH.show_question({$T.question_num -1});" value="Previous" />
+&nbsp;
+{#/if}
+
+{#if $T.question_num < $T.last_question_num}
+<input type="button" onclick="BOOTH.save_ballot_answer({$T.question_num}); BOOTH.show_question({$T.question_num +1});" value="Next" />
+&nbsp;
+{#/if}
+
+<br clear="both" />
+
+</form>

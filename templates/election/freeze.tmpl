@@ -1,0 +1,22 @@
+#include "templates/header.tmpl"
+<div class="post">
+  <h2 class="title">Freeze Election: $election.name</h2>
+  <div class="entry">
+<p>
+Once frozen, an election's questions, voting times, and voter list can no longer be modified.
+</p>
+
+<p>
+You must freeze an election before you can contact voters, and you cannot unfreeze an election
+without changing its cryptographic keys.
+</p>
+
+<form method="post" action="freeze_2">
+<input class="pretty" type="submit" value="freeze!" />
+</form>
+  </div>
+					
+</div>
+</div>
+			<!-- end #content -->
+#include "templates/footer.tmpl"

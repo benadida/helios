@@ -1,0 +1,14 @@
+
+<h3>Questions</h3>
+
+<div id="questions_div">
+<ol>
+{#foreach $T.election.questions as question}
+<li> {#if $T.question$index >= 1}[<a href="javascript:BUILDER.moveup_question({$T.question$index});">^</a>]{#/if} [<a href="javascript:BUILDER.delete_question({$T.question$index});">X</a>] <a href="javascript:BUILDER.show_question({$T.question$index});">{$T.question.short_name}</a></li>
+{#else}
+<em>none</em>
+{#/for}
+</ol>
+</div>
+
+<a href="javascript:BUILDER.new_question();">New Question</a>

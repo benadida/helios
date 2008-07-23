@@ -1,0 +1,34 @@
+#include "templates/header.tmpl"
+#from base import utils
+#import algs,simplejson
+
+<div class="post">
+    <h2 class="title"><a href="one?election_id=$election.election_id">$election.name</a> &mdash; <a href="board?election_id=$election.election_id">Bulletin Board</a> &mdash;
+#if $voter
+$voter_name
+#else
+No Such Voter
+#end if
+</h2>
+
+#if $voter
+#for $question_num in range(len($questions))
+#set $question = $questions[$question_num]
+<h4>$question.question</h4>
+<table border="0" cellpadding="5">
+#for $answer_num in range(len($question.answers))
+#set $answer = $question.answers[$answer_num]
+<tr><td>$answer</td><td><tt>$encrypted_vote[$question_num][$answer_num]</tt></td></tr>
+#end for
+</table>
+#end for
+
+#else 
+<i>No such voter $voter_name.</i>
+#end if
+
+
+</div>
+</div>
+			<!-- end #content -->
+#include "templates/footer.tmpl"

@@ -1,0 +1,21 @@
+#include "templates/header.tmpl"
+<div class="post">
+  <h2 class="title">Register for An Account</h2>
+  <div class="entry">
+  <p>
+  We don't spam. We don't sell your data. You can delete all of your information at any time.
+  </p>
+  <form class="prettyform" action="register_2" method="post">
+    <label for="email">Email:</label><input type="text" id="email" name="email" /><br />
+    <label for="name">Name:</label><input type="text" id="name" name="name" /><br />
+    <label for="password">Password:</label><input type="password" id="password" name="password" /><br />
+    <label for="password2">Password (confirm):</label><input type="password" id="password2" name="password2" /><br />
+    <label for="">&nbsp;</label><input type="submit" value="register" />
+  </form>
+<br />
+or, if you don't have an account yet, you can <a href="register">Register</a>.
+  </div>
+					
+</div>
+</div>
+#include "templates/footer.tmpl"

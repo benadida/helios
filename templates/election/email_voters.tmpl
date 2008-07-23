@@ -1,0 +1,34 @@
+#include "templates/header.tmpl"
+<div class="post">
+  <h2 class="title">$election.name: Email Voters</h2>
+  <div class="entry">
+<p>
+You are about to email all voters in this election. You can fill in the middle part of the email:
+</p>
+
+<blockquote>
+<form method="post" action="email_voters_2">
+
+<pre>
+Dear [VOTER_NAME],
+</pre>
+
+<textarea name="introductory_message" cols="60" rows="10" wrap="soft" class="pretty">
+</textarea>
+
+<pre>
+Your email: [VOTER_EMAIL]
+Your password: [VOTER_PASSWORD]
+</pre>
+
+</blockquote>
+
+<input type="submit" value="send now!" class="pretty" />
+</form>
+
+  </div>
+					
+</div>
+</div>
+			<!-- end #content -->
+#include "templates/footer.tmpl"

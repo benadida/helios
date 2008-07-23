@@ -1,0 +1,16 @@
+#include "templates/header.tmpl"
+#from base import utils
+#import algs,simplejson
+
+<div class="post">
+  <h2 class="title"><a href="one?election_id=$election.election_id">$election.name</a> &mdash; Bulletin Board</h2>
+
+<form method="get" action="board_voter">
+<input type="hidden" name="election_id" value="$election.election_id" />
+Find a Voter: <input type="text" name="voter_name" /> <input type="submit" value="search" />
+</form>
+
+</div>
+</div>
+			<!-- end #content -->
+#include "templates/footer.tmpl"

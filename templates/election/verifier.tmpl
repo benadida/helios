@@ -1,0 +1,139 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=UTF-8" /> 
+  <title>Helios Voting System API Frame</title>
+  <script language="javascript" src="/static/jquery-1.2.2.min.js"></script>
+  <script language="javascript" src="/static/jquery-jtemplates.js"></script>
+  <script language="javascript" src="/static/jquery.json.min.js"></script>
+  <script language="javascript" src="/static/class.js"></script>  
+  <script language="javascript" src="/static/date.js"></script>
+  <script language="javascript" src="/static/bigint.js"></script>
+  <script language="javascript" src="/static/random.js"></script>
+  <script language="javascript" src="/static/crypto.js"></script>
+  <script language="javascript" src="/static/elgamal.js"></script>
+  <script language="javascript" src="/static/sha1.js"></script>
+  <script language="javascript" src="/static/helioslite.js"></script>
+  <script language="javascript" src="/static/cross-site-api.js"></script>
+
+<script language="javascript">
+
+function result_append(str) {
+    \$('#results').append(str).append("<br />");
+}
+
+function load_election_and_ballots(election_id) {
+    
+    // BALLOTS by voter key
+    ELECTION = null;
+    ELECTION_ID = election_id;
+    BALLOTS = {};
+    VOTER_LIST = [];
+    
+    // get the election data
+    Helios.get_election(election_id, function(election) {
+        ELECTION = election;
+        result_append("Election: " + election.name);
+        
+        // hash it
+        var election_hash = election.get_hash();
+        result_append("Fingerprint: " + election_hash);
+        
+        // get the voters
+        Helios.get_election_voters(election_id, function(voters) {
+            VOTER_LIST = voters;
+            \$(voters).each(function(v_num, v) {
+                // download each voter's data, stuffing into BALLOTS
+                Helios.get_election_voter(election_id, v.voter_id, function(voter) {
+                    BALLOTS[voter.voter_id] = HELIOS.EncryptedVote.fromJSONObject(voter.vote, ELECTION);
+                });
+            });
+        });
+    });
+}
+
+function verify_ballots_and_tally() {
+    // check that ballots are here
+    for (var i=0; i<VOTER_LIST.length; i++) {
+        if (BALLOTS[VOTER_LIST[i].voter_id] == null) {
+            alert('Not all ballots are in yet');
+            return;
+        }
+    }
+    
+    // initialize the tallies
+    TALLY = [];
+    \$(ELECTION.questions).each(function(qnum, q) {
+        TALLY[qnum] = \$(q.answers).map(function(anum, a) {
+            return 1;
+        });
+    });
+    
+    // 0 and 1 in exponential el-gamal form.
+    ZERO = new ElGamal.Plaintext(BigInt.fromJSONObject("1"), ELECTION.pk);
+    ONE = new ElGamal.Plaintext(ELECTION.pk.g, ELECTION.pk);
+    
+    // all ballots are here
+    \$(VOTER_LIST).each(function(vnum, voter) {
+        var ballot = BALLOTS[voter.voter_id];
+        var voter_hash = ballot.get_hash();
+        result_append("Voter - " + voter.name + " - " + voter_hash);
+        
+        // verify the ballot
+        \$(ballot.encrypted_answers).each(function(ea_num, enc_answer) {
+            var overall_result = 1;
+            \$(enc_answer.choices).each(function(choice_num, choice) {
+              var result = choice.verifyDisjunctiveProof([ZERO,ONE], enc_answer.individual_proofs[choice_num], ElGamal.disjunctive_challenge_generator);
+              result_append("voter " + vnum + ", ea " + ea_num + ", choice " + choice_num + " -- " + result);
+               
+               // keep track of tally
+               TALLY[ea_num][choice_num] = choice.multiply(TALLY[ea_num][choice_num]);
+               
+               // keep track of homomorphic product
+               overall_result = choice.multiply(overall_result);
+            });
+            
+            // check the proof on the overall product
+            var overall_check = overall_result.verifyProof(ONE, enc_answer.overall_proof);
+            result_append("voter " + vnum + ", ea " + ea_num + " OVERALL -- " + overall_check);            
+        });
+    });
+    
+    // now verify the tallies we computed
+    
+    // get the results
+    Helios.get_election_result(ELECTION_ID, function(results) {
+        // get the proof
+        Helios.get_election_result_proof(ELECTION_ID, function(results_proof) {
+            \$(TALLY).each(function(q_num, q) {
+                \$(q).each(function(a_num, a) {
+                    var plaintext = new ElGamal.Plaintext(ELECTION.pk.g.modPow(BigInt.fromInt(results[q_num][a_num]), ELECTION.pk.p), ELECTION.pk);
+                    var proof = ElGamal.Proof.fromJSONObject(results_proof[q_num][a_num]);
+                    var check = a.verifyDecryptionProof(plaintext, proof);
+                    result_append("Question #" + q_num + " / Answer #" + a_num + ": " + results[q_num][a_num] + " -- " + check);
+                });
+            });      
+        });
+    });
+}
+</script>
+</head>
+<body>
+<h1>Verifier</h1>
+
+<form onsubmit="load_election_and_ballots(this.election_id.value); return false;">
+    <input type="text" size="50" name="election_id" />
+    <input type="submit" value="go" />
+</form>
+
+<br /><br />
+<form onsubmit="setTimeout('verify_ballots_and_tally()', 100); return false;">
+    <input type="submit" value="Verify Ballots and Tally" />
+</form>
+
+<br /><br />
+<div id="results">
+</div>
+
+</body>
+</html>

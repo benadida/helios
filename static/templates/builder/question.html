@@ -1,0 +1,43 @@
+
+<p>
+<a href="javascript:BUILDER.show_election();">back to election</a>
+</p>
+
+{#if $T.question_num !== null}
+<h4>Question: {$T.question.short_name}</h4>
+{#else}
+<h4>New Question</h4>
+{#/if}
+
+<form class="prettyform" id="question_form" onsubmit="BUILDER.save_and_commit_question(); return false;">
+
+<input type="hidden" name="question_num" value="{#if $T.question_num !== null}{$T.question_num}{#/if}" />
+
+<label for="short_name">Short Name:</label>
+<input type="text" name="short_name" id="short_name" size="40" value="{$T.question.short_name}" /><br />
+
+<label for="question">Full Question:</label>
+<textarea name="question" id="question" cols="40" rows="3" wrap="soft">{$T.question.question}</textarea><br />
+
+<label for="max">Max # of Answers:</label>
+<input type="text" name="max" id="max" size="3" value="{$T.question.max || 1}" /><br />
+
+<label>Possible Answers:</label>
+<div id="answers">
+{#foreach $T.question.answers as answer}
+<input type="text" id="answer_{$T.answer$index}" name="answer_{$T.answer$index}" value="{$T.answer}" />
+[<a href="javascript:BUILDER.delete_answer({$T.answer$index});">X</a>]
+{#if $T.answer$index >= 1}[<a href="javascript:BUILDER.moveup_answer({$T.answer$index});">^</a>]{#/if}
+<br />
+{#else}
+<em>none</em>
+{#/for}
+
+<br /><a href="javascript:BUILDER.new_question_answer();">add answer</a>
+</div>
+<br />
+
+<label for="submit">&nbsp;</label>
+<input type="submit" value="{#if $T.question_num !== null}Update Question{#else}Add Question{#/if}" />
+
+</form>
