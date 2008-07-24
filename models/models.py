@@ -9,12 +9,9 @@ Ben Adida
 
 from base import utils
 from base.DBObject import DBObject
-import simplejson
-import algs
-import datetime
+import simplejson, datetime, logging
 
-import logging
-
+from crypto import algs
 
 from google.appengine.ext import db
 from google.appengine.api import users
@@ -34,6 +31,7 @@ class Election(DBObject):
   voting_ends_at = db.DateTimeProperty(auto_now_add=False)
 
   # encrypted tally, each a JSON string
+  # used only for homomorphic tallies
   encrypted_tally = db.TextProperty()
 
   # results of the election
@@ -42,6 +40,8 @@ class Election(DBObject):
   # decryption proof, a JSON object
   decryption_proof = db.TextProperty()
 
+  # type of election (homomorphic, mixnet, possibly with more detail)
+  election_type = db.StringProperty(multiline=False)
 
   # when JSON'ified
   JSON_FIELDS = ['name', 'pk', 'questions', 'voters_hash', 'voting_starts_at', 'voting_ends_at']

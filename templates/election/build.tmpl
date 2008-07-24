@@ -33,7 +33,7 @@
         // load the election JSON
 	\$.getJSON("/elections/$election.key()",
 	           function(data) {
-	  BUILDER.election = ELECTION.setup(data);
+	  BUILDER.election = HELIOS.Election.fromJSONObject(data);
 	  BUILDER.pk = BUILDER.election.pk;
 	  BUILDER.election.pk = null;
 

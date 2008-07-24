@@ -1,8 +1,8 @@
 #include "templates/booth-header.tmpl"
-<h1>Helios Voting Booth: $election.name<br />
-<span style="font-size: 0.5em;">Fingerprint: <span id="election_hash"></span></span>
-</h1>
-
+<div id="header">
+    <h1>Helios Voting Booth &mdash; $election.name</h1>
+    <h3>Fingerprint: <span id="election_hash"></h3>
+</div>
 
 <script language="javascript">
 // utils
@@ -59,7 +59,7 @@ BOOTH.setup_election = function(election, election_hash) {
 };
 
 BOOTH.show = function(el) {
-  \$('#content div').hide();
+  \$('#page div').hide();
   el.show();
   return el;
 };
@@ -166,18 +166,28 @@ BOOTH.send_ballot = function() {
 
     data['encrypted_vote'] = BOOTH.encrypted_ballot.toJSON();
 
-    \$.post("/elections/$election.key()/get_voter_by_email", {email: data['email']}, function(result) {
-        var voter_key = result;
+    \$.ajax({
+        type: "POST",
+        url: "/elections/$election.key()/get_voter_by_email",
+        data: {email: data['email']},
+        success: function(result) {
+            var voter_key = result;
 
-        // not the way to do an error, check this.
-        \$.post("/elections/$election.key()/voters/" + voter_key + "/submit", data , function(result) {
-            BOOTH.show(\$("#done_div")).processTemplate();
-            BOOTH.done_p = true;
-        }, function(error) {
-            alert('Your vote was not recorded properly. Check your email and password and try again.');
-        });
+            // not the way to do an error, check this.
+            \$.ajax({
+                type: "POST",
+                url: "/elections/$election.key()/voters/" + voter_key + "/submit",
+                data: data,
+                success: function(result) {
+                    BOOTH.show(\$("#done_div")).processTemplate();
+                    BOOTH.done_p = true;
+                },
+                error: function(xhr, status, error) {
+                    alert('Your vote was not recorded properly. Check your email and password and try again.');
+                }
+            });
+        }
     });
-    
 };
 
 BOOTH.show_receipt = function() {
@@ -189,7 +199,7 @@ BOOTH.show_receipt = function() {
 //};
 
 </script>
-<div id="content">
+<div id="page">
   <div class="entry" id="election_div" class="panel">
     Loading Election Booth...
   </div>

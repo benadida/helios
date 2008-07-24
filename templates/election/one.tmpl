@@ -1,9 +1,9 @@
 #include "templates/header.tmpl"
 <div class="post">
-  <h2 class="title">An Election: $election.name</h2>
-  <div class="entry">
+  <h2 class="title">$election.name</h2>
 
 #if $admin_p
+<div style="float:right; border-left: 1px dashed black; padding: 0px 20px 5px 20px;">
 <h3>Administration</h3>
 <ul>
 #if not $election.is_frozen()
@@ -16,9 +16,8 @@
 <li> <a href="decrypt_and_prove">decrypt and prove</a></li>
 #end if
 </ul>
+</div>
 #end if
-
-<h3>Public Election Information</h3>
 
 #if $election.is_frozen()
 
@@ -30,29 +29,7 @@ Election Fingerprint: <b><tt>$election.get_hash()</tt></b></p>
 <p><em>This election is not ready for voting yet. Stay tuned.</em></p>
 #end if
 
-<!--
-<h3>Election Auditing</h3>
-
-<ul>
-<li> <a href="/static/verification-programs/HeliosVerifyBallot.py.txt">Helios Ballot Verification Program</a><br />
-This is a Python program that you should run as follows:
-<pre>python HeliosVerifyBallot.py audit.txt</pre>
-where <tt>audit.txt</tt> is your saved audit information from the ballot casting process.
-</li>
-#if $election.is_frozen()
-<li> <a href="/static/verification-programs/HeliosVerifyElection.py.txt">Helios Election Verification Program</a><br />
-This is a Python program that you should run as follows:
-<pre>python HeliosVerifyElection.py $election.key()</pre>
-because <tt>$election.key()</tt> is the election ID number for this election.<br />
-Note that this audit will take some time!
-</li>
-#else
-<li> <em>election verification will be enabled when the election has fully run its course</em>.</li>
-#end if
-</ul>
-
--->
-
+<br clear="right" />
 #set $result = $election.get_result()
 #if $result
 <h3>Tally</h3>

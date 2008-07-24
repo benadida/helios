@@ -5,8 +5,8 @@
 <head>
   <META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=UTF-8" /> 
   <title>Helios Voting System</title>
-  <link rel="stylesheet" type="text/css" href="/static/css/pluralism/style.css" />
-  <link rel="stylesheet" type="text/css" href="/static/extras.css" />
+  <link rel="stylesheet" type="text/css" href="/static/main.css" />
+  <link rel="stylesheet" type="text/css" href="/static/forms.css" />
   <script language="javascript" src="/static/jquery-1.2.2.min.js"></script>
   <script language="javascript" src="/static/jquery-jtemplates.js"></script>
   <script language="javascript" src="/static/jquery.json.min.js"></script>
@@ -19,26 +19,9 @@
   <script language="javascript" src="/static/sha1.js"></script>
   <script language="javascript" src="/static/helioslite.js"></script>
 </head>
-<body>
-  <div id="wrapper">
-  	<div id="wrapper2">
-  		<div id="header">
-  			<div id="logo">
-  				<h1>Helios Voting</h1>
-  			</div>
-  			<div id="menu">
-  				<ul>
-  					<li><a href="/">Home</a></li>
-#set $user = session.get_session().get_user()
-#if $user
-  					<li><a href="/user/">User Home</a></li>
-#else
-  					<li><a href="/user/">Login/Register</a></li>
-#end if
-  					<li><a href="/about">About</a></li>
-  				</ul>
-  			</div>
-  		</div>
-  		<!-- end #header -->
-  		<div id="page">
-  			<div id="content">
+<body><div id="content"><div id="header">
+<h1>Helios Voting</h1>
+<h2>Elections <u>you</u> can audit</h2>
+</div>
+
+<div id="page">
