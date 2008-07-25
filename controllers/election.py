@@ -22,6 +22,9 @@ ELGAMAL_PARAMS.q = 8499485989097049796751979547804341696483536667566694251303960
 ELGAMAL_PARAMS.g = 68111451286792593845145063691659993410221812806874234365854504719057401858372594942893291581957322023471947260828209362467690671421429979048643907159864269436501403220400197614308904460547529574693875218662505553938682573554719632491024304637643868603338114042760529545510633271426088675581644231528918421974L
 
 class VoterController(REST.Resource):
+  """
+  A controller for voters within elections.
+  """
       
   # REST stuff
   def REST_instantiate(self, voter_id):
@@ -34,6 +37,9 @@ class VoterController(REST.Resource):
   @web
   @json
   def index(self, voter):
+    """
+    View a single voter's info as JSON.
+    """
     v_dict = voter.toJSONDict()
     v_dict['vote'] = voter.get_vote()
     return v_dict
@@ -41,6 +47,9 @@ class VoterController(REST.Resource):
   @web
   @json
   def list(self):
+    """
+    Output a JSON list of all voters for a given election.
+    """
     election = self.parent
     voters = election.get_voters()
     return [v.toJSONDict() for v in voters]
@@ -48,6 +57,9 @@ class VoterController(REST.Resource):
   @web
   @session.login_protect
   def delete(self, voter, email):
+    """
+    Remove a given voter from an election.
+    """
     user, election = ElectionController.check(self.parent)
 
     voter = do.Voter.selectByKeys({'election': election.key(), 'email' : email})
@@ -60,6 +72,9 @@ class VoterController(REST.Resource):
 
   @session.login_protect
   def add(self, email, name):
+    """
+    Add a new voter to an election.
+    """
     user, election = ElectionController.check(self.parent)
 
     v = do.Voter()
@@ -73,13 +88,19 @@ class VoterController(REST.Resource):
 
   @web
   def submit(self, voter, email, password, encrypted_vote):
+    """
+    A voter submits her encrypted vote.
+    """
     election = self.parent
 
+    # password check
     if not voter.password == password:
       raise cherrypy.HTTPError(403, "Bad Password")
 
+    # set in DB
     voter.set_encrypted_vote(encrypted_vote)
     
+    # send a confirmation email
     mail_body = """
 
 Your vote in the election %s was recorded.
@@ -97,18 +118,25 @@ The election fingerpring is:
 
     mail.simple_send([voter.name],[voter.email], "Helios", "system@heliosvoting.org", "your vote was recorded", mail_body)
 
-    logging.info("MAIL SENT: %s " % mail_body)
+    # logging.info("MAIL SENT: %s " % mail_body)
     
     return SUCCESS
 
   
 class ElectionController(REST.Resource):
+  """
+  A Controller for elections.
+  """
   REST_children = {'voters' : VoterController()}
   
   TEMPLATES_DIR = basic.HeliosController.TEMPLATES_DIR + 'election/'
   
   @classmethod
   def check(cls, election, allow_frozen=False, require_frozen=False):
+    """
+    An internal check that the user is allowed to administer this given election.
+    Optional parameters check the status of the election.
+    """
     user = session.get_session().get_user()
     if user != election.admin:
       raise cherrypy.HTTPRedirect('/')
@@ -131,6 +159,9 @@ class ElectionController(REST.Resource):
   
   @web
   def verifier(self):
+    """
+    The JavaScript election verifier code.
+    """
     return self.render('verifier')
     
   @web
@@ -146,25 +177,32 @@ class ElectionController(REST.Resource):
   @web
   @session.login_protect
   def new(self):
+    """
+    The form for creating a new election.
+    """
     return self.render('new')
 
   @web
   @session.login_protect
   def new_2(self, name, voting_starts_at, voting_ends_at):
+    """
+    Create the new election.
+    """
     election = do.Election()
 
     # hard-wire the type for now, we only have one type of election
     election.election_type = 'homomorphic'
     
+    # basic election parameters
     election.name = name
     election.admin = self.user()
-    
     election.voting_starts_at = utils.string_to_datetime(voting_starts_at)
     election.voting_ends_at = utils.string_to_datetime(voting_ends_at)
 
     # generate a keypair for this election
     keypair = ELGAMAL_PARAMS.generate_keypair()
 
+    # serialize the keys to JSON and store them
     election.public_key_json = simplejson.dumps(keypair.pk.to_dict())
     election.private_key_json = simplejson.dumps(keypair.sk.to_dict())
     
@@ -174,6 +212,9 @@ class ElectionController(REST.Resource):
 
   @web
   def view(self, election):
+    """
+    Human interface for viewing a given election.
+    """
     user = self.user()
     admin_p = user and (user == election.admin)
     return self.render('one')
@@ -181,6 +222,9 @@ class ElectionController(REST.Resource):
   @web
   @session.login_protect
   def voters_manage(self, election):
+    """
+    Manage voters for the given election.
+    """
     user, election = self.check(election)
     voters = election.get_voters()
     return self.render('voters')    
@@ -188,16 +232,25 @@ class ElectionController(REST.Resource):
   @web
   @json
   def result(self, election):
+    """
+    Machine-readable (JSON) election results.
+    """
     return election.get_result()
 
   @web
   @json
   def result_proof(self, election):
+    """
+    Machine-readable (JSON) election result proof.
+    """
     return election.get_result_proof()
   
   @web  
   @session.login_protect
   def build(self, election):
+    """
+    JavaScript human interface for building the election questions.
+    """
     user, election = self.check(election)
 
     return self.render('build')
@@ -205,6 +258,9 @@ class ElectionController(REST.Resource):
   @web
   @session.login_protect
   def save(self, election, election_json):
+    """
+    Save the election questions.
+    """
     user, election = self.check(election)
 
     election.save_dict(simplejson.loads(election_json))
@@ -213,17 +269,27 @@ class ElectionController(REST.Resource):
 
   @web
   def get_voter_by_email(self, election, email):
+    """
+    Look up the voter ID by email for given election.
+    """
     voter = do.Voter.selectByKeys({'election': election.key(), 'email' : email})
     return str(voter.key())
 
   @web
   @json
   def index(self, election):
+    """
+    Machine-readable (JSON) election information.
+    """
     return election.toJSONDict()
 
   @web
   @session.login_protect
   def freeze(self, election_id):
+    """
+    Form for freezing the election: no more changes to voter list or questions.
+    Ready for voting!
+    """
     user, election = self.check(election_id)
 
     return self.render('freeze')
@@ -231,6 +297,9 @@ class ElectionController(REST.Resource):
   @web
   @session.login_protect
   def freeze_2(self, election):
+    """
+    Freeze the election.
+    """
     user, election = self.check(election)
 
     election.freeze()
@@ -239,6 +308,9 @@ class ElectionController(REST.Resource):
     
   @web
   def vote(self, election):
+    """
+    JavaScript human UI for preparing a ballot.
+    """
     if not election.is_frozen():
       raise cherrypy.HTTPRedirect("/elections/%s/view" % election_id)
     return self.render('vote')
@@ -246,6 +318,9 @@ class ElectionController(REST.Resource):
   @web
   @session.login_protect
   def email_voters(self, election_id):
+    """
+    Form for emailing voters.
+    """
     user, election = self.check(election_id, True, True)
 
     return self.render('email_voters')
@@ -253,6 +328,9 @@ class ElectionController(REST.Resource):
   @web
   @session.login_protect
   def email_voters_2(self, election, introductory_message):
+    """
+    Send email to voters of an election.
+    """
     user, election = self.check(election, True, True)
 
     voters = election.get_voters()
@@ -279,44 +357,13 @@ Your password: %s
       mail.simple_send([voter.name],[voter.email],"Helios","system@heliosvoting.org","An Invitation to Vote in %s" % election.name, message)
 
     raise cherrypy.HTTPRedirect("/elections/%s/view" % election.election_id)
-
-  @web
-  def board(self, election_id):
-    election = do.Election.selectById(election_id)
-
-    if not election.is_frozen():
-      raise cherrypy.HTTPRedirect("/elections/%s" % election_id)
-
-    # Just a screen for searching
-
-    return self.render('board')
-
-  @web
-  def board_voter(self, election_id, voter_name):
-    election = do.Election.selectById(election_id)
-
-    if not election.is_frozen():
-      raise cherrypy.HTTPRedirect("/elections/%s" % election_id)
-
-    voter_name = utils.xss_strip_all_tags(voter_name)
-
-    questions = election.get_questions()
-
-    voter = do.Voter.selectByKeys({'election' : election, 'name' : voter_name})
-    encrypted_vote = voter.get_vote()
-
-    return self.render('board_voter')
   
-  @web
-  def votes(self, election_id, question_num):
-    election = do.Election.selectById(election_id)
-
-    voters =  election.get_votes(question_num)
-    return simplejson.dumps([v.toJSONDict() for v in voters])
-
   @web
   @session.login_protect
   def compute_tally(self, election):
+    """
+    Compute the election encrypted tally.
+    """
     user, election = self.check(election, True, True)
 
     election.tally()
@@ -326,6 +373,9 @@ Your password: %s
   @web
   @session.login_protect
   def decrypt_and_prove(self, election):
+    """
+    Decrypt and prove the tally.
+    """
     user, election = self.check(election, True, True)
 
     election.decrypt()

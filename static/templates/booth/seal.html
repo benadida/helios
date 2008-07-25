@@ -1,32 +1,21 @@
 
-<h3>Your sealed ballot</h3>
-
 <div style="float: right; background:#eee; margin-left: 20px; padding: 10px; border: 1px solid #ddd; width:300px;">
 <p>
-You can choose to audit your vote, which will show you how your options were encrypted. If you do so, you will then have to re-vote, since, in a secret ballot, you cannot obtain proof of how you voted.<br />
+You can choose to audit your vote, which will show you how your options were encrypted. You will then have to re-seal your ballot if you wish to cast it.<br /><br />
 <input type="button" value="audit" onclick="BOOTH.audit_ballot();" class="pretty" />
 </p>
-<!--
-<hr />
-<br />
-<p>
-However, since this is an online voting system, you can email a proof of your vote to your friends. After all, online voting systems are coercible, so why not make coercion as easy as clicking a button?<br />
-<button onclick="BOOTH.coerce_me();">Coerce Me!</button>
-</p>
--->
 </div>
 
 <p>
-Your vote has now been encrypted, and the fingerprint of your encrypted vote is:<br /><br />
+Your vote has now been encrypted. Your ballot fingerprint is:<br /><br />
 
-<b><tt>{$T.encrypted_vote_hash}</tt></b> [<a onclick="BOOTH.show_receipt(); return false;" href="#">Your Receipt</a>]
+<b><tt style="font-size: 16pt;">{$T.encrypted_vote_hash}</tt></b> [<a onclick="BOOTH.show_receipt(); return false;" href="#">Your Receipt</a>]
 <br />
 </p>
 
 <p>
 If you choose to cast the ballot, all plaintext information will be deleted from your browser's memory.
-Then, you will be prompted for your email and password.
 </p>
 
-<input type="button" value="cast" onclick="BOOTH.cast_ballot();" class="pretty" />
+<button onclick="BOOTH.cast_ballot();">Cast Ballot</button>
 

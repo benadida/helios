@@ -10,6 +10,9 @@ from base import REST, session, Controller, template
 import cherrypy, simplejson, time, logging
 
 class HeliosController(Controller):
+  """
+  Top-Level Helios controller
+  """
   TEMPLATES_DIR = ''
 
   @web

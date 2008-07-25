@@ -19,7 +19,7 @@ form.prettyform br {
     clear: left;
 }
 
-form.prettyform input, form.prettyform textarea{
+form.prettyform input, form.prettyform textarea, button {
     border: 1px solid black;
     margin: 5px;
     font-size: 16pt;
@@ -52,5 +52,9 @@ table.pretty th, td {
 
 #questions_div {
     font-size: 1.4em;
+}
+
+div.selected {
+  background: lightblue;
 }
 

@@ -3,7 +3,8 @@
 
 {#foreach $T.questions as question}
 <p>
-<b>{$T.question.short_name}</b>:
+<b>{$T.question$index + 1}. {$T.question.short_name}</b>:
+
 {#foreach $T.choices[$T.question$index] as choice}
 {$T.choice}{#if !$T.choice$last}, {#/if}
 {#/for}
@@ -12,4 +13,4 @@
 </p>
 {#/for}
 
-<input type="button" value="seal" class="prettyinput" onclick="BOOTH.seal_ballot();" />
+<button onclick="BOOTH.seal_ballot();">Seal Ballot</button>

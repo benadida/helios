@@ -186,6 +186,9 @@ BOOTH.send_ballot = function() {
                     alert('Your vote was not recorded properly. Check your email and password and try again.');
                 }
             });
+        },
+        error: function(xhr, status, error) {
+            alert('No such voter! Try again.');
         }
     });
 };

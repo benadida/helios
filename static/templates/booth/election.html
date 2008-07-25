@@ -1,13 +1,12 @@
 
-<p>
-The ballot is loaded and read to be filled out.
-</p>
-
 <div id="questions_div">
+Election Questions:
 <ol>
 {#foreach $T.election.questions as question}
 <li> <a onclick="BOOTH.show_question({$T.question$index}); return false;" href="#">{$T.question.short_name}</a></li>
 {#/for}
 </ol>
+
+<button onclick="BOOTH.show_question(0);">Start</button>
 </div>
 

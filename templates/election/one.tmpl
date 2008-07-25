@@ -2,19 +2,36 @@
 <div class="post">
   <h2 class="title">$election.name</h2>
 
+#set $result = $election.get_result()
+
 #if $admin_p
 <div style="float:right; border-left: 1px dashed black; padding: 0px 20px 5px 20px;">
 <h3>Administration</h3>
 <ul>
 #if not $election.is_frozen()
+<b>Election under Construction</b>
 <li> <a href="build">build this election</a></li>
-<li> <a href="voters_manage">manage voters</a></li>
-<li> <a href="freeze">freeze election</a></li>
+<li> <a href="voters_manage">manage voters</a></li><br />
+<li> <a href="freeze"><em>freeze</em> election and start voting.</a></li>
 #else
-<li> <a href="email_voters">email voters</a></li>
+#if not $election.encrypted_tally
+<b>Election in Progress</b>
 <li> <a href="compute_tally">compute tally</a></li>
+#end if
+
+#if $election.encrypted_tally and not $result
+<b>Election Done, Ready for Tally</b>
 <li> <a href="decrypt_and_prove">decrypt and prove</a></li>
 #end if
+
+#if $result
+<b>Election Done.</b>
+#end if
+
+#end if
+
+<br /><li> <a href="email_voters">email voters</a></li>
+
 </ul>
 </div>
 #end if
@@ -30,7 +47,6 @@ Election Fingerprint: <b><tt>$election.get_hash()</tt></b></p>
 #end if
 
 <br clear="right" />
-#set $result = $election.get_result()
 #if $result
 <h3>Tally</h3>
 #for $i in range(len($election.get_questions()))

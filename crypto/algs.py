@@ -144,6 +144,9 @@ class EGKeyPair:
       self.sk = EGSecretKey()
 
     def generate(self, p, g):
+      """
+      Generate an ElGamal keypair
+      """
       self.pk.g = g
       self.pk.p = p
       self.pk.q = (p-1)/2
@@ -180,21 +183,33 @@ class EGPublicKey:
         return ciphertext
 
     def encrypt_return_r(self, plaintext):
+        """
+        Encrypt a plaintext and return the randomness just generated and used.
+        """
         r = Utils.random_mpz_lt(self.q)
         ciphertext = self.encrypt_with_r(plaintext, r)
         
         return [ciphertext, r]
 
     def encrypt(self, plaintext):
+        """
+        Encrypt a plaintext, obscure the randomness.
+        """
         return self.encrypt_return_r(plaintext)[0]
           
     def to_dict(self):
+        """
+        Serialize to dictionary.
+        """
         return {'y' : str(self.y), 'p' : str(self.p), 'g' : str(self.g) , 'q' : str(self.q)}
 
     toJSONDict = to_dict
 
     @classmethod
     def from_dict(cls, d):
+        """
+        Deserialize from dictionary.
+        """
         pk = cls()
         pk.y = int(d['y'])
         pk.p = int(d['p'])
@@ -208,6 +223,9 @@ class EGSecretKey:
         self.pk = None
         
     def decrypt(self, ciphertext, decode_m=False):
+        """
+        Decrypt a ciphertext. Optional parameter decides whether to encode the message into the proper subgroup.
+        """
         m = (Utils.inverse(pow(ciphertext.alpha, self.x, self.pk.p), self.pk.p) * ciphertext.beta) % self.pk.p
 
         if decode_m:
@@ -287,6 +305,9 @@ class EGCiphertext:
         self.beta = beta
 
     def __mul__(self,other):
+        """
+        Homomorphic Multiplication of ciphertexts.
+        """
         if self.pk != other.pk:
             raise Exception('different PKs!')
         
@@ -311,14 +332,23 @@ class EGCiphertext:
         return new_c
     
     def reenc_return_r(self):
+        """
+        Reencryption with fresh randomness, which is returned.
+        """
         r = Utils.random_mpz_lt(self.pk.q)
         new_c = self.reenc_with_r(r)
         return [new_c, r]
     
     def reenc(self):
+        """
+        Reencryption with fresh randomness, which is kept obscured (unlikely to be useful.)
+        """
         return self.reenc_return_r()[0]
     
     def __eq__(self, other):
+      """
+      Check for ciphertext equality.
+      """
       if other == None:
         return False
         
@@ -419,102 +449,3 @@ def EG_disjunctive_challenge_generator(commitments):
   string_to_hash = ",".join(array_to_hash)
   return int(sha.new(string_to_hash).hexdigest(),16)
 
-##
-## DSA
-##
-      
-class DSAKeyPair:
-    def __init__(self, pk=None, sk=None):
-        self.pk = pk
-        self.sk = sk
-        
-    @classmethod
-    def generate(cls, p=None, q=None, z=None):
-        # parameters
-        if not p:
-            p, q, z = Utils.random_special_prime(256, 1024)
-        
-        # get the generator
-        while True:
-            h = Utils.random_mpz_lt(p)
-            g = pow(h,z,p)
-            if g > 1:
-                break
-        
-        # get a random x
-        x = Utils.random_mpz_lt(q)
-        y = pow(g,x,p)
-        
-        # put together the public key
-        pk = DSAPublicKey(p,q,g,y)
-        
-        # put together the secret key
-        sk = DSASecretKey(pk, x)
-        
-        return cls(pk,sk)
-        
-class DSASignature:
-  def __init__(self, r, s):
-    self.r = str(r)
-    self.s = str(s)
-  
-  def toDict(self):
-    return {'r':self.r,'s':self.s}
-    
-class DSAPublicKey:
-    def __init__(self, p, q, g, y):
-      self.p = p
-      self.q = q
-      self.g = g
-      self.y = y
-    
-    def verify(self, message, signature):
-      r = int(signature.r)
-      s = int(signature.s)
-      
-      if r<0 or r>self.q or s<0 or s>self.q:
-        return False
-      
-      w = Utils.inverse(s, self.q)
-      print "w is " + str(w)
-      hash = int(sha.new(message).hexdigest(),16)
-      print "hash is " + str(hash)
-      u1 = (hash * w) % self.q
-      print "u1 is " + str(u1)
-      u2 = (r * w) % self.q
-      print "u2 is " + str(u2)
-      v = ((pow(self.g, u1, self.p) * pow(self.y, u2, self.p)) % self.p) % self.q
-
-      print "v is " + str(v)
-      print "r is " + str(r)
-      
-      return v == r;
-      
-
-class DSASecretKey:
-    def __init__(self, pk, x):
-      self.pk = pk
-      self.x = x
-    
-    def sign(self, message):
-      k = Utils.random_mpz_lt(self.pk.q);
-      
-      print "signing message: " + repr(message)
-      
-      hash = int(sha.new(message).hexdigest(),16)
-      print "hash is " + str(hash)
-      r = pow(self.pk.g, k, self.pk.p) % self.pk.q
-      s = ((hash + (self.x * r)) * Utils.inverse(k, self.pk.q)) % self.pk.q
-
-      return DSASignature(r,s)
-      
-if __name__ == '__main__':
-  import utils
-  import messages
-  
-  vm = utils.JSONFiletoDict('voting-machine.js')
-  kp = messages.parse_DSA_keypair(vm['signing_keypair'])
-  sig = kp.sk.sign('foo')
-  verif = kp.pk.verify('foo',sig)
-  
-  print "restul is " + str(verif)

@@ -10,6 +10,7 @@ session.LOGIN_URL = '/user/'
 import cherrypy
 from controllers import *
 
+# mount points for various controllers
 root_controller = basic.HeliosController()
 root_controller.about = basic.AboutController()
 root_controller.user = user.UserController()

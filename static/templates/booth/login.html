@@ -1,16 +1,17 @@
 
-<h3>Submit your Cast Ballot</h3>
-
 <p>
-Your ballot has now been <b><em>cast</em></b> (think of it as "cast in stone"). In parallel, all plaintext information about your ballot has been removed from memory: all that remains is the encrypted vote.
+Your ballot has now been <b><em>cast</em></b>.<br />
+All plaintext information has been removed from memory: all that remains is the encrypted vote.
 </p>
 
 <p>
-Your encrypted vote fingerprint is: <b><tt>{$T.encrypted_vote_hash}</tt></b>
+Your encrypted vote fingerprint is:<br />
+<b><tt style="font-size: 16pt;">{$T.encrypted_vote_hash}</tt></b>
 </p>
 
 <p>
-Now, it's time to send your encrypted vote. We need your login information to ensure you are a registered voter for this election. (Notice how we didn't ask for this information until your ballot was encrypted and there is no plaintext information left.)
+To submit your encrypted vote, enter your login information below.<br />
+(Notice how we only ask for your login once your ballot plaintext has been discarded.)
 </p>
 
 <form onsubmit="BOOTH.send_ballot(); return false;" action="#" id="send_ballot_form" class="prettyform">
@@ -18,7 +19,7 @@ Now, it's time to send your encrypted vote. We need your login information to en
 <input type="text" name="email" size="40" /><br />
 <label for="password">Password:</label>
 <input type="password" name="password" size="40" /><br/>
-
+<label for="submit">&nbsp;</label>
 <input type="submit" value="send" class="pretty" />
 </form>
 
