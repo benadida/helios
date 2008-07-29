@@ -10,8 +10,11 @@ Random.GENERATOR = null;
 Random.setupGenerator = function() {
     if (Random.GENERATOR == null) {
 	    if (BigInt.use_applet) {
+	      var foo = BigInt.APPLET.newSecureRandom();
 	      Random.GENERATOR = BigInt.APPLET.newSecureRandom();
 	    } else {
+	      // we do it twice because of some weird bug;
+	      var foo = new java.security.SecureRandom();
 	      Random.GENERATOR = new java.security.SecureRandom();
 	    }
     }
