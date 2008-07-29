@@ -20,108 +20,24 @@ UTILS.array_remove_value = function(arr, val) {
   return new_arr;
 };
 
-// a function to encode all the answers in a bigint
-// the encoding is done with each possible answer as a single bit
-// the ordering of the bits is done so that the first candidate is in bit position 0,
-// etc... so the ealier the candidate is in the list, the less significant the bit.
-UTILS.answers_to_bigint = function(questions, answers) {
-    var result = BigInt.ZERO;
-    var count = 0;
-    $(questions).each(function(q_num, q) {
-	    $(q.answers).each(function(a_num, a) {
-	      // if we have this answer, then we set the bit to one
-	      if ($(answers[q_num]).index(a_num) > -1) {
-		      result = result.setBit(count);
-	      } else {
-		      result = result.clearBit(count);
-	      }
-
-	      // next bit position
-	      count += 1;
-	    });
-    });
-
-    return result;
+UTILS.select_element_content = function(element) {
+  if (window.getSelection) { // FF, Safari, Opera
+    var sel = window.getSelection();
+    var range = document.createRange();
+    range.selectNodeContents(element);
+    sel.removeAllRanges();
+    sel.addRange(range);
+  } else {
+    document.selection.empty();
+    var range = document.body.createTextRange();
+    range.moveToElementText(el);
+    range.select();    
+  }
 };
 
-UTILS.bigint_to_answers = function(questions, answer_bigint) {
-    // same loop, only we're reading the bit now
-    var count = 0;
-    answers = [];
-
-    $(questions).each(function(q_num, q) {
-	
-	    answers[q_num] = [];
-	
-	    $(q.answers).each(function(a_num, a) {
-	      // if bit is set, then that candidate is in the list
-	      if (answer_bigint.testBit(count))
-		      answers[q_num].push(a_num);
-
-	      // next bit position
-	      count += 1;
-	    });
-    });
-
-    return answers;
-};
-
-// single question
-UTILS.one_q_answers_to_bigint = function(question, answers) {
-    var result = BigInt.ZERO;
-    var count = 0;
-    $(question.answers).each(function(a_num, a) {
-	    // if we have this answer, then we set the bit to one
-	    if ($(answers).index(a_num) > -1) {
-	      result = result.setBit(count);
-	    } else {
-	      result = result.clearBit(count);
-	    }
-	
-	    // next bit position
-	    count += 1;
-    });
-
-    return result;
-};
-
-UTILS.bigint_to_one_q_answers = function(question, bigint) {
-    // same loop, only we're reading the bit now
-    var count = 0;
-    answers = [];
-
-    $(question.answers).each(function(a_num, a) {
-	    // if bit is set, then that candidate is in the list
-	    if (bigint.testBit(count))
-	      answers.push(a_num);
-	
-	    // next bit position
-	    count += 1;
-    });
-
-    return answers;
-};
-
-// hash a bunch of ciphertexts
-UTILS.hash_ciphertexts = function(ciphertext_list) {
-    var str_to_hash = "";
-    $(ciphertext_list).each(function(i, ciph) {
-	    if (str_to_hash != "")
-	      str_to_hash += ",";
-
-	    str_to_hash += ciph.toString();
-    });
-
-    return b64_sha1(str_to_hash);
-};
-
-UTILS.array_to_email_string = function(arr) {
-    var str = "";
-    for (var i=0; i<arr.length; i++) {
-	    str += arr[i] + "\n";
-    }
-    return str;
-};
+//
+// Helios Stuff
+//
 
 HELIOS = {}
 

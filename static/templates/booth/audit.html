@@ -9,14 +9,13 @@ You have chosen to audit your encrypted ballot.
 Here is the fully audited ballot information, which you can copy and paste.
 </p>
 
-<form>
-<textarea cols="70" rows="10" wrap="soft">
+<div id="audit_trail" style="width: 700px; height: 300px; overflow: auto; font-family: fixed-width; background:white; border: 1px solid #888;">
 {$T.audit_trail}
-</textarea>
-</form>
+</div>
 
 <p>
-    You can verify that this audit trail is correct using the <a target="_blank" href="/elections/single_ballot_verifier">Helios Ballot Verifier</a>.
+    Copy the content above (<a href="javascript:UTILS.select_element_content($('#audit_trail')[0]);">select it</a>).<br />
+    Visit the <a target="_blank" href="/elections/single_ballot_verifier">Helios Ballot Verifier</a> to ensure it was properly formed.
 </p>
 
 <input type="button" value="Go Back to Choices" onclick="BOOTH.show_confirm();" class="pretty" />
