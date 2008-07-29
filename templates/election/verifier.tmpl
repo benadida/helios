@@ -29,6 +29,7 @@ function load_election_and_ballots(election_id) {
     ELECTION = null;
     ELECTION_ID = election_id;
     BALLOTS = {};
+    BALLOTS_LOADED = {};
     VOTER_LIST = [];
     
     // get the election data
@@ -47,6 +48,7 @@ function load_election_and_ballots(election_id) {
                 // download each voter's data, stuffing into BALLOTS
                 Helios.get_election_voter(election_id, v.voter_id, function(voter) {
                     BALLOTS[voter.voter_id] = HELIOS.EncryptedVote.fromJSONObject(voter.vote, ELECTION);
+                    BALLOTS_LOADED[voter.voter_id] = true;
                 });
             });
             
@@ -65,8 +67,8 @@ function when_ready_verify_ballots_and_tally() {
 function verify_ballots_and_tally() {
     // check that ballots are here
     for (var i=0; i<VOTER_LIST.length; i++) {
-        if (BALLOTS[VOTER_LIST[i].voter_id] == null) {
-            //alert('Not all ballots are in yet');
+        if (BALLOTS_LOADED[VOTER_LIST[i].voter_id] == null) {
+            // not all ballots have been downloaded
             return false;
         }
     }
@@ -85,6 +87,13 @@ function verify_ballots_and_tally() {
     // all ballots are here
     \$(VOTER_LIST).each(function(vnum, voter) {
         var ballot = BALLOTS[voter.voter_id];
+        
+        // non-voter?
+        if (ballot == null) {
+            result_append("Voter - " + voter.name + " -- NO VOTE");
+            return;
+        }
+        
         var voter_hash = ballot.get_hash();
         result_append("Voter - " + voter.name + " - " + voter_hash);
         

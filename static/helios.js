@@ -380,6 +380,9 @@ HELIOS.EncryptedVote = Class.extend({
 });
 
 HELIOS.EncryptedVote.fromJSONObject = function(d, election) {
+  if (d == null)
+    return null;
+    
   var ev = new HELIOS.EncryptedVote();
   
   ev.encrypted_answers = $(d.answers).map(function(i, ea) {

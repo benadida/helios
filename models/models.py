@@ -179,6 +179,10 @@ class Election(DBObject):
       
       # verify the votes for this question
       for vote_num in range(len(votes)):
+        # non-vote? Keep going
+        if votes[vote_num] == None:
+          continue
+        
         # check election hash
         if votes[vote_num]['election_hash'] != election_hash:
           raise Exception('vote for wrong election')
@@ -222,7 +226,7 @@ class Election(DBObject):
         answer_tally = None
         
         # go through all votes, picking out the vote for that question and possible answer.
-        for vote in [v['answers'] for v in votes]:
+        for vote in [v['answers'] for v in [v for v in votes if v]]:
           # count it
           answer_ciphertext = algs.EGCiphertext.from_dict(vote[question_num]['choices'][answer_num])
           answer_ciphertext.pk = pk
@@ -348,7 +352,7 @@ class Voter(DBObject):
     return vote_hash
   
   def get_vote(self):
-    return simplejson.loads(self.vote)
+    return simplejson.loads(self.vote or "null")
     
   @classmethod
   def selectAllWithVote(cls, election, question_num):
