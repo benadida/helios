@@ -80,7 +80,7 @@ function verify_ballots_and_tally() {
     });
     
     var VALID_P = true;
-    pretty_result = function(result) {return result? "PASS" : "FAIL";};
+    pretty_result = function(result) {return result? "VERIFIED" : "FAIL";};
     
     // all ballots are here
     \$(VOTER_LIST).each(function(vnum, voter) {
@@ -110,6 +110,7 @@ function verify_ballots_and_tally() {
         // get the proof
         Helios.get_election_result_proof(ELECTION_ID, function(results_proof) {
             \$(TALLY).each(function(q_num, q) {
+                result_append("Question #" + q_num + ": " + ELECTION.questions[q_num].short_name);
                 \$(q).each(function(a_num, a) {
                     var plaintext = new ElGamal.Plaintext(ELECTION.pk.g.modPow(BigInt.fromInt(results[q_num][a_num]), ELECTION.pk.p), ELECTION.pk);
                     var proof = ElGamal.Proof.fromJSONObject(results_proof[q_num][a_num]);
@@ -117,13 +118,13 @@ function verify_ballots_and_tally() {
 
                     VALID_P = VALID_P && check;
                     
-                    result_append("Question #" + q_num + " / Answer #" + a_num + ": " + results[q_num][a_num] + " -- " + pretty_result(check));
+                    result_append("- " + ELECTION.questions[q_num].answers[a_num] + " - " + results[q_num][a_num] + " -- " + pretty_result(check));
                 });
                 
             });
 
             if (VALID_P)
-                result_append("ELECTION PASSED");
+                result_append("ELECTION VERIFIED!");
             else
                 result_append("ELECTION FAILED!");
             
