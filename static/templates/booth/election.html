@@ -1,12 +1,18 @@
 
 <div id="questions_div">
-Election Questions:
-<ol>
-{#foreach $T.election.questions as question}
-<li> <a onclick="BOOTH.show_question({$T.question$index}); return false;" href="#">{$T.question.short_name}</a></li>
-{#/for}
-</ol>
+<p>
+    Welcome to the <b>{$T.election.name}</b> election.
+</p>
 
-<button onclick="BOOTH.show_question(0);">Start</button>
+<p>
+    As you fill out your ballot over the next few screens, your ballot is kept inside your browser's memroy and never sent over the network. Once you seal and cast your ballot, the cleartext information is deleted, and only the encrypted ballot remains to be sent over the network for tallying.
+</p>
+
+<p>
+    You will only be asked for your email and password once your ballot is encrypted.
+</p>
+
+<br /><br />
+<div align="center"><button onclick="BOOTH.show_question(0);">Start</button></div>
 </div>
 

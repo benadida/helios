@@ -156,7 +156,7 @@ HELIOS.Election = Class.extend({
 });
 
 HELIOS.Election.fromJSONObject = function(d) {
-  el = new HELIOS.Election();
+  var el = new HELIOS.Election();
   el.election_id = d.election_id;
   el.name = d.name; el.voters_hash = d.voters_hash; el.voting_starts_at = d.voting_starts_at; el.voting_ends_at = d.voting_ends_at;
   el.questions = d.questions;

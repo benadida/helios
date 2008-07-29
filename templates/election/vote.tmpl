@@ -151,6 +151,9 @@ BOOTH.cast_ballot = function() {
     // at this point, we delete the plaintexts by resetting the ballot
     BOOTH.setup_ballot(BOOTH.election);
 
+    // clear the plaintext from the encrypted 
+    BOOTH.encrypted_ballot.clearPlaintexts();
+
     BOOTH.show(\$('#login_div')).processTemplate({'encrypted_vote_hash' : BOOTH.encrypted_ballot.get_hash()});
 };
 

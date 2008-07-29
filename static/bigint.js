@@ -79,7 +79,7 @@ BigInt = Class.extend({
 //
 BigInt._from_java_object = function(jo) {
   // bogus object
-  obj = new BigInt("0",10);
+  var obj = new BigInt("0",10);
   obj._java_bigint = jo;
   return obj;
 };
