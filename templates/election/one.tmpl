@@ -7,30 +7,39 @@
 #if $admin_p
 <div style="float:right; border-left: 1px dashed black; padding: 0px 20px 5px 20px;">
 <h3>Administration</h3>
-<ul>
 #if not $election.is_frozen()
 <b>Election under Construction</b>
+#else
+#if not $election.encrypted_tally
+<b>Election in Progress</b>
+#else
+#if not $result
+<b>Election Done, Ready for Tally</b>
+#else
+<b>Election Done</b>
+#end if
+#end if
+#end if
+
+<ul>
+#if not $election.is_frozen()
 <li> <a href="build">build this election</a></li>
 <li> <a href="voters_manage">manage voters</a></li><br />
 <li> <a href="freeze"><em>freeze</em> election and start voting.</a></li>
 #else
 #if not $election.encrypted_tally
-<b>Election in Progress</b>
 <li> <a href="compute_tally">compute tally</a></li>
 #end if
 
 #if $election.encrypted_tally and not $result
-<b>Election Done, Ready for Tally</b>
 <li> <a href="decrypt_and_prove">decrypt and prove</a></li>
 #end if
 
-#if $result
-<b>Election Done.</b>
 #end if
 
-#end if
-
+#if $election.is_frozen()
 <br /><li> <a href="email_voters">email voters</a></li>
+#end if
 
 </ul>
 </div>
@@ -38,17 +47,28 @@
 
 #if $election.is_frozen()
 
-<p>Election ID: <b><tt>$election.key()</tt></b><br />
-Election Fingerprint: <b><tt>$election.get_hash()</tt></b></p>
+<div id="election_info">
+<p>Election ID<br />
+<b><tt>$election.key()</tt></b><br /><br />
 
-<p><a target="_new" href="vote">Vote in this election</a></p>
+Election Fingerprint<br />
+<b><tt>$election.get_hash()</tt></b></p>
+</div>
+
+<p ><a style="font-size: 18pt;" target="_blank" href="vote">Vote in this election</a><br />
+#if $result
+(the tally has already been computed, but you can view the voting interface anyways.)
+#end if
+<br /><br />
+<a style="font-size: 14pt;" target="_blank" href="../single_ballot_verifier">Audit a Single Ballot</a><br />
+
 #else
 <p><em>This election is not ready for voting yet. Stay tuned.</em></p>
 #end if
 
 <br clear="right" />
 #if $result
-<h3>Tally</h3>
+<h2>Tally</h2>
 #for $i in range(len($election.get_questions()))
 #set $q = $election.get_questions()[$i]
 <b>$q.short_name</b>:

@@ -1,8 +1,4 @@
 
-<p>
-<a href="javascript:BUILDER.show_election();">back to election</a>
-</p>
-
 {#if $T.question_num !== null}
 <h4>Question: {$T.question.short_name}</h4>
 {#else}
@@ -30,10 +26,10 @@
 {#if $T.answer$index >= 1}[<a href="javascript:BUILDER.moveup_answer({$T.answer$index});">^</a>]{#/if}
 <br />
 {#else}
-<em>none</em>
+<em>none</em><br />
 {#/for}
 
-<br /><a href="javascript:BUILDER.new_question_answer();">add answer</a>
+<a href="javascript:BUILDER.new_question_answer();">add answer</a>
 </div>
 <br />
 
@@ -41,3 +37,4 @@
 <input type="submit" value="{#if $T.question_num !== null}Update Question{#else}Add Question{#/if}" />
 
 </form>
+<button onclick="BUILDER.show_election(); return false;">Back to Question List</button>

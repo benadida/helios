@@ -49,9 +49,9 @@ BOOTH.setup_ballot = function(election) {
   });
 };
 
-BOOTH.setup_election = function(election, election_hash) {
+BOOTH.setup_election = function(election) {
   BOOTH.election = HELIOS.Election.fromJSONObject(election);
-  BOOTH.election_hash = election_hash;
+  BOOTH.election_hash = BOOTH.election.get_hash();
 
   \$('#election_hash')[0].innerHTML = BOOTH.election_hash;
 
@@ -121,13 +121,10 @@ BOOTH.save_ballot_answer = function(question_num) {
 \$(document).ready(function () {
     BOOTH.setup_templates();
 
-    // first we get the raw data of the election to compute the hash
-    $.get("/elections/$election.election_id", function(data_str) {
-        var election_hash = b64_sha1(data_str);
-        \$.getJSON("/elections/$election.election_id", function(data) {
-            BOOTH.setup_election(data, election_hash);
-            BOOTH.show_election();
-        });
+    // the hash will be computed within the setup function call now
+    \$.getJSON("/elections/$election.election_id", function(data) {
+        BOOTH.setup_election(data);
+        BOOTH.show_election();
     });
 });  
 
@@ -141,7 +138,7 @@ BOOTH.show_confirm = function() {
 BOOTH.seal_ballot = function() {
     BOOTH.show(\$('#processing_div'));
     
-    BOOTH.encrypted_ballot = new HELIOS.EncryptedVote(BOOTH.election.questions, BOOTH.ballot.answers, BOOTH.election.pk);
+    BOOTH.encrypted_ballot = new HELIOS.EncryptedVote(BOOTH.election, BOOTH.ballot.answers);
     
     BOOTH.show(\$('#seal_div')).processTemplate({'encrypted_vote_hash' : BOOTH.encrypted_ballot.get_hash()});
 };

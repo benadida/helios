@@ -5,11 +5,12 @@ Ben Adida (ben@adida.net)
 """
 
 from base import *
-from base import REST, session, Controller, template
+from base import REST, session, Controller, template, mail
 from crypto import algs
 from models import models as do
 
-import cherrypy, simplejson, time, logging
+import cherrypy, time, logging
+from django.utils import simplejson
 
 from google.appengine.api import users
 
@@ -116,7 +117,7 @@ The election fingerpring is:
 -Helios
 """ % (election.name, voter.get_vote_hash(), election.get_hash())
 
-    mail.simple_send([voter.name],[voter.email], "Helios", "system@heliosvoting.org", "your vote was recorded", mail_body)
+    mail.simple_send([voter.name],[voter.email], "Helios", "ben@adida.net", "your vote was recorded", mail_body)
 
     # logging.info("MAIL SENT: %s " % mail_body)
     
@@ -164,6 +165,13 @@ class ElectionController(REST.Resource):
     """
     return self.render('verifier')
     
+  @web
+  def single_ballot_verifier(self):
+    """
+    The JavaScript election verifier code.
+    """
+    return self.render('single_ballot_verifier')
+
   @web
   def api(self):
     """
@@ -354,7 +362,7 @@ Your password: %s
 
       message = message_header + introductory_message + message_footer
 
-      mail.simple_send([voter.name],[voter.email],"Helios","system@heliosvoting.org","An Invitation to Vote in %s" % election.name, message)
+      mail.simple_send([voter.name],[voter.email],"Helios","ben@adida.net","An Invitation to Vote in %s" % election.name, message)
 
     raise cherrypy.HTTPRedirect("/elections/%s/view" % election.election_id)
   

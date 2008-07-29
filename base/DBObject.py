@@ -10,7 +10,7 @@ ben@adida.net
 
 import utils
 
-import simplejson
+from django.utils import simplejson
 import datetime
 
 from google.appengine.ext import db

@@ -26,6 +26,7 @@ form.prettyform input, form.prettyform textarea, button {
 }
 
 input.pretty {
+    font-size: 16pt;
     border: 1px solid black;
 }
 
@@ -45,9 +46,8 @@ table.pretty th, td {
 
 #answers {
     padding-left: 210px;
-    padding-top: 10px;
-    line-height: 1.8;
-    font-size: 1.4em;
+    padding-top: 0px;
+    margin-top: 0px;
 }
 
 #questions_div {

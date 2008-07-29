@@ -11,7 +11,7 @@ Ben Adida - ben@adida.net
 import urllib, re, sys, datetime, urlparse, string
 import cherrypy
 import threading
-import simplejson
+from django.utils import simplejson
 import random
 import htmlsanitizer, config
 import sha, hmac, base64

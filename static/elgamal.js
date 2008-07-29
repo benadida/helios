@@ -198,6 +198,10 @@ ElGamal.Ciphertext = Class.extend({
     $(proofs).each(function(p_num, proof) {sum = sum.add(proof.challenge).mod(self.pk.q);});
     
     return expected_challenge.equals(sum);    
+  },
+  
+  equals: function(other) {
+    return (this.alpha.equals(other.alpha) && this.beta.equals(other.beta));
   }
 });
 

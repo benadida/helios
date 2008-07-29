@@ -4,7 +4,7 @@
 #
 
 root = '.'
-webroot = 'http://localhost:8080'
+webroot = 'http://new.heliosvoting.org'
 
 #
 # Debugging

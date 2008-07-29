@@ -12,10 +12,9 @@
   <script language="javascript" src="/static/date.js"></script>
   <script language="javascript" src="/static/bigint.js"></script>
   <script language="javascript" src="/static/random.js"></script>
-  <script language="javascript" src="/static/crypto.js"></script>
   <script language="javascript" src="/static/elgamal.js"></script>
   <script language="javascript" src="/static/sha1.js"></script>
-  <script language="javascript" src="/static/helioslite.js"></script>
+  <script language="javascript" src="/static/helios.js"></script>
   <script language="javascript" src="/static/cross-site-api.js"></script>
 
 <script language="javascript">
@@ -80,10 +79,6 @@ function verify_ballots_and_tally() {
         });
     });
     
-    // 0 and 1 in exponential el-gamal form.
-    ZERO = new ElGamal.Plaintext(BigInt.fromJSONObject("1"), ELECTION.pk);
-    ONE = new ElGamal.Plaintext(ELECTION.pk.g, ELECTION.pk);
-    
     var VALID_P = true;
     pretty_result = function(result) {return result? "PASS" : "FAIL";};
     
@@ -94,26 +89,18 @@ function verify_ballots_and_tally() {
         result_append("Voter - " + voter.name + " - " + voter_hash);
         
         // verify the ballot
-        \$(ballot.encrypted_answers).each(function(ea_num, enc_answer) {
-            var overall_result = 1;
-            \$(enc_answer.choices).each(function(choice_num, choice) {
-              var result = choice.verifyDisjunctiveProof([ZERO,ONE], enc_answer.individual_proofs[choice_num], ElGamal.disjunctive_challenge_generator);
-              result_append("voter " + vnum + ", ea " + ea_num + ", choice " + choice_num + " -- " + pretty_result(result));
-              
-              VALID_P = VALID_P && result;
-               
-              // keep track of tally
-              TALLY[ea_num][choice_num] = choice.multiply(TALLY[ea_num][choice_num]);
-               
-              // keep track of homomorphic product
-              overall_result = choice.multiply(overall_result);
-            });
-            
-            // check the proof on the overall product
-            var overall_check = overall_result.verifyProof(ONE, enc_answer.overall_proof);
-            VALID_P = VALID_P && overall_check;
-            result_append("voter " + vnum + ", ea " + ea_num + " OVERALL -- " + pretty_result(overall_check));
+        var this_vote_result = ballot.verifyProofs(ELECTION.pk, function(answer_num, choice_num, result, choice) {
+            if (choice_num != null) {
+                // keep track of tally
+                TALLY[answer_num][choice_num] = choice.multiply(TALLY[answer_num][choice_num]);
+
+                result_append("voter " + vnum + ", ea " + answer_num + ", choice " + choice_num + " -- " + pretty_result(result));                            
+            } else {
+                result_append("voter " + vnum + ", ea " + answer_num + " OVERALL -- " + pretty_result(result));            
+            }
         });
+        
+        VALID_P = VALID_P && this_vote_result;        
     });
     
     // now verify the tallies we computed

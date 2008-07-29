@@ -9,7 +9,8 @@ from base import REST, session, Controller, template
 from crypto import algs
 from models import models as do
 
-import cherrypy, simplejson, time, logging
+import cherrypy, time, logging
+from django.utils import simplejson
 
 from google.appengine.api import users
 

@@ -7,7 +7,8 @@ Ben Adida (ben@adida.net)
 from base import *
 from base import REST, session, Controller, template
 
-import cherrypy, simplejson, time, logging
+import cherrypy, time, logging
+from django.utils import simplejson
 
 class HeliosController(Controller):
   """

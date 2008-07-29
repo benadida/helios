@@ -12,10 +12,19 @@
 
 BigInt = Class.extend({
   init: function(value, radix) {
+    if (value == null) {
+      debugger;
+      throw "null value!";
+    }
+      
     if (BigInt.use_applet) {
       this._java_bigint = BigInt.APPLET.newBigInteger(value, radix);
     } else {
-      this._java_bigint = new java.math.BigInteger(value, radix);
+      try {
+        this._java_bigint = new java.math.BigInteger(value, radix);
+      } catch (e) {
+        alert("oy " + e.toString() + " value=" + value + " , radix=" + radix);
+      }
     }
   },
   

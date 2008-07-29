@@ -2,7 +2,8 @@
 The stuff for the base package
 """
 
-import cherrypy, simplejson
+import cherrypy
+from django.utils import simplejson
 import session
 import sys, traceback
 

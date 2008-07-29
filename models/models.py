@@ -9,7 +9,8 @@ Ben Adida
 
 from base import utils
 from base.DBObject import DBObject
-import simplejson, datetime, logging
+from django.utils import simplejson
+import datetime, logging
 
 from crypto import algs
 
@@ -44,7 +45,7 @@ class Election(DBObject):
   election_type = db.StringProperty(multiline=False)
 
   # when JSON'ified
-  JSON_FIELDS = ['name', 'pk', 'questions', 'voters_hash', 'voting_starts_at', 'voting_ends_at']
+  JSON_FIELDS = ['election_id', 'name', 'pk', 'questions', 'voters_hash', 'voting_starts_at', 'voting_ends_at']
   
   election_id = property(DBObject.get_id)
   
@@ -60,6 +61,7 @@ class Election(DBObject):
 
   def get_hash(self):
     str_val = simplejson.dumps(self.toJSONDict(), sort_keys=True)
+    logging.info("election string to hash is " + str_val)
     return utils.hash_b64(str_val)
 
   def save_questions(self, questions):
@@ -161,6 +163,8 @@ class Election(DBObject):
     
     pk = self.get_pk()
     
+    election_hash = self.get_hash()
+    
     # go through all of the questions
     questions = self.get_questions()
     num_questions = len(questions)
@@ -175,7 +179,11 @@ class Election(DBObject):
       
       # verify the votes for this question
       for vote_num in range(len(votes)):
-        vote = votes[vote_num]
+        # check election hash
+        if votes[vote_num]['election_hash'] != election_hash:
+          raise Exception('vote for wrong election')
+          
+        vote = votes[vote_num]['answers']
         # verify that the vote is good
         individual_proofs = vote[question_num]['individual_proofs']
         overall_proof = vote[question_num]['overall_proof']
@@ -214,7 +222,7 @@ class Election(DBObject):
         answer_tally = None
         
         # go through all votes, picking out the vote for that question and possible answer.
-        for vote in votes:
+        for vote in [v['answers'] for v in votes]:
           # count it
           answer_ciphertext = algs.EGCiphertext.from_dict(vote[question_num]['choices'][answer_num])
           answer_ciphertext.pk = pk

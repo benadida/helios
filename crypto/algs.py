@@ -9,19 +9,17 @@ ben@adida.net
 
 import math, sha, logging
 from random import randrange
+from base import randpool, number
 
 import numtheory
 
 # some utilities
 class Utils:
-    #RAND = randpool.RandomPool()
-    #FIXME
-    RAND = None
+    RAND = randpool.RandomPool()
     
     @classmethod
     def random_seed(cls, data):
-        pass
-        #cls.RAND.add_event(data)
+        cls.RAND.add_event(data)
     
     @classmethod
     def random_mpz(cls, n_bits):
@@ -29,31 +27,24 @@ class Utils:
         high = low * 2
         
         # increment and find a prime
-        return randrange(low, high)
+        # return randrange(low, high)
 
-        #return number.getRandomNumber(n_bits, cls.RAND.get_bytes)
+        return number.getRandomNumber(n_bits, cls.RAND.get_bytes)
     
     @classmethod
     def random_mpz_lt(cls, max):
-        return randrange(0, max)
-        # n_bits = int(math.floor(math.log(max, 2)))
-        # return (number.getRandomNumber(n_bits, cls.RAND.get_bytes) % max)
+        # return randrange(0, max)
+        n_bits = int(math.floor(math.log(max, 2)))
+        return (number.getRandomNumber(n_bits, cls.RAND.get_bytes) % max)
     
     @classmethod
     def random_prime(cls, n_bits):
-        low = 2**(n_bits-1)
-        high = low * 2
-        
-        # increment and find a prime
-        n = randrange(low, high)
-        if n%2 == 0: n += 1
-        while not cls.is_prime(n): n += 2
-        return n
-        #return number.getPrime(n_bits, cls.RAND.get_bytes)
+        return number.getPrime(n_bits, cls.RAND.get_bytes)
     
     @classmethod
     def is_prime(cls, mpz):
-        return numtheory.miller_rabin(mpz)
+        #return numtheory.miller_rabin(mpz)
+        return number.isPrime(mpz)
 
     @classmethod
     def xgcd(cls, a, b):
@@ -70,7 +61,8 @@ class Utils:
 
     @classmethod
     def inverse(cls, mpz, mod):
-        return cls.xgcd(mpz,mod)[0]
+        # return cls.xgcd(mpz,mod)[0]
+        return number.inverse(mpz, mod)
   
     @classmethod
     def random_safe_prime(cls, n_bits):

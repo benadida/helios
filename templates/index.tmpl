@@ -1,13 +1,23 @@
 #include "templates/header.tmpl"
 #from base import session
 
-<p>
+<div style="float:right;">
+    <img style="width: 400px; border:3px solid black; margin-left: 20px;" src="/static/transparentballotbox.jpg" />
+</div>
+
+<p style="font-size: 16pt;">
 If my vote is supposed to stay secret, how can I verify that it was counted correctly?
 </p>
 
 <p>
-The Helios Voting System implements advanced cryptographic techniques to maintain ballot secrecy while providing a mathematical proof that the election tally was correctly computed. We call this an <em>open-audit election</em>, because you or anyone else can audit it.
+The Helios Voting System implements advanced cryptographic techniques to maintain ballot secrecy while providing a mathematical proof that the election tally was correctly computed.
 </p>
+
+<p>
+    We call this an <em>open-audit election</em>,<br />because you or anyone else can audit it.
+</p>
+
+<br clear="right" /><br />
 
 <div style="text-align:center; font-size: 20pt;">
 <a href="/elections/new">Create an Open-Audit Election</a>
@@ -18,6 +28,8 @@ The Helios Voting System implements advanced cryptographic techniques to maintai
 #set $user = session.get_session().get_user()
 #if $user
     <a href="/user/">User Home</a>
+#else
+    <a href="/user/">Login/Register</a>
 #end if
 </p>
 

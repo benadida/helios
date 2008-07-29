@@ -11,7 +11,7 @@ function parse_date(text_el, output_el, name) {
 		output_el.text(date.toString());
 		checks[name] = true;
 	} else {
-		output_el.text('** bad date **');
+		output_el.text('-- enter a date in natural form, e.g. "next tuesday at 5pm" --');
 		checks[name] = false;
 	}	
 }
