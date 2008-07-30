@@ -110,12 +110,10 @@ class VoterController(REST.Resource):
 
 Your vote in the election %s was recorded.
 
-The encryption fingerpring for your vote is:
-
+The encryption fingerprint for your vote is:
 %s
 
-The election fingerpring is:
-
+The election fingerprint is:
 %s
 
 -Helios
