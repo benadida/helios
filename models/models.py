@@ -36,6 +36,7 @@ class Election(DBObject):
   encrypted_tally = db.TextProperty()
 
   # results of the election
+  running_tally = db.TextProperty()
   result_json = db.TextProperty()
 
   # decryption proof, a JSON object
@@ -152,6 +153,56 @@ class Election(DBObject):
       return ", ".join(pretty_answer_list)
       
     return self.decoded_answers(question, plaintext, prettify_answer_list)
+    
+  def set_running_tally(self, running_tally):
+    self.running_tally = simplejson.dumps([[c.toJSONDict() for c in q] for q in running_tally])
+    
+  def get_running_tally(self):
+    running_tally = simplejson.loads(self.running_tally or "null")
+    if running_tally:
+      return [[algs.EGCiphertext.from_dict(d) for d in q] for q in running_tally]
+    else:
+      return None
+        
+  def get_first_uncounted_vote(self):
+    """
+    Return the voter that hasn't been counted yet, in order of cast_id
+    """
+    query = Voter.all().filter('election = ', self)
+    query.filter('tallied_at = ', None).filter('cast_id > ', None)
+    query.order('cast_id')
+    
+    return query.get()
+    
+  def tally_chunk(self):
+    """
+    Do one chunk of the tally
+    """
+    running_tally = self.get_running_tally()
+    first_uncounted_vote = self.get_first_uncounted_vote()
+
+    # no further uncounted vote
+    if first_uncounted_vote == None:
+      self.encrypted_tally = self.running_tally
+      self.save()
+      return None
+
+    # load up some important variables
+    pk = self.get_pk()
+    questions = self.get_questions()
+    num_questions = len(questions)
+    election_hash = self.get_hash()
+
+    # no running tally, set it up
+    if running_tally == None:
+      running_tally = [[1 for a in q['answers']] for q in questions]
+    
+    # check the vote and tally it
+    new_running_tally = first_uncounted_vote.verifyProofsAndTally(self, running_tally)
+    self.set_running_tally(new_running_tally)
+    self.save()
+    
+    return new_running_tally
 
   def tally(self):
     """
@@ -321,6 +372,10 @@ class Voter(DBObject):
   email = db.StringProperty(multiline=False)
   name = db.StringProperty(multiline=False)
   password = db.StringProperty(multiline=False)
+
+  # an identifier of when the vote was cast
+  cast_id = db.StringProperty()
+  tallied_at = db.DateTimeProperty(auto_now_add=False, default=None)
   
   # each answer to a question is a JSON string
   vote = db.TextProperty()
@@ -328,7 +383,7 @@ class Voter(DBObject):
   
   JSON_FIELDS = ['voter_id','name', 'email']
   voter_id = property(DBObject.get_id)
-
+  
   def save(self):
     if not self.is_saved():
       # add an election exponent
@@ -342,6 +397,7 @@ class Voter(DBObject):
   def set_encrypted_vote(self, votes_json_string):
     self.vote = db.Text(votes_json_string)
     self.vote_hash = self.compute_vote_hash()
+    self.cast_id = str(datetime.datetime.utcnow()) + str(self.key())
     self.save()
 
   def get_vote_hash(self):
@@ -353,6 +409,79 @@ class Voter(DBObject):
   
   def get_vote(self):
     return simplejson.loads(self.vote or "null")
+    
+  def verifyProofsAndTally(self, election, running_tally):
+    # copy the tally array
+    new_running_tally = [[a for a in q] for q in running_tally]
+    
+    vote = self.get_vote()
+    
+    # load up some important variables
+    pk = election.get_pk()
+    questions = election.get_questions()
+    num_questions = len(questions)
+    election_hash = election.get_hash()
+    
+    # check election hash
+    if vote['election_hash'] != election_hash:
+      raise Exception('vote for wrong election')
+      
+    ballot = vote['answers']
+
+    # possible plaintexts
+    possible_plaintexts = [algs.EGPlaintext(1, pk), algs.EGPlaintext(pk.g, pk)]
+    
+    # verify the vote
+    for question_num in range(num_questions):
+      question = questions[question_num]
+      num_answers = len(question['answers'])
+
+      # proofs
+      individual_proofs = ballot[question_num]['individual_proofs']
+      overall_proof = ballot[question_num]['overall_proof']
+
+      # correct num of proofs
+      if len(individual_proofs) != num_answers:
+        raise Exception('not the right number of proofs')
+    
+      homomorphic_sum = 1
+    
+      # check the individual proofs for each option of that question
+      for answer_num in range(num_answers):
+        # check the disjunctive proof
+        ciphertext = algs.EGCiphertext.from_dict(ballot[question_num]['choices'][answer_num])
+        ciphertext.pk = pk
+
+        proofs = [algs.EGZKProof.from_dict(p) for p in individual_proofs[answer_num]]
+      
+        if not ciphertext.verify_disjunctive_encryption_proof(possible_plaintexts, proofs, algs.EG_disjunctive_challenge_generator):
+          raise Exception("Question #%s, Answer #%s don't work" % (question_num, answer_num))
+        
+        # compute the homomorphic sum of all the answers
+        homomorphic_sum = ciphertext * homomorphic_sum
+
+      # check the overall proof by homomorphic combination
+      if not homomorphic_sum.verify_encryption_proof(possible_plaintexts[1], algs.EGZKProof.from_dict(ballot[question_num]['overall_proof'])):
+        raise Exception("Overall proof for Question #%s doesn't work" % question_num)
+      
+    # now that the vote is verified, let's add it to the running tally
+    for question_num in range(num_questions):
+      question = questions[question_num]
+      num_answers = len(question['answers'])
+      
+      for answer_num in range(num_answers):
+        # count it
+        answer_ciphertext = algs.EGCiphertext.from_dict(ballot[question_num]['choices'][answer_num])
+        answer_ciphertext.pk = pk
+        running_tally[question_num][answer_num].pk = pk
+      
+        new_running_tally[question_num][answer_num] = answer_ciphertext * running_tally[question_num][answer_num]
+    
+    self.tallied_at = datetime.datetime.utcnow()
+    self.save()
+    
+    return new_running_tally
+    
     
   @classmethod
   def selectAllWithVote(cls, election, question_num):

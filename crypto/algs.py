@@ -300,6 +300,9 @@ class EGCiphertext:
         """
         Homomorphic Multiplication of ciphertexts.
         """
+        if type(other) == int and other == 1:
+          return self
+          
         if self.pk != other.pk:
             raise Exception('different PKs!')
         

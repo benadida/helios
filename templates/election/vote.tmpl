@@ -167,25 +167,32 @@ BOOTH.send_ballot = function() {
     data['encrypted_vote'] = BOOTH.encrypted_ballot.toJSON();
 
     \$.ajax({
-        type: "POST",
+        type: "GET",
         url: "/elections/$election.key()/get_voter_by_email",
         data: {email: data['email']},
         success: function(result) {
-            var voter_key = result;
+            var voter = jQuery.secureEvalJSON(result);
 
-            // not the way to do an error, check this.
-            \$.ajax({
-                type: "POST",
-                url: "/elections/$election.key()/voters/" + voter_key + "/submit",
-                data: data,
-                success: function(result) {
-                    BOOTH.show(\$("#done_div")).processTemplate();
-                    BOOTH.done_p = true;
-                },
-                error: function(xhr, status, error) {
-                    alert('Your vote was not recorded properly. Check your email and password and try again.');
-                }
-            });
+            var submit_vote_p = true;
+            if (voter.vote != null) {
+                submit_vote_p = confirm('You have already submitted a vote. Would you like to override it?');
+            }
+            
+            if (submit_vote_p) {
+                // not the way to do an error, check this.
+                \$.ajax({
+                    type: "POST",
+                    url: "/elections/$election.key()/voters/" + voter.voter_id + "/submit",
+                    data: data,
+                    success: function(result) {
+                        BOOTH.show(\$("#done_div")).processTemplate();
+                        BOOTH.done_p = true;
+                    },
+                    error: function(xhr, status, error) {
+                        alert('Your vote was not recorded properly.\n\nYour email and password may be incorrect.\n\nAlternatively, the election may be already tabulated.');
+                    }
+                });
+            }
         },
         error: function(xhr, status, error) {
             alert('No such voter! Try again.');

@@ -94,6 +94,10 @@ class VoterController(REST.Resource):
     """
     election = self.parent
 
+    # if election has results already
+    if election.encrypted_tally:
+      raise cherrypy.HTTPError(500, "Tally Already Computed")
+    
     # password check
     if not voter.password == password:
       raise cherrypy.HTTPError(403, "Bad Password")
@@ -235,7 +239,7 @@ class ElectionController(REST.Resource):
     """
     user, election = self.check(election)
     voters = election.get_voters()
-    return self.render('voters')    
+    return self.render('voters')
 
   @web
   @json
@@ -281,7 +285,7 @@ class ElectionController(REST.Resource):
     Look up the voter ID by email for given election.
     """
     voter = do.Voter.selectByKeys({'election': election.key(), 'email' : email})
-    return str(voter.key())
+    self.redirect("voters/%s" % voter.key())
 
   @web
   @json
@@ -377,6 +381,19 @@ Your password: %s
     election.tally()
     
     raise cherrypy.HTTPRedirect('/elections/%s/view' % election.key())
+    
+  @web
+  @session.login_protect
+  @json
+  def compute_tally_chunk(self, election):
+    """
+    Compute a small chunk of the tally, because GAE is not so good with long requests
+    """
+    user, election = self.check(election, True, True)
+    
+    election.tally_chunk()
+    
+    return True
     
   @web
   @session.login_protect
