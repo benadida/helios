@@ -324,8 +324,21 @@ class ElectionController(REST.Resource):
     JavaScript human UI for preparing a ballot.
     """
     if not election.is_frozen():
-      raise cherrypy.HTTPRedirect("/elections/%s/view" % election_id)
+      self.redirect("./view")
     return self.render('vote')
+    
+  @web
+  def bboard(self, election):
+    """
+    Display a list of encrypted votes
+    """
+    if not election.is_frozen():
+      self.redirect("./view")
+      
+    # load all voters
+    voters = election.get_voters()
+    
+    return self.render('bboard')
 
   @web
   @session.login_protect

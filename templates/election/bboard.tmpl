@@ -1,0 +1,11 @@
+#include "templates/header.tmpl"
+  <h2 class="title">$election.name &mdash; Bulletin Board <span style="font-size:0.7em;">[<a href="./view">done</a>]</span></h2>
+
+<table class="pretty">
+<tr><th>Name</th><th>Ballot Fingerprint</th></tr>
+#for $voter in $voters
+<tr><td>$voter.name</td><td><tt style="font-size: 16pt;">$voter.vote_hash</tt></td></tr>
+#end for
+</table>
+
+#include "templates/footer.tmpl"
