@@ -6,18 +6,19 @@
   </p>
   
   <p align="center" style="font-size:16pt;">
-      <span id="num_votes"></span> tallied.
+      <span id="num_votes">0</span> tallied.
   </p>
   
 <script>
 NUM_VOTES = 0;
 var do_next_chunk = function() {
   \$.post("./compute_tally_chunk", function(result) {
-      NUM_VOTES += 1;
-      \$('#num_votes').innerHTML = NUM_VOTES;
      if (result == "DONE") {
         alert('done!');
+        document.location = "./view";
     } else {
+        NUM_VOTES += 1;
+        \$('#num_votes').html(NUM_VOTES);
         do_next_chunk();
     }
   });

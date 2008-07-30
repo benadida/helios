@@ -175,8 +175,9 @@ class Election(DBObject):
     return query.get()
     
   def reset_running_tally(self):
-    self.results_json = None
     self.running_tally = None
+    self.encrypted_tally = None
+    self.result_json = None
     self.save()
     
     for v in self.get_voters():
