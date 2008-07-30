@@ -174,6 +174,15 @@ class Election(DBObject):
     
     return query.get()
     
+  def reset_running_tally(self):
+    self.results_json = None
+    self.running_tally = None
+    self.save()
+    
+    for v in self.get_voters():
+      v.tallied_at = None
+      v.save()    
+    
   def tally_chunk(self):
     """
     Do one chunk of the tally
@@ -181,6 +190,10 @@ class Election(DBObject):
     running_tally = self.get_running_tally()
     first_uncounted_vote = self.get_first_uncounted_vote()
 
+    # are we done?
+    if self.encrypted_tally != None:
+      return None
+      
     # no further uncounted vote
     if first_uncounted_vote == None:
       self.encrypted_tally = self.running_tally
@@ -473,7 +486,9 @@ class Voter(DBObject):
         # count it
         answer_ciphertext = algs.EGCiphertext.from_dict(ballot[question_num]['choices'][answer_num])
         answer_ciphertext.pk = pk
-        running_tally[question_num][answer_num].pk = pk
+        
+        if type(running_tally[question_num][answer_num]) != int:
+          running_tally[question_num][answer_num].pk = pk
       
         new_running_tally[question_num][answer_num] = answer_ciphertext * running_tally[question_num][answer_num]
     

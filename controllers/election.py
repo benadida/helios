@@ -380,20 +380,28 @@ Your password: %s
 
     election.tally()
     
-    raise cherrypy.HTTPRedirect('/elections/%s/view' % election.key())
+    self.redirect('/elections/%s/view' % election.key())
     
   @web
   @session.login_protect
-  @json
+  def drive_tally_chunk(self, election):
+    """
+    JavaScript-based driver for tallying by chunks
+    """
+    return self.render('drive_tally_chunk')
+
+  @web
+  @session.login_protect
   def compute_tally_chunk(self, election):
     """
     Compute a small chunk of the tally, because GAE is not so good with long requests
     """
     user, election = self.check(election, True, True)
     
-    election.tally_chunk()
-    
-    return True
+    if election.tally_chunk():
+      return "CONTINUE"
+    else:
+      return "DONE"
     
   @web
   @session.login_protect

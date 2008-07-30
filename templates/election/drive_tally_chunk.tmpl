@@ -1,0 +1,29 @@
+#include "templates/header.tmpl"
+  <h2 class="title">$election.name -- Drive Tally</h2>
+
+  <p>
+      This page will drive the tallying process in chunks, from JavaScript.
+  </p>
+  
+  <p align="center" style="font-size:16pt;">
+      <span id="num_votes"></span> tallied.
+  </p>
+  
+<script>
+NUM_VOTES = 0;
+var do_next_chunk = function() {
+  \$.post("./compute_tally_chunk", function(result) {
+      NUM_VOTES += 1;
+      \$('#num_votes').innerHTML = NUM_VOTES;
+     if (result == "DONE") {
+        alert('done!');
+    } else {
+        do_next_chunk();
+    }
+  });
+};
+</script>
+
+<p>
+    <button onclick="do_next_chunk();">Start Tally!</button>
+#include "templates/footer.tmpl"
