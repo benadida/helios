@@ -421,7 +421,6 @@ class EGZKProof:
   @classmethod
   def from_dict(cls, d):
     p = cls()
-    logging.info(str(d))
     p.commitment = {'A': int(d['commitment']['A']), 'B': int(d['commitment']['B'])}
     p.challenge = int(d['challenge'])
     p.response = int(d['response'])

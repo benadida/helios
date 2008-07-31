@@ -30,7 +30,7 @@ indexes:
   - name: cast_id
     direction: desc
 
-# Used 45 times in query history.
+# Used 51 times in query history.
 - kind: Voter
   properties:
   - name: election
