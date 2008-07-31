@@ -281,7 +281,7 @@ class Election(DBObject):
             homomorphic_sum *= ciphertext
 
         # check the overall proof by homomorphic combination
-        if not homomorphic_sum.verify_encryption_proof(possible_plaintexts[1], algs.EGZKProof.from_dict(vote[question_num]['overall_proof'])):
+        if not homomorphic_sum.verify_disjunctive_encryption_proof(possible_plaintexts, algs.EGZKProof.from_dict(vote[question_num]['overall_proof']), algs.EG_disjunctive_challenge_generator):
           raise Exception("Overall proof for vote #%s Question #%s doesn't work" % (vote_num, question_num))
       
       question_tally = [None for i in range(num_answers)]
@@ -475,7 +475,7 @@ class Voter(DBObject):
         homomorphic_sum = ciphertext * homomorphic_sum
 
       # check the overall proof by homomorphic combination
-      if not homomorphic_sum.verify_encryption_proof(possible_plaintexts[1], algs.EGZKProof.from_dict(ballot[question_num]['overall_proof'])):
+      if not homomorphic_sum.verify_disjunctive_encryption_proof(possible_plaintexts, [algs.EGZKProof.from_dict(p) for p in ballot[question_num]['overall_proof']], algs.EG_disjunctive_challenge_generator):
         raise Exception("Overall proof for Question #%s doesn't work" % question_num)
       
     # now that the vote is verified, let's add it to the running tally

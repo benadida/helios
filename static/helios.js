@@ -155,12 +155,16 @@ HELIOS.EncryptedAnswer = Class.extend({
       generate_new_randomness = true;
     }
     
+    // keep track of number of options selected.
+    var num_selected_answers = 0;
+    
     // go through each possible answer and encrypt either a g^0 or a g^1.
     for (var i=0; i<question.answers.length; i++) {
       var index;
       // if this is the answer, swap them so m is encryption 1 (g)
       if (i == answer) {
         plaintext_index = 1;
+        num_selected_answers += 1;
       } else {
         plaintext_index = 0;
       }
@@ -190,8 +194,9 @@ HELIOS.EncryptedAnswer = Class.extend({
         rand_sum = rand_sum.add(randomness[i]).mod(pk.q);
       }
     
-      // prove that the sum is 1
-      overall_proof = hom_sum.generateProof(plaintexts[1], rand_sum, ElGamal.fiatshamir_challenge_generator);
+      // prove that the sum is 0 or 1 (can be "blank vote" for this answer)
+      // num_selected_answers is 0 or 1, which is the index into the plaintext that is actually encoded
+      overall_proof = hom_sum.generateDisjunctiveProof(plaintexts, num_selected_answers, rand_sum, ElGamal.disjunctive_challenge_generator);
     }
     
     return {
@@ -269,7 +274,7 @@ HELIOS.EncryptedAnswer.fromJSONObject = function(d, election) {
     return ElGamal.DisjunctiveProof.fromJSONObject(p);
   });
   
-  ea.overall_proof = ElGamal.Proof.fromJSONObject(d.overall_proof);
+  ea.overall_proof = ElGamal.DisjunctiveProof.fromJSONObject(d.overall_proof);
   
   // possibly load randomness and plaintext
   if (d.randomness) {
@@ -371,7 +376,7 @@ HELIOS.EncryptedVote = Class.extend({
         });
         
         // check the proof on the overall product
-        var overall_check = overall_result.verifyProof(ONE, enc_answer.overall_proof);
+        var overall_check = overall_result.verifyDisjunctiveProof([ZERO,ONE], enc_answer.overall_proof, ElGamal.disjunctive_challenge_generator);
         outcome_callback(ea_num, null, overall_check, null);
         VALID_P = VALID_P && overall_check;
     });
