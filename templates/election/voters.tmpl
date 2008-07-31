@@ -18,7 +18,7 @@
 #for $voter in $voters
 <tr><td>$voter.name</td><td>$voter.email</td>
 <td>
-<form method="post" action="voters/$voter.key()/delete" onsubmit="return confirm('You\'re about to delete $voter.email...');">
+<form method="post" action="voters/$voter.voter_id/delete" onsubmit="return confirm('You\'re about to delete $voter.email...');">
 <input type="hidden" name="email" value="$voter.email" />
 <input type="submit" value="delete" class="pretty" />
 </form>

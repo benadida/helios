@@ -63,13 +63,13 @@ class VoterController(REST.Resource):
     """
     user, election = ElectionController.check(self.parent)
 
-    voter = do.Voter.selectByKeys({'election': election.key(), 'email' : email})
+    voter = do.Voter.selectByKeys({'election': election, 'email' : email})
     if voter:
       voter.delete()
     else:
       logging.info("no voter")
 
-    raise cherrypy.HTTPRedirect("../../voters_manage")
+    self.redirect("../../voters_manage")
 
   @session.login_protect
   def add(self, email, name):
@@ -218,7 +218,7 @@ class ElectionController(REST.Resource):
     
     election.save()
     
-    raise cherrypy.HTTPRedirect("./%s/view" % str(election.key()))
+    raise cherrypy.HTTPRedirect("./%s/view" % str(election.election_id))
 
   @web
   def view(self, election):
@@ -282,8 +282,8 @@ class ElectionController(REST.Resource):
     """
     Look up the voter ID by email for given election.
     """
-    voter = do.Voter.selectByKeys({'election': election.key(), 'email' : email})
-    self.redirect("voters/%s" % voter.key())
+    voter = do.Voter.selectByKeys({'election': election, 'email' : email})
+    self.redirect("voters/%s" % voter.voter_id)
 
   @web
   @json
@@ -314,7 +314,7 @@ class ElectionController(REST.Resource):
 
     election.freeze()
 
-    raise cherrypy.HTTPRedirect("/elections/%s/view" % election.key())
+    self.redirect("/elections/%s/view" % election.election_id)
     
   @web
   def vote(self, election):
@@ -391,7 +391,7 @@ Your password: %s
 
     election.tally()
     
-    self.redirect('/elections/%s/view' % election.key())
+    self.redirect('/elections/%s/view' % election.election_id)
     
   @web
   @session.login_protect
@@ -424,4 +424,4 @@ Your password: %s
 
     election.decrypt()
 
-    raise cherrypy.HTTPRedirect('/elections/%s/view' % election.key())
+    self.redirect('/elections/%s/view' % election.election_id)

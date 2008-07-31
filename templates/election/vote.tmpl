@@ -168,7 +168,7 @@ BOOTH.send_ballot = function() {
 
     \$.ajax({
         type: "GET",
-        url: "/elections/$election.key()/get_voter_by_email",
+        url: "/elections/$election.election_id/get_voter_by_email",
         data: {email: data['email']},
         success: function(result) {
             var voter = jQuery.secureEvalJSON(result);
@@ -182,7 +182,7 @@ BOOTH.send_ballot = function() {
                 // not the way to do an error, check this.
                 \$.ajax({
                     type: "POST",
-                    url: "/elections/$election.key()/voters/" + voter.voter_id + "/submit",
+                    url: "/elections/$election.election_id/voters/" + voter.voter_id + "/submit",
                     data: data,
                     success: function(result) {
                         BOOTH.show(\$("#done_div")).processTemplate();

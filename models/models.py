@@ -88,7 +88,7 @@ class Election(DBObject):
     return simplejson.loads(questions_json)
 
   def get_voters(self):
-    return Voter.selectAllByKeys({'election': self.key()})
+    return Voter.selectAllByKeys({'election': self})
 
   def get_voters_hash(self):
     voters = self.get_voters()
@@ -349,7 +349,7 @@ class ElectionExponent(DBObject):
   
   @classmethod
   def get_max_by_election(cls, election):
-    all_exps = cls.selectAllByKeys({'election' : election.key()}, '-exponent', None, 1)
+    all_exps = cls.selectAllByKeys({'election' : election}, '-exponent', None, 1)
     if len(all_exps) == 0:
       return None
     else:
@@ -411,7 +411,7 @@ class Voter(DBObject):
   def set_encrypted_vote(self, votes_json_string):
     self.vote = db.Text(votes_json_string)
     self.vote_hash = self.compute_vote_hash()
-    self.cast_id = str(datetime.datetime.utcnow()) + str(self.key())
+    self.cast_id = str(datetime.datetime.utcnow()) + str(self.voter_id)
     self.save()
 
   def get_vote_hash(self):

@@ -27,7 +27,7 @@
         BUILDER.setup_templates();
 
         // load the election JSON
-	\$.getJSON("/elections/$election.key()",
+	\$.getJSON("/elections/$election.election_id",
 	           function(data) {
 	  BUILDER.election = HELIOS.Election.fromJSONObject(data);
 	  BUILDER.pk = BUILDER.election.pk;
@@ -80,7 +80,7 @@
     };
 
     BUILDER.save = function() {
-      \$.post('/elections/$election.key()/save', {election_json : $.toJSON(BUILDER.election)}, function(result) {
+      \$.post('/elections/$election.election_id/save', {election_json : $.toJSON(BUILDER.election)}, function(result) {
         alert('saved!');
       });
     };
