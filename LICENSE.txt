@@ -1,0 +1,1 @@
+All of the HeliosVoting.org code is copyright Ben Adida, distributed to the public under the GPL v3 license.
