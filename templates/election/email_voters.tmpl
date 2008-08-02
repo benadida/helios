@@ -25,7 +25,7 @@ You are about to email all voters in this election. You can fill in the middle p
 </p>
 
 <blockquote>
-<form name="email_form" method="post" onsubmit="send_email(0); return false;">
+<form name="email_form" method="post" onsubmit="send_email(this.offset.value); return false;">
 
 <pre>
 Dear [VOTER_NAME],
@@ -33,7 +33,6 @@ Dear [VOTER_NAME],
 
 <textarea name="introductory_message" cols="60" rows="10" wrap="soft" class="pretty">
 </textarea>
-
 <pre>
 Your email: [VOTER_EMAIL]
 Your password: [VOTER_PASSWORD]
@@ -41,6 +40,10 @@ Your password: [VOTER_PASSWORD]
 
 </blockquote>
 
+<br />
+<br />
+Offset: <input type="text" name="offset" size="10" value="0" />
+<br /><br />
 <input type="submit" value="send now!" class="pretty" />
 </form>
 
