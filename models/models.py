@@ -87,8 +87,8 @@ class Election(DBObject):
     questions_json = self.questions_json or '[]'
     return simplejson.loads(questions_json)
 
-  def get_voters(self):
-    return Voter.selectAllByKeys({'election': self})
+  def get_voters(self, offset=None, limit=None):
+    return Voter.selectAllByKeys({'election': self}, offset=offset, limit=limit)
 
   def get_voters_hash(self):
     voters = self.get_voters()

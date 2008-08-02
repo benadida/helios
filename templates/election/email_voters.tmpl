@@ -1,13 +1,31 @@
 #include "templates/header.tmpl"
-<div class="post">
-  <h2 class="title">$election.name: Email Voters</h2>
-  <div class="entry">
+
+<script>
+BATCH_SIZE = 10;
+
+function send_email(offset) {
+    var form = document.forms['email_form'];
+    
+    \$.post("email_voters_2", {'introductory_message' : form.introductory_message.value, 'offset' : offset, 'limit' : BATCH_SIZE}, function(data) {
+       // decide whether or not to keep going
+       if (data != "DONE") {
+         setTimeout("send_email(" + (offset + BATCH_SIZE) + ")", 5000);
+       } else {
+         alert('done!');
+         document.location = "./view";
+       }
+    });
+}
+</script>
+
+<h2>$election.name: Email Voters</h2>
+
 <p>
 You are about to email all voters in this election. You can fill in the middle part of the email:
 </p>
 
 <blockquote>
-<form method="post" action="email_voters_2">
+<form name="email_form" method="post" onsubmit="send_email(0); return false;">
 
 <pre>
 Dear [VOTER_NAME],
@@ -26,9 +44,7 @@ Your password: [VOTER_PASSWORD]
 <input type="submit" value="send now!" class="pretty" />
 </form>
 
-  </div>
+</div>
 					
-</div>
-</div>
 			<!-- end #content -->
 #include "templates/footer.tmpl"
