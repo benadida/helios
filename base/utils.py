@@ -362,4 +362,7 @@ def random_string(length=20):
 ##
 
 def string_to_datetime(str, fmt="%Y-%m-%d %H:%M"):
-    return datetime.datetime.strptime(str, fmt)
+  if str == None:
+    return None
+
+  return datetime.datetime.strptime(str, fmt)

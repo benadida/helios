@@ -194,7 +194,7 @@ class ElectionController(REST.Resource):
 
   @web
   @session.login_protect
-  def new_2(self, name, voting_starts_at, voting_ends_at):
+  def new_2(self, name, voting_starts_at=None, voting_ends_at=None):
     """
     Create the new election.
     """

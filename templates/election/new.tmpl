@@ -1,6 +1,6 @@
 #include "templates/header.tmpl"
 <script language="javascript">
-
+/*
 var checks = {};
 checks['voting_starts'] = false;
 checks['voting_ends'] = false;
@@ -41,6 +41,13 @@ function check_dates() {
 
 	return true;
 }
+*/
+
+// for now
+function check_dates() {
+    return true;
+}
+
 </script>
 
 <div class="post">
@@ -48,8 +55,8 @@ function check_dates() {
   <div class="entry">
   <form class="prettyform" action="new_2" onsubmit="return check_dates();" method="POST">
   <label for="name">Name:</label><input type="text" name="name" size="40" /><br />
-  <label for="voting_starts_at">Starts At:</label><input type="text" id="voting_starts_at" name="voting_starts_at" size="12" /><span style="font-size: 12pt;" id="voting_starts_at_parsed"></span><br />
-  <label for="voting_ends_at">Ends At:</label><input type="text" id="voting_ends_at" name="voting_ends_at" size="12" /><span style="font-size: 12pt;" id="voting_ends_at_parsed"></span><br />
+<!--  <label for="voting_starts_at">Starts At:</label><input type="text" id="voting_starts_at" name="voting_starts_at" size="12" /><span style="font-size: 12pt;" id="voting_starts_at_parsed"></span><br />
+  <label for="voting_ends_at">Ends At:</label><input type="text" id="voting_ends_at" name="voting_ends_at" size="12" /><span style="font-size: 12pt;" id="voting_ends_at_parsed"></span><br /> -->
   <label for="">&nbsp;</label><input type="submit" value="create" />
   </form>
   </div>
