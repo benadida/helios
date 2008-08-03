@@ -23,7 +23,6 @@ function result_append(str) {
 }
 
 function verify_single_ballot(audit_trail) {
-  debugger;
   var encrypted_vote_json = jQuery.secureEvalJSON(audit_trail);
   
   // go get the election
