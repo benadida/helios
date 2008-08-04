@@ -1,0 +1,8 @@
+.codeblock {
+  font-family: Courier;
+  margin: 0px 40px 0px 10px;
+  border-left: 2px solid #888;
+  padding: 10px 0px 10px 10px;
+  white-space: pre;
+  background: #eee;
+}

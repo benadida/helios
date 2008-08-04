@@ -1,4 +1,7 @@
-<head><title>Helios: Verification Specifications</title></head>
+<head>
+    <link rel="stylesheet" href="/static/docs/style.css" />
+    <title>Helios: Verification Specifications</title>
+</head>
 <body>
 
 <h1 id="title">Helios Verification Specifications</h1>
@@ -20,6 +23,28 @@ by Ben Adida.
 </p>
 
 <h3>Data Formats</h3>
+
+<p>
+    We begin with a description of the data types and their representations. All data made available by Helios is in <a href="http://json.org">JavaScript Object Notation (JSON)</a> format, with keys in alphabetical order and no extraneous whitespace other than that specified by JSON. For example:
+</p>
+
+<div class="codeblock">{"email": ["ben@adida.net", "ben@mit.edu"], "first_name": "Ben", "last_name": "Adida"}
+</div>
+
+<h4>Basic Cryptographic Datatypes</h4>
+
+<p>
+    All large integers are represented in decimal form as strings, rather than integers. (The reason is that some languages do not support big integers natively, and thus cannot properly parse large integers in JSON integer form.) For example:
+</p>
+
+<div class="codeblock">{"p": "109123071234023421012301240124234023423432423432232502523078237423"}</div>
+
+<p>
+    An El-Gamal public-key is then a dictionary including the prime <tt>p</tt>, the primer-order <tt>q</tt> of its intended subgroup, the generator <tt>g</tt>, and the public-key value <tt>y</tt> (but of course with keys in alphabetical order):
+</p>
+
+<div class="codeblock">{"g": "6811145128679259384514506369165", "p": "16998971978194099593503959",
+"q": "8499485989097049796751", "y": "7464668703479877164253720373259704"}</div>
 
 <h4>Voter</h4>
 
