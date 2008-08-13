@@ -129,6 +129,17 @@ class ElGamal:
       keypair.generate(self.p, self.g)
   
       return keypair
+      
+    def toJSONDict(self):
+      return {'p': str(self.p), 'q': str(self.q), 'g': str(self.g)}
+      
+    @classmethod
+    def fromJSONDict(cls, d):
+      eg = cls()
+      eg.p = int(d['p'])
+      eg.q = int(d['q'])
+      eg.g = int(d['g'])
+      return eg
 
 class EGKeyPair:
     def __init__(self):

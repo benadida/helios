@@ -6,12 +6,22 @@
 });
 </script>
 
-<div class="post">
-  <h2 class="title">$election.name &mdash; Voters</h2>
+<h2 class="title">$election.name &mdash; Voters <span style="font-size:0.7em;">[<a href="./view">done</a>]</span></h2>
 
+#if $election.openreg_enabled
 <p>
-<a href="./view">back to election</a>
+    You have opted for <b>open voter registration</b>, which means anyone can vote. To enable some amount of verification, voters are still asked to authenticate upon casting their vote, either using OpenID or email address verification.
 </p>
+
+<br /><br />
+
+<form method="post" action="./set_reg"><input type="hidden" name="open_p" value="0" /><input class="pretty" type="submit" value="switch to closed registration" /></form>
+
+#else
+
+#if len($voters) == 0
+<form method="post" action="./set_reg"><input type="hidden" name="open_p" value="1" /><input class="pretty" type="submit" value="switch to open registration" /></form>
+#end if
 
 <table class="pretty">
 <tr><th>Name</th><th>Email</th><th></th></tr>
@@ -34,7 +44,6 @@
 </form>
 </table>
 
-</div>
-</div>
+#end if
 			<!-- end #content -->
 #include "templates/footer.tmpl"

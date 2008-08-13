@@ -5,6 +5,35 @@
 
 ElGamal = {};
 
+ElGamal.Params = Class.extend({
+  init: function(p, q, g) {
+    this.p = p;
+    this.q = q;
+    this.g = g;
+  },
+  
+  generate: function() {
+    // get the value x
+    var x = Random.getRandomInteger(this.q);
+    var y = this.g.modPow(x, this.p);
+    var pk = new ElGamal.PublicKey(this.p, this.q, this.g, y);
+    var sk = new ElGamal.SecretKey(x, pk);
+    return sk;
+  },
+  
+  toJSONObject: function() {
+    return {g: this.g.toJSONObject(), p: this.p.toJSONObject(), q: this.q.toJSONObject()};
+  }
+});
+
+ElGamal.Params.fromJSONObject = function(d) {
+  var params = new ElGamal.Params();
+  params.p = BigInt.fromJSONObject(d.p);
+  params.q = BigInt.fromJSONObject(d.q);
+  params.g = BigInt.fromJSONObject(d.g);
+  return params;
+};
+
 ElGamal.PublicKey = Class.extend({
   init : function(p,q,g,y) {
     this.p = p;
@@ -28,8 +57,16 @@ ElGamal.PublicKey.fromJSONObject = function(d) {
   return pk;
 };
 
-
-// no secret key or key generation for now, not needed.
+ElGamal.SecretKey = Class.extend({
+  init: function(x, pk) {
+    this.x = x;
+    this.pk = pk;
+  },
+  
+  toJSONObject: function() {
+    return {pk: this.pk.toJSONObject(), x: this.x.toJSONObject()};
+  }
+});
 
 ElGamal.Ciphertext = Class.extend({
   init: function(alpha, beta, pk) {
@@ -39,7 +76,7 @@ ElGamal.Ciphertext = Class.extend({
   },
   
   toString: function() {
-    return this.alpha + ',' + this.beta;
+    return this.alpha.toString() + ',' + this.beta.toString();
   },
   
   toJSONObject: function() {
@@ -328,10 +365,11 @@ ElGamal.disjunctive_challenge_generator = function(commitments) {
 
   // go through all proofs and append the commitments
   $(commitments).each(function(commitment_num, commitment) {
-    strings_to_hash[strings_to_hash.length] = commitment.A;
-    strings_to_hash[strings_to_hash.length] = commitment.B;
+    strings_to_hash[strings_to_hash.length] = commitment.A.toString();
+    strings_to_hash[strings_to_hash.length] = commitment.B.toString();
   });
   
+  STRINGS = strings_to_hash;
   return new BigInt(hex_sha1(strings_to_hash.join(",")), 16);
 };
 

@@ -8,7 +8,11 @@ ben@adida.net
 """
 
 import cherrypy
-from google.appengine.api import users
+
+try:
+  from google.appengine.api import users
+except:
+  pass
 
 import models as do
 

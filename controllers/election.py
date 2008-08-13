@@ -190,11 +190,12 @@ class ElectionController(REST.Resource):
     """
     The form for creating a new election.
     """
+    eg_params_json = simplejson.dumps(ELGAMAL_PARAMS.toJSONDict(), sort_keys=True)
     return self.render('new')
 
   @web
   @session.login_protect
-  def new_2(self, name, voting_starts_at=None, voting_ends_at=None):
+  def new_2(self, name, public_key, private_key=None, voting_starts_at=None, voting_ends_at=None):
     """
     Create the new election.
     """
@@ -210,11 +211,17 @@ class ElectionController(REST.Resource):
     election.voting_ends_at = utils.string_to_datetime(voting_ends_at)
 
     # generate a keypair for this election
-    keypair = ELGAMAL_PARAMS.generate_keypair()
+    # now we generate this in JavaScript.
+    # keypair = ELGAMAL_PARAMS.generate_keypair()
 
     # serialize the keys to JSON and store them
-    election.public_key_json = simplejson.dumps(keypair.pk.to_dict())
-    election.private_key_json = simplejson.dumps(keypair.sk.to_dict())
+    pk = algs.EGPublicKey.from_dict(simplejson.loads(public_key))
+    election.public_key_json = simplejson.dumps(pk.to_dict())
+    
+    # the private key can be stored by the server
+    if private_key:
+      sk = algs.EGSecretKey.from_dict(simplejson.loads(private_key))
+      election.private_key_json = simplejson.dumps(sk.to_dict())
     
     election.save()
     
@@ -239,6 +246,18 @@ class ElectionController(REST.Resource):
     voters = election.get_voters()
     return self.render('voters')
 
+  @web
+  @session.login_protect
+  def set_reg(self, election, open_p=False):
+    """
+    Set whether this is open registration or not
+    """
+    user, election = self.check(election)
+    open_p = bool(int(open_p))
+    election.openreg_enabled = open_p
+    election.save()
+    self.redirect("./voters_manage")
+    
   @web
   @json
   def result(self, election):

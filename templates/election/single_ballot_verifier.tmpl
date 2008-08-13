@@ -83,7 +83,7 @@ function verify_single_ballot(audit_trail) {
 Your Ballot:
 </p>
 
-<form onsubmit="verify_single_ballot(this.audit_trail.value); return false;">
+<form onsubmit="alert('foo'); try {verify_single_ballot(this.audit_trail.value);} catch (e) {E = e;} return false;">
 <textarea name="audit_trail" cols="80" rows="7">
 </textarea><br /><br />
 <input type="submit" class="pretty" value="Verify" />
@@ -93,7 +93,7 @@ Your Ballot:
 <div id="results">
 </div>
 </div>
-</div>
+<applet codebase="/static" mayscript name="bigint" code="bigint.class" width=1 height=1></applet>
 
 </body>
 </html>

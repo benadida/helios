@@ -164,7 +164,7 @@ BOOTH.send_ballot = function() {
       password : send_form.password.value
     };
 
-    data['encrypted_vote'] = BOOTH.encrypted_ballot.toJSON();
+    data['encrypted_vote'] = jQuery.toJSON(BOOTH.encrypted_ballot);
 
     \$.ajax({
         type: "GET",

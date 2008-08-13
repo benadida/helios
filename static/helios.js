@@ -238,10 +238,6 @@ HELIOS.EncryptedAnswer = Class.extend({
     return choices_strings.join("|");
   },
   
-  toJSON: function() {
-    return jQuery.toJSON(this.toJSONObject());
-  },
-  
   toJSONObject: function(include_plaintext) {
     var return_obj = {
       'choices' : $(this.choices).map(function(i, choice) {
@@ -340,12 +336,8 @@ HELIOS.EncryptedVote = Class.extend({
     }
   },
   
-  toJSON: function() {
-    return jQuery.toJSON(this.toJSONObject());
-  },
-  
   get_hash: function() {
-    return b64_sha1(this.toJSON());
+    return b64_sha1(jQuery.toJSON(this));
   },
   
   get_audit_trail: function() {

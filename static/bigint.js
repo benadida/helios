@@ -29,15 +29,11 @@ BigInt = Class.extend({
   },
   
   toString: function() {
-    return this._java_bigint.toString();
+    return this._java_bigint.toString() + "";
   },
   
   toJSONObject: function() {
     return this.toString();
-  },
-  
-  toJSON: function() {
-    return jQuery.toJSON(this.toJSONObject());
   },
   
   add: function(other) {
@@ -122,6 +118,10 @@ BigInt.use_applet = check_applet();
 BigInt.setup = function() {
   if(BigInt.use_applet) {
       BigInt.APPLET = document.applets["bigint"];
+      if (BigInt.APPLET == null) {
+        //setTimeout("BigInt.setup();", 2000);
+        //return;
+      }
   }
 
   BigInt.ZERO = new BigInt("0",10);

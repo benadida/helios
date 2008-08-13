@@ -25,6 +25,9 @@ class Election(DBObject):
   public_key_json = db.TextProperty()
   private_key_json = db.TextProperty()
   questions_json = db.TextProperty()
+  
+  # voter list fixed or open
+  openreg_enabled = db.BooleanProperty(default=False)
 
   # dates at which things happen for the election
   frozen_at = db.DateTimeProperty(auto_now_add=False)
@@ -46,14 +49,22 @@ class Election(DBObject):
   election_type = db.StringProperty(multiline=False)
 
   # when JSON'ified
-  JSON_FIELDS = ['election_id', 'name', 'pk', 'questions', 'voters_hash', 'voting_starts_at', 'voting_ends_at']
+  JSON_FIELDS = ['election_id', 'name', 'pk', 'questions', 'voters_hash', 'openreg', 'voting_starts_at', 'voting_ends_at']
   
   election_id = property(DBObject.get_id)
-  
+    
   def toJSONDict(self):
     self.pk = self.get_pk()
     self.questions = self.get_questions()
-    self.voters_hash = self.get_voters_hash()
+    
+    # depending on whether the election supports open registration
+    # we could have openreg in there all the time, but for backwards compatibility
+    # with existing elections, let's not include it.
+    if self.openreg_enabled:
+      self.openreg = True
+    else:
+      self.voters_hash = self.get_voters_hash()
+      
     return DBObject.toJSONDict(self)
 
   def save_dict(self, d):
@@ -89,6 +100,9 @@ class Election(DBObject):
 
   def get_voters(self, offset=None, limit=None):
     return Voter.selectAllByKeys({'election': self}, offset=offset, limit=limit)
+    
+  def get_cast_votes(self, offset=None, limit=None):
+    return [voter.get_vote() for voter in self.get_voters(offset = offset, limit = limit) if voter.cast_id != None]
 
   def get_voters_hash(self):
     voters = self.get_voters()
@@ -224,7 +238,7 @@ class Election(DBObject):
     """
     # load all the votes
     # FIXME: let's page this, maybe 100 at a time
-    votes = [v.get_vote() for v in self.get_voters()]
+    votes = self.get_cast_votes()
     
     pk = self.get_pk()
     
@@ -247,7 +261,7 @@ class Election(DBObject):
         # non-vote? Keep going
         if votes[vote_num] == None:
           continue
-        
+          
         # check election hash
         if votes[vote_num]['election_hash'] != election_hash:
           raise Exception('vote for wrong election')
@@ -384,10 +398,13 @@ class ElectionExponent(DBObject):
 class Voter(DBObject):
   election = db.ReferenceProperty(Election)
   email = db.StringProperty(multiline=False)
+  openid_url = db.StringProperty(multiline = False)
   name = db.StringProperty(multiline=False)
   password = db.StringProperty(multiline=False)
 
   # an identifier of when the vote was cast
+  # in an open registration election, the cast_id isn't set
+  # until the verification happens.
   cast_id = db.StringProperty()
   tallied_at = db.DateTimeProperty(auto_now_add=False, default=None)
   

@@ -3,7 +3,12 @@ The stuff for the base package
 """
 
 import cherrypy
-from django.utils import simplejson
+
+try:
+  from django.utils import simplejson
+except:
+  import simplejson
+  
 import session
 import sys, traceback
 

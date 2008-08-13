@@ -25,7 +25,7 @@ by Ben Adida.
 <h3>Data Formats</h3>
 
 <p>
-    We begin with a description of the data types and their representations. All data made available by Helios is in <a href="http://json.org">JavaScript Object Notation (JSON)</a> format, with keys in alphabetical order and no extraneous whitespace other than that specified by JSON. For example:
+    We begin with a description of the data types and their representations. All data made available by Helios is in <a href="http://json.org">JavaScript Object Notation (JSON)</a> format, with keys in <u>alphabetical order</u> and <u>no extraneous whitespace</u> other than that specified by JSON. These two conditions are particularly important, as hashing data structures will only yield the same hash if the conditions are respected. An example of a JSON data structure with these two conditions is:
 </p>
 
 <div class="codeblock">{"email": ["ben@adida.net", "ben@mit.edu"], "first_name": "Ben", "last_name": "Adida"}
@@ -46,7 +46,41 @@ by Ben Adida.
 <div class="codeblock">{"g": "6811145128679259384514506369165", "p": "16998971978194099593503959",
 "q": "8499485989097049796751", "y": "7464668703479877164253720373259704"}</div>
 
+<p>
+    An El-Gamal ciphertext is a JSON structure containing properties <tt>alpha</tt> and <tt>beta</tt>, the two components modulo <tt>p</tt>.
+</p>
+
+<div class="codeblock">{"alpha": "72348234202340223423", "beta": "123498235234234234324" }</div>
+
 <h4>Voter</h4>
+
+<p>
+    A single voter in Helios is represented using a few fields that identify the voter:
+</p>
+
+<div class="codeblock">{"email": "benadida@gmail.com", "name": "Ben Adida",
+"voter_id": "agxoZWxpb3N2b3RpbmdyCwsSBVZvdGVyGCcM"}</div>
+
+<p>
+    The <tt>voter_id</tt> is unique across all elections hosted at this particular Helios server.
+</p>
+
+<p>
+    Voters may be identified by OpenID URL rather than email address, in which case their JSON representation is:
+</p>
+
+<div class="codeblock">{"name": "Ben Adida", "openid": "http://benadida.myopenid.com",
+"voter_id": "agxoZWxpb3N2b3RpbmdyCwsSBVZvdGVyGCcM"}</div>
+
+<p>
+    Once a voter has cast a ballot, their JSON representation is augmented with their encrypted vote:
+</p>
+
+<div class="codeblock">{"name": "Ben Adida", "openid": "http://benadida.myopenid.com",
+"vote" : &lt;ENCRYPTED_VOTE&gt;,
+"voter_id": "agxoZWxpb3N2b3RpbmdyCwsSBVZvdGVyGCcM"}</div>
+
+<p>We describe the details of the <tt>&lt;ENCRYPTED_VOTE&gt;</tt> data structure later in this document, once we have described all of the required components.</p>
 
 <h4>Election</h4>
 
