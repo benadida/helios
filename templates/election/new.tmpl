@@ -48,23 +48,24 @@ function check_dates() {
     return true;
 }
 
-var ELGAMAL_PARAMS = ElGamal.Params.fromJSONObject($eg_params_json);
 
 // parse the params into bigints and such
 
 function generate_keypair() {
+    ELGAMAL_PARAMS = ElGamal.Params.fromJSONObject($eg_params_json);
+
     \$('#generate_button').hide();
     
     var kp;
     
     try {
         sk = ELGAMAL_PARAMS.generate();
-        \$('#pk')[0].value = jQuery.toJSON(sk.pk);
-        \$('#sk')[0].value = jQuery.toJSON(sk);
     } catch (e) {
         alert(e);
     }
-    
+
+    \$('#pk')[0].value = jQuery.toJSON(sk.pk);
+    \$('#sk')[0].value = jQuery.toJSON(sk);    
     
     \$('#generate_result').html("Key Generated");
     \$('#create_button').show();

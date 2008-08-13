@@ -63,7 +63,7 @@ HELIOS.Election = Class.extend({
   },
   
   get_hash: function() {
-    return b64_sha1(jQuery.toJSON(this));
+    return b64_sha1(this.toJSON());
   },
   
   toJSON: function() {
