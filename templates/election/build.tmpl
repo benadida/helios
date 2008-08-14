@@ -54,9 +54,12 @@
       var form = BUILDER.get_current_question_form();
       var question = BUILDER.get_current_question();
 
-      \$(['short_name','question','max']).each(function(i, key) {
-        question[key] = form[key].value;
-      });
+      // attributes of a question
+      question['short_name'] = form['short_name'].value;
+      question['question'] = form['question'].value;
+
+      // integer
+      question['max'] = parseInt(form['max'].value);
       
       \$(question.answers).each(function(i, answer) {
         question.answers[i] = form["answer_" + i].value;

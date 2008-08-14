@@ -8,7 +8,7 @@
 by Ben Adida.
 <hr />
 
-<h3>Introduction</h3>
+<h2>Introduction</h2>
 <p>
     Helios is an open-audit voting system, which means that:
 </p>
@@ -22,43 +22,45 @@ by Ben Adida.
     This document specifies all data formats and the exact verification protocols and algorithms. Using this document, it should be possible for an able programmer to build a complete verification program in any modern programming language. For the sake of concreteness, each step in this document is illustrated using Python (2.3 or above.)
 </p>
 
-<h3>Data Formats</h3>
+<h2>Data Formats</h2>
 
 <p>
     We begin with a description of the data types and their representations. All data made available by Helios is in <a href="http://json.org">JavaScript Object Notation (JSON)</a> format, with keys in <u>alphabetical order</u> and <u>no extraneous whitespace</u> other than that specified by JSON. These two conditions are particularly important, as hashing data structures will only yield the same hash if the conditions are respected. An example of a JSON data structure with these two conditions is:
 </p>
 
-<div class="codeblock">{"email": ["ben@adida.net", "ben@mit.edu"], "first_name": "Ben", "last_name": "Adida"}
+<div class="codeblock"><div class="codetitle">Example</div>
+{"email": ["ben@adida.net", "ben@mit.edu"], "first_name": "Ben", "last_name": "Adida"}
 </div>
 
-<h4>Basic Cryptographic Datatypes</h4>
+<h3>Basic Cryptographic Datatypes</h3>
 
 <p>
-    All large integers are represented in decimal form as strings, rather than integers. (The reason is that some languages do not support big integers natively, and thus cannot properly parse large integers in JSON integer form.) For example:
+    All large integers are represented in decimal form as strings, rather than integers. (The reason is that some languages do not support big integers natively, and thus cannot properly parse large integers in JSON integer form.) An El-Gamal public-key is then a dictionary including the prime <tt>p</tt>, the primer-order <tt>q</tt> of its intended subgroup, the generator <tt>g</tt>, and the public-key value <tt>y</tt> (but of course with keys in alphabetical order):
 </p>
 
-<div class="codeblock">{"p": "109123071234023421012301240124234023423432423432232502523078237423"}</div>
-
-<p>
-    An El-Gamal public-key is then a dictionary including the prime <tt>p</tt>, the primer-order <tt>q</tt> of its intended subgroup, the generator <tt>g</tt>, and the public-key value <tt>y</tt> (but of course with keys in alphabetical order):
-</p>
-
-<div class="codeblock">{"g": "6811145128679259384514506369165", "p": "16998971978194099593503959",
+<div class="codeblock"><div class="codetitle">&lt;ELGAMAL_PUBLIC_KEY&gt;</div>
+{"g": "6811145128679259384514506369165", "p": "16998971978194099593503959",
 "q": "8499485989097049796751", "y": "7464668703479877164253720373259704"}</div>
 
 <p>
     An El-Gamal ciphertext is a JSON structure containing properties <tt>alpha</tt> and <tt>beta</tt>, the two components modulo <tt>p</tt>.
 </p>
 
-<div class="codeblock">{"alpha": "72348234202340223423", "beta": "123498235234234234324" }</div>
+<div class="codeblock"><div class="codetitle">&lt;ELGAMAL_CIPHERTEXT&gt;</div>
+{"alpha": "72348234202340223423", "beta": "123498235234234234324" }</div>
 
-<h4>Voter</h4>
+<p>
+    In Helios, all ciphertexts are <em>Exponential ElGamal</em>, so <tt>alpha = g^r mod p</tt>, and <tt>beta = g^m y^r mod p</tt>.
+</p>
+
+<h3>Voter</h3>
 
 <p>
     A single voter in Helios is represented using a few fields that identify the voter:
 </p>
 
-<div class="codeblock">{"email": "benadida@gmail.com", "name": "Ben Adida",
+<div class="codeblock"><div class="codetitle">&lt;VOTER&gt;</div>
+{"email": "benadida@gmail.com", "name": "Ben Adida",
 "voter_id": "agxoZWxpb3N2b3RpbmdyCwsSBVZvdGVyGCcM"}</div>
 
 <p>
@@ -69,25 +71,197 @@ by Ben Adida.
     Voters may be identified by OpenID URL rather than email address, in which case their JSON representation is:
 </p>
 
-<div class="codeblock">{"name": "Ben Adida", "openid": "http://benadida.myopenid.com",
+<div class="codeblock"><div class="codetitle">&lt;VOTER&gt; (2)</div>
+{"name": "Ben Adida", "openid": "http://benadida.myopenid.com",
 "voter_id": "agxoZWxpb3N2b3RpbmdyCwsSBVZvdGVyGCcM"}</div>
 
 <p>
     Once a voter has cast a ballot, their JSON representation is augmented with their encrypted vote:
 </p>
 
-<div class="codeblock">{"name": "Ben Adida", "openid": "http://benadida.myopenid.com",
-"vote" : &lt;ENCRYPTED_VOTE&gt;,
+<div class="codeblock"><div class="codetitle">&lt;VOTER_WITH_VOTE&gt;</div>
+{"name": "Ben Adida", "openid": "http://benadida.myopenid.com",
+"vote" : &lt;VOTE&gt;,
 "voter_id": "agxoZWxpb3N2b3RpbmdyCwsSBVZvdGVyGCcM"}</div>
 
-<p>We describe the details of the <tt>&lt;ENCRYPTED_VOTE&gt;</tt> data structure later in this document, once we have described all of the required components.</p>
+<p>We describe the details of the <tt>&lt;VOTE&gt;</tt> data structure later in this document, once we have described all of the required components.</p>
 
-<h4>Election</h4>
+<h3>Election</h3>
 
-<h4>Ballot</h4>
+<p>An election is represented as:</p>
 
-<h3>Verifying a Single Ballot</h3>
+<div class="codeblock"><div class="codetitle">&lt;ELECTION&gt;</div>
+{"election_id": "agxoZWxpb3N2b3RpbmdyDgsSCEVsZWN0aW9uGAYM", "name": "foo234234",
+"pk": &lt;ELGAMAL_PUBLIC_KEY&gt;,
+"questions": &lt;QUESTION_LIST&gt;,
+"voters_hash": "G6yS\/dAZm5hKnCn5cRgBGdw3yGo",
+"voting_ends_at": null, "voting_starts_at": null}
+</div>
 
-<h3>Verifying a Tally</h3>
+<p><tt>election_id</tt> is a unique identifier for the election, and <tt>name</tt> is the election's name.</p>
+
+<p><tt>&lt;ELGAMAL_PUBLIC_KEY&gt;</tt> is, as detailed earlier, the JSON data structure that represents an El-Gamal public key.</p>
+
+<p><tt>&lt;QUESTION_LIST&gt;</tt> is a data structure that represents the list of questions and available answers to those questions.</p>
+
+<div class="codeblock"><div class="codetitle">&lt;QUESTION_LIST&gt;</div>
+[&lt;QUESTION&gt;, &lt;QUESTION&gt;, ...]</div>
+
+<p>
+    and a single question is a JSON object:
+</p>
+
+<div class="codeblock"><div class="codetitle">&lt;QUESTION&gt;</div>
+{"answers": ["alice", "bob"], "max": 1, "question": "Who Should be President?", "short_name": "President"}</div>
+
+<p>which, in this case, contains two possible answers (alice and bob), the text of the question, and a short name for the question. The parameter <tt>max</tt> indicates the maximum number of options that a voter can select, most often 1. Note how, given that this <tt>max</tt> value should be a small integer, it is in fact serialized as an integer, not as a string.</p>
+
+<p><tt>voters_hash</tt> is the base64 encoding of the SHA1 hash of the list of voters for the election. The list of voters is a JSON array, where each voter is represented <em>without</em> a cast ballot, of course. For example, a list of voters might be:
+    
+<div class="codeblock"><div class="codetitle">&lt;VOTER_LIST&gt; (example)</div>
+[{"email": "ben@adida.net", "name": "Ben Adida", "voter_id": "453"},
+{"name": "Ella", "openid": "http://ella.example.com", "voter_id": "834"}]</div>
+
+<p>
+    <b>Note:</b> we strictly follow the JSON specification, so the forward-slash character "/" is escaped as "\/". Not all JSON toolkits do this correctly, given that escaping the forward-slash is not necessary given JavaScript specifications, but for interoperability, we choose the strict interpretation. Python's <tt>simplejson</tt> does the right thing.
+</p>
+
+<h3>Vote</h3>
+
+<p>A vote contains a list of encrypted answers, and a reference to the election, both by ID (for convenience) and by hash (for integrity.)</p>
+
+<div class="codeblock"><div class="codetitle">&lt;VOTE&gt;</div>
+{"answers": [&lt;ENCRYPTED_ANSWER&gt;, &lt;ENCRYPTED_ANSWER&gt;, ...],
+"election_hash": "Nz1fWLvVLH3eY3Ox7u5hxfLZPdw",
+"election_id": "agxoZWxpb3N2b3RpbmdyDgsSCEVsZWN0aW9uGAYM"}</div>
+
+<p> Each "encrypted answer" corresponds to one election question: it contains a list of ciphertexts (one for each possible choice for that question), a list of corresponding proofs that the ciphertext is correctly formed, and an overall proof that all of the ciphertexts for that election question, taken together, are correctly formed.</p>
+
+<div class="codeblock"><div class="codetitle">&lt;ENCRYPTED_ANSWER&gt;</div>
+{"choices": [&lt;ELGAMAL_CIPHERTEXT&gt;, &lt;ELGAMAL_CIPHERTEXT&gt;, ...],
+"individual_proofs": [&lt;ZK_PROOF_0_or_1&gt;, &lt;ZK_PROOF_0_or_1&gt;, ...],
+"overall_proof": &lt;ZK_PROOF_0_or_1&gt;}</div>
+
+<h3>Proofs</h3>
+
+<p>
+    A zero-knowledge proof, denoted <tt>&lt;ZK_PROOF_0_or_1&gt;</tt>, is a transcript of a non-interactive proof that the corresponding ciphertext encodes either the value 0 or the value 1. For the overall proof, the ciphertext whose value is being proven to be 0 or 1 is the homomorphic sum (element-wise product) of the <tt>choices</tt> ciphertexts.
+</p>
+
+<p>
+    In Helios, all 0-or-1 proofs are disjunctive proofs (CDS &amp; CP), meaning that the transcript includes <em>two</em> proofs, one which proves that the plaintext is a 0, and the other that the plaintext is a 1. The two individual challenges must sum up to the single actual protocol challenge, which ensures that one of the proofs is real (while the other is simulated.)
+</p>
+
+<div class="codeblock"><div class="codetitle">&lt;ZK_PROOF_0_or_1&gt;</div>
+[&lt;ZK_PROOF(0)&gt;, &lt;ZK_PROOF(1)&gt;]
+</div>
+
+<p>
+    A single ZK proof is then composed of three messages: the commitment, the challenge, and the response. Since the proof is a Chaum-Pedersen proof of a DDH tuple, the commitment is composed of two values, <tt>A</tt> and <tt>B</tt>. Thus, a ZK proof is:
+</p>
+
+<div class="codeblock"><div class="codetitle">&lt;ZK_PROOF(plaintext)&gt;</div>
+{"challenge": "2342342",
+"commitment": {"A": "28838", "B": "9823723"},
+"response": "970234234"}
+</div>
+
+<h2>Verifying a Single Ballot</h2>
+
+<p>
+    Recall the Chaum-Pedersen proof that a ciphertext <tt>(alpha,beta)</tt> under public key <tt>(y, (g,p,q))</tt> is proven to encode the value <tt>m</tt> by proving knowledge of <tt>r</tt>, the randomness used to create the ciphertext, specifically that <tt>g, y, alpha, beta/g^m</tt> is a DDH tuple, noting that <tt>alpha = g^r</tt> and <tt>beta/g^m = y^r</tt>.
+</p>
+
+<ul>
+    <li> Prover sends <tt>A = g^w mod p</tt> and <tt>B = y^w mod p</tt> for a random <tt>w</tt>.</li>
+    <li> Verifier sends <tt>challenge</tt>, a random challenge <tt>mod q</tt>.</li>
+    <li> Prover sends <tt>response = w + challenge * r</tt>.</li>
+    <li> Verifier checks that:
+        <ul>
+            <li><tt>g^response = A * alpha^challenge</tt></li>
+            <li><tt>y^response = B * (beta/g^m)^challenge</tt></li>
+        </ul>
+    </li>
+</ul>
+
+<div class="codeblock"><div class="codetitle">verify_proof(ciphertext, plaintext, proof, public_key):</div>
+if pow(public_key.g, proof.response, public_key.p) !=
+   proof.commitment.A * pow(ciphertext.alpha, proof.challenge, public_key.p):
+      return False
+
+beta_over_m = modinverse(pow(public_key.g, plaintext, public_key.p), public_key.p) * ciphertext.beta
+beta_over_m_mod_p = beta_over_m % public_key.p
+
+if pow(public_key.y, proof.response, public_key.p) !=
+   proof.commitment.B * pow(beta_over_m_mod_p, proof.challenge, public_key.p):
+      return False
+
+return True
+</div>
+
+<p>
+    In a disjunctive proof that the ciphertext is the encryption of either 0 or 1, both proof transcripts are checked, and the sum of the challenges is checked against the expected challenge value. Since we use this proof in non-interactive Fiat-Shamir form, we generate the expected challenge value as <tt>SHA1(A0 + "," + B0 + "," + A1 + "," + B1)</tt> with <tt>A0, B0, A1, B1</tt> in decimal form. (<tt>A0</tt> and <tt>B0</tt> are the components of the commitment for the 0-proof, and <tt>A1</tt> and <tt>B1</tt> for the 1-proof.)
+</p>
+
+<p>
+    Thus, to verify a &lt;ZK_PROOF_0_or_1&gt; on a &lt;ELGAMAL_CIPHERTEXT&gt;, the following steps are taken.
+</p>
+
+<div class="codeblock"><div class="codetitle">verify_disjunctive_0_or_1_proof(ciphertext, disjunctive_proof, public_key):</div>
+# the proof for plaintext 0
+if not verify_proof(ciphertext, 0, disjunctive_proof[0], public_key):
+    return False
+
+# the proof for plaintext 1
+if not verify_proof(ciphertext, 1, disjunctive_proof[1], public_key):
+    return False
+
+# the overall challenge
+computed_challenge = (disjunctive_proof[0].challenge + disjunctive_proof[1].challenge) % public_key.p
+
+str_to_hash = str(disjunctive[0].commitment.A) + "," + str(disjunctive[0].commitment.B) + ","
+str_to_hash += str(disjunctive[1].commitment.A) + "," + str(disjunctive[1].commitment.B)
+expected_challenge = int(sha.new(str_to_hash).hexdigest(), 16)
+
+# last check
+return computed_challenge == expected_challenge
+</div>
+
+<p>
+    Thus, given <tt>&lt;ELECTION&gt;</tt> and a <tt>&lt;VOTE&gt;</tt>, the verification steps are as follows:
+</p>
+
+<div class="codeblock"><div class="codetitle">verify_vote(election, vote):</div>
+# check hash
+
+# go through each encrypted answer
+for encrypted_answer in vote.answers:
+   # initialize homomorphic sum (assume operator overload on __add__ with 0 special case.)
+   homomorphic_sum = 0
+
+   # go through each choice for the question (loop by integer because two arrays)
+   for choice_num in range(len(encrypted_answer.choices)):
+     ciphertext = encrypted_answer.choices[choice_num]
+     disjunctive_proof = encrypted_answer.individual_proofs[choice_num]
+     
+     # check the individual proof
+     if not verify_disjunctive_0_or_1_proof(ciphertext, disjunctive_proof, election.public_key):
+        return False
+        
+     # keep track of homomorphic sum
+     homomorphic_sum = ciphertext + homomorphic_sum
+   
+   # check the overall proof
+   if not verify_disjunctive_0_or_1_proof(homomorphic_sum, encrypted_answer.overall_proof,
+                                          election.public_key):
+       return False
+       
+# done, we succeeded
+return True
+</div>
+    
+<h2>Auditing/Spoiling a Single Ballot</h2>
+
+<h2>Verifying a Complete Election Tally</h2>
 
 </body>

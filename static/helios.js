@@ -356,7 +356,6 @@ HELIOS.EncryptedVote = Class.extend({
         var overall_result = 1;
 
         // go through each individual proof
-        // build up the homomorphic product along the way
         $(enc_answer.choices).each(function(choice_num, choice) {
           var result = choice.verifyDisjunctiveProof([ZERO,ONE], enc_answer.individual_proofs[choice_num], ElGamal.disjunctive_challenge_generator);
           outcome_callback(ea_num, choice_num, result, choice);

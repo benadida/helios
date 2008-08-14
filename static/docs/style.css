@@ -2,7 +2,20 @@
   font-family: Courier;
   margin: 0px 40px 0px 10px;
   border-left: 2px solid #888;
-  padding: 10px 0px 10px 10px;
+  padding: 0px 0px 10px 10px;
   white-space: pre;
   background: #eee;
+}
+
+.codeblock .codetitle {
+  background: #ccc;
+  margin-left: -10px;
+  padding: 5px 5px 5px 10px;
+  border-bottom: 1px solid #888;
+}
+
+body {
+  font-family: verdana;
+  font-size: 12pt;
+  padding: 10px 30px 10px 30px;
 }
