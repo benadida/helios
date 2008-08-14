@@ -166,6 +166,48 @@ by Ben Adida.
 "response": "970234234"}
 </div>
 
+<h3>Ballot Audit Trail</h3>
+
+<p>
+    When a voter chooses to audit their ballot, each encrypted answer contains additional information concerning the actual selected choice and the randomness used to encrypt each choice's ciphertext. Specifically, the JSON structure for <tt>&lt;VOTE_WITH_PLAINTEXTS&gt;</tt> is as follows.
+</p>
+
+<div class="codeblock"><div class="codetitle">&lt;VOTE_WITH_PLAINTEXTS&gt;</div>
+{"answers": [&lt;ENCRYPTED_ANSWER_WITH_PLAINTEXT&gt;, &lt;ENCRYPTED_ANSWER_WITH_PLAINTEXT&gt;, ...],
+"election_hash": &lt;B64_HASH&gt;,
+"election_id": &lt;ELECTION_ID&gt;}</div>
+
+<p>
+    And the contained <tt>&lt;ENCRYPTED_ANSWER_WITH_PLAINTEXT&gt;</tt> is as follows.
+</p>
+
+<div class="codeblock"><div class="codetitle">&lt;ENCRYPTED_ANSWER_WITH_PLAINTEXT&gt;</div>
+{"answer": 1,
+"choices": [&lt;ELGAMAL_CIPHERTEXT&gt;, &lt;ELGAMAL_CIPHERTEXT&gt;, ...],
+"individual_proofs": [&lt;ZK_PROOF_0_or_1&gt;, &lt;ZK_PROOF_0_or_1&gt;, ...],
+"overall_proof": &lt;ZK_PROOF_0_or_1&gt;,
+"randomness": [&lt;BIGINT&gt;, &lt;BIGINT&gt;, &lt;BIGINT&gt;]}</div>
+
+<h3>Result</h3>
+
+<p>
+    The result of an election is represented using two structures: <tt>&lt;RESULTS&gt;</tt> and <tt>&lt;RESULT_PROOF&gt;</tt>. The result simply displays the count of votes for each candidate within each question, in an array of arrays format.
+</p>
+
+<div class="codeblock"><div class="codetitle">&lt;RESULTS&gt;</div>
+[[&lt;QUESTION_1_CANDIDATE_1_COUNT&gt;, &lt;QUESTION_1_CANDIDATE_2_COUNT&gt;, &lt;QUESTION_1_CANDIDATE_3_COUNT&gt;],
+[&lt;QUESTION_2_CANDIDATE_1_COUNT&gt;, &lt;QUESTION_2_CANDIDATE_2_COUNT&gt;]]
+</div>
+
+<p>
+    The <tt>&lt;RESULTS_PROOF&gt;</tt> data structure is formatted exactly the same way, with a Chaum-Pedersen proof of proper decryption for each candidate within each question:
+</p>
+
+<div class="codeblock"><div class="codetitle">&lt;RESULTS_PROOF&gt;</div>
+[[&lt;QUESTION_1_CANDIDATE_1_PROOF&gt;, &lt;QUESTION_1_CANDIDATE_2_PROOF&gt;, &lt;QUESTION_1_CANDIDATE_3_PROOF&gt;],
+[&lt;QUESTION_2_CANDIDATE_1_PROOF&gt;, &lt;QUESTION_2_CANDIDATE_2_PROOF&gt;]]
+</div>
+
 <h2>Verifying a Single Ballot</h2>
 
 <p>
