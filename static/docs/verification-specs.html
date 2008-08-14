@@ -232,7 +232,10 @@ return computed_challenge == expected_challenge
 </p>
 
 <div class="codeblock"><div class="codetitle">verify_vote(election, vote):</div>
-# check hash
+# check hash (remove the last character which is a useless '=')
+computed_hash = base64.b64encode(hash.new(election.toJSON()).digest())[:-1]
+if computed_hash != vote.election_hash:
+    return False
 
 # go through each encrypted answer
 for encrypted_answer in vote.answers:
