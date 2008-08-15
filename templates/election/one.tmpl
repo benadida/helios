@@ -9,7 +9,7 @@
 #if not $election.is_frozen()
 <b>Election under Construction</b>
 #else
-#if not $election.encrypted_tally
+#if not $election.encrypted_tally and not $result
 <b>Election in Progress</b>
 #else
 #if not $result

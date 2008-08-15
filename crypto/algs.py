@@ -278,6 +278,8 @@ class EGSecretKey:
 
     def to_dict(self):
         return {'x' : str(self.x), 'pk' : self.pk.to_dict()}
+        
+    toJSONDict = to_dict
 
     @classmethod
     def from_dict(cls, d):
