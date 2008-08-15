@@ -21,7 +21,6 @@ Helios = (function() {
   return {
     'setup' : function() {
         if (window.location.hostname == API_HOST) {
-          alert('no need for api frame');
           // set up the cross-site-api-impl
           $.getScript('/static/cross-site-api-impl.js');
           return;
