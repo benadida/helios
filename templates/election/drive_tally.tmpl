@@ -24,15 +24,16 @@ function load_election_and_ballots(election_id) {
     VOTER_LIST = [];
     
     // get the election data
-    Helios.get_election(election_id, function(election) {
+    Helios.get_election({'election_id' : election_id}, function(election) {
+        var election = HELIOS.Election.fromJSONObject(election_json);        
         ELECTION = election;
         
         // get the voters
-        Helios.get_election_voters(election_id, function(voters) {
+        Helios.get_election_voters({'election_id' : election_id}, function(voters) {
             VOTER_LIST = voters;
             \$(voters).each(function(v_num, v) {
                 // download each voter's data, stuffing into BALLOTS
-                Helios.get_election_voter(election_id, v.voter_id, function(voter) {
+                Helios.get_election_voter({'election_id' : election_id, 'voter_id' : v.voter_id}, function(voter) {
                     BALLOTS[voter.voter_id] = HELIOS.EncryptedVote.fromJSONObject(voter.vote, ELECTION);
                     BALLOTS_LOADED[voter.voter_id] = true;
                 });

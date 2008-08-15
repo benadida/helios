@@ -33,7 +33,8 @@ BigInt = Class.extend({
   },
   
   toJSONObject: function() {
-    return this.toString();
+    // toString is apparently not overridden in IE, so we reproduce it here.
+    return this._java_bigint.toString() + "";
   },
   
   add: function(other) {

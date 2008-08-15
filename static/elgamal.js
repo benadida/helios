@@ -396,11 +396,12 @@ ElGamal.disjunctive_challenge_generator = function(commitments) {
 
   // go through all proofs and append the commitments
   $(commitments).each(function(commitment_num, commitment) {
-    strings_to_hash[strings_to_hash.length] = commitment.A.toString();
-    strings_to_hash[strings_to_hash.length] = commitment.B.toString();
+    // toJSONObject instead of toString because of IE weirdness.
+    strings_to_hash[strings_to_hash.length] = commitment.A.toJSONObject();
+    strings_to_hash[strings_to_hash.length] = commitment.B.toJSONObject();
   });
   
-  STRINGS = strings_to_hash;
+  // STRINGS = strings_to_hash;
   return new BigInt(hex_sha1(strings_to_hash.join(",")), 16);
 };
 

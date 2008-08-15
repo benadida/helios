@@ -72,7 +72,7 @@ function generate_keypair() {
     \$('#sk_form').hide();
     
     \$("input[@name='server_admin_p']").change(function() {
-        if (\$(this).val() == 1) {
+        if (\$(this).val() == "t") {
             \$('#sk_form').hide();
             \$('#sk').val(jQuery.toJSON(SECRET_KEY));
         } else {
@@ -95,8 +95,8 @@ function generate_keypair() {
   <input type="hidden" name="private_key" id="sk" value="" /><br />
   <div id="create_div">
   <label for="">&nbsp;</label>Key Generated<br />
-  <label for="">&nbsp;</label><input type="radio" name="server_admin_p" value="1" checked /> Helios administers your election<br />
-  <label for="">&nbsp;</label><input type="radio" name="server_admin_p" value="0" /> You administer your election<br />
+  <label for="">&nbsp;</label><input type="radio" name="server_admin_p" value="t" checked /> Helios administers your election<br />
+  <label for="">&nbsp;</label><input type="radio" name="server_admin_p" value="f" /> You administer your election<br />
   <label for="">&nbsp;</label><input type="submit" value="Create Election" id="create_button" />
   </div>
   </form>

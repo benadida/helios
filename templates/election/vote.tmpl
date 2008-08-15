@@ -1,7 +1,7 @@
 #include "templates/booth-header.tmpl"
 <div id="header">
     <h1>Helios Voting Booth &mdash; $election.name</h1>
-    <h3>Fingerprint: <span id="election_hash"></h3>
+    <h3>Fingerprint: <span id="election_hash"></span></h3>
 </div>
 
 <script language="javascript">
@@ -53,7 +53,7 @@ BOOTH.setup_election = function(election) {
   BOOTH.election = HELIOS.Election.fromJSONObject(election);
   BOOTH.election_hash = BOOTH.election.get_hash();
 
-  \$('#election_hash')[0].innerHTML = BOOTH.election_hash;
+  \$('#election_hash').html(BOOTH.election_hash);
 
   BOOTH.setup_ballot();
 };

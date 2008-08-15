@@ -245,6 +245,9 @@ def get_url():
         full_url += "?" + cherrypy.request.queryString
 
     return full_url
+
+def get_host():
+  return cherrypy.request.wsgi_environ['SERVER_NAME']
         
 def JSONtoDict(json):
     x=simplejson.loads(json)

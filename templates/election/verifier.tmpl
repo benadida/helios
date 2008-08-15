@@ -15,7 +15,13 @@
   <script language="javascript" src="/static/elgamal.js"></script>
   <script language="javascript" src="/static/sha1.js"></script>
   <script language="javascript" src="/static/helios.js"></script>
-  <script language="javascript" src="/static/cross-site-api.js"></script>
+  
+#from base import utils
+<script language="javascript">
+var API_HOST = '$utils.get_host()'
+</script>
+
+<script language="javascript" src="/static/cross-site-api.js"></script>
 
 <script language="javascript">
 
@@ -35,7 +41,8 @@ function load_election_and_ballots(election_id) {
     VOTER_LIST = [];
     
     // get the election data
-    Helios.get_election(election_id, function(election) {
+    Helios.get_election({'election_id' : election_id}, function(election_json) {
+        var election = HELIOS.Election.fromJSONObject(election_json);
         ELECTION = election;
         result_append("Election: " + election.name);
         
@@ -44,11 +51,11 @@ function load_election_and_ballots(election_id) {
         result_append("Fingerprint: " + election_hash);
         
         // get the voters
-        Helios.get_election_voters(election_id, function(voters) {
+        Helios.get_election_voters({'election_id': election_id}, function(voters) {
             VOTER_LIST = voters;
             \$(voters).each(function(v_num, v) {
                 // download each voter's data, stuffing into BALLOTS
-                Helios.get_election_voter(election_id, v.voter_id, function(voter) {
+                Helios.get_election_voter({'election_id': election_id, 'voter_id': v.voter_id}, function(voter) {
                     BALLOTS[voter.voter_id] = HELIOS.EncryptedVote.fromJSONObject(voter.vote, ELECTION);
                     BALLOTS_LOADED[voter.voter_id] = true;
                 });
@@ -117,9 +124,9 @@ function verify_ballots_and_tally() {
     // now verify the tallies we computed
     
     // get the results
-    Helios.get_election_result(ELECTION_ID, function(results) {
+    Helios.get_election_result({'election_id': ELECTION_ID}, function(results) {
         // get the proof
-        Helios.get_election_result_proof(ELECTION_ID, function(results_proof) {
+        Helios.get_election_result_proof({'election_id': ELECTION_ID}, function(results_proof) {
             \$(TALLY).each(function(q_num, q) {
                 result_append("Question #" + q_num + ": " + ELECTION.questions[q_num].short_name);
                 \$(q).each(function(a_num, a) {

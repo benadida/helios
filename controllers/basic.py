@@ -5,7 +5,7 @@ Ben Adida (ben@adida.net)
 """
 
 from base import *
-from base import REST, session, Controller, template
+from base import REST, session, Controller, template, utils
 
 import cherrypy, time, logging
 from django.utils import simplejson

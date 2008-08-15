@@ -6,6 +6,9 @@
 // 2008-07-18
 //
 
+if (typeof(API_HOST) == 'undefined') {
+  API_HOST = 'www.heliosvoting.org';
+}
 
 // some stuff with state
 Helios = (function() {
@@ -16,9 +19,21 @@ Helios = (function() {
   var API_FRAME;
   
   return {
-    'setup' : function() {   
+    'setup' : function() {
+        if (window.location.hostname == API_HOST) {
+          alert('no need for api frame');
+          // set up the cross-site-api-impl
+          $.getScript('/static/cross-site-api-impl.js');
+          return;
+        }
+        
+        if (!window.postMessage) {
+          alert('your browser does not support postMessage... this will not work.');
+          return;
+        }
+        
         API_FRAME = document.createElement('iframe');
-        API_FRAME.src = "/elections/api";
+        API_FRAME.src = "http://" + API_HOST + "/elections/api";
         API_FRAME.style.width=0;
         API_FRAME.style.height=0;
         API_FRAME.style.border=0;
@@ -61,24 +76,22 @@ Helios = (function() {
   }
 })();
 
-Helios.get_election = function(election_key, callback) {
-  Helios.call_api('get_election', {'election_key' : election_key}, function(el_json_obj) {
-    callback(HELIOS.Election.fromJSONObject(el_json_obj));
-  });
+Helios.get_election = function(params, callback) {
+  Helios.call_api('get_election', params, callback);
 };
 
-Helios.get_election_voters = function(election_key, callback) {
-  Helios.call_api('get_election_voters', {'election_key' : election_key}, callback);  
+Helios.get_election_voters = function(params, callback) {
+  Helios.call_api('get_election_voters', params, callback);  
 };
 
-Helios.get_election_voter = function(election_key, voter_key, callback) {
-  Helios.call_api('get_election_voter', {'election_key' : election_key, 'voter_key' : voter_key}, callback);  
+Helios.get_election_voter = function(params, callback) {
+  Helios.call_api('get_election_voter', params, callback);  
 };
 
-Helios.get_election_result = function(election_key, callback) {
-  Helios.call_api('get_election_result', {'election_key' : election_key}, callback);
+Helios.get_election_result = function(params, callback) {
+  Helios.call_api('get_election_result', params, callback);
 };
 
-Helios.get_election_result_proof = function(election_key, callback) {
-  Helios.call_api('get_election_result_proof', {'election_key' : election_key}, callback);
+Helios.get_election_result_proof = function(params, callback) {
+  Helios.call_api('get_election_result_proof', params, callback);
 };

@@ -15,6 +15,12 @@
   <script language="javascript" src="/static/elgamal.js"></script>
   <script language="javascript" src="/static/sha1.js"></script>
   <script language="javascript" src="/static/helios.js"></script>
+
+#from base import utils
+<script language="javascript">
+var API_HOST = '$utils.get_host()'
+</script>
+
   <script language="javascript" src="/static/cross-site-api.js"></script>
 
 <script language="javascript">
@@ -28,8 +34,9 @@ function verify_single_ballot(audit_trail) {
   var encrypted_vote_json = jQuery.secureEvalJSON(audit_trail);
   
   // go get the election
-  Helios.get_election(encrypted_vote_json.election_id, function(election) {
+  Helios.get_election({'election_id' : encrypted_vote_json.election_id}, function(election_json) {
       // display election fingerprint
+      var election = HELIOS.Election.fromJSONObject(election_json);
       var election_hash = election.get_hash();
       result_append("election fingerprint is " + election_hash);
       
@@ -59,7 +66,6 @@ function verify_single_ballot(audit_trail) {
       
       // verify the proofs
       if (encrypted_vote.verifyProofs(election.pk, function(ea_num, choice_num, result) {
-          // do nothing
       })) {
           result_append("Proofs ok.");
       } else {

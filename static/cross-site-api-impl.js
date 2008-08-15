@@ -5,44 +5,46 @@
  * 
  * Ben Adida (ben@adida.net)
  */
- 
- // register the event for callbacks
- window.addEventListener('message', function(message_evt) {
-   // we allow calls from anywhere, but we record where it's from
-   var source = message_evt.source;
-   
-   // parse the JSON securely
-   var call = jQuery.secureEvalJSON(message_evt.data);
-   
-   Helios[call['function']](call['params'], function(result) {
-     var response = {'call_id' : call['call_id'], 'result' : result};
-     source.postMessage(jQuery.toJSON(response), '*');
-   });
- }, false);
- 
+  
 Helios = {};
+
+// register the event for callbacks
+Helios.setup_api= function() {
+  window.addEventListener('message', function(message_evt) {
+    // we allow calls from anywhere, but we record where it's from
+    var source = message_evt.source;
+     
+    // parse the JSON securely
+    var call = jQuery.secureEvalJSON(message_evt.data);
+     
+    Helios[call['function']](call['params'], function(result) {
+      var response = {'call_id' : call['call_id'], 'result' : result};
+      source.postMessage(jQuery.toJSON(response), '*');
+    });
+  }, false);
+};
 
 // get the election
 Helios.get_election = function(params, callback) {
-  $.getJSON("/elections/" + params['election_key'], callback);
+  $.getJSON("/elections/" + params['election_id'], callback);
 };
 
 // get the voters
 Helios.get_election_voters = function(params, callback) {
-  $.getJSON("/elections/" + params['election_key'] + "/voters", callback);
+  $.getJSON("/elections/" + params['election_id'] + "/voters", callback);
 };
 
 // get a single voter
 Helios.get_election_voter = function(params, callback) {
-  $.getJSON("/elections/" + params['election_key'] + "/voters/" + params['voter_key'], callback);
+  $.getJSON("/elections/" + params['election_id'] + "/voters/" + params['voter_id'], callback);
 };
 
 // get the result
 Helios.get_election_result = function(params, callback) {
-  $.getJSON("/elections/" + params['election_key'] + "/result", callback);
+  $.getJSON("/elections/" + params['election_id'] + "/result", callback);
 };
 
 // get the result proof
 Helios.get_election_result_proof = function(params, callback) {
-  $.getJSON("/elections/" + params['election_key'] + "/result_proof", callback);
+  $.getJSON("/elections/" + params['election_id'] + "/result_proof", callback);
 };

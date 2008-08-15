@@ -4,7 +4,8 @@
 #
 
 root = '.'
-webroot = 'http://www.heliosvoting.org'
+hostname = 'www.heliosvoting.org'
+webroot = 'http://' + hostname
 
 #
 # Debugging
