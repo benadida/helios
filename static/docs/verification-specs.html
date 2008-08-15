@@ -19,7 +19,70 @@ by Ben Adida.
 </ul>
 
 <p>
-    This document specifies all data formats and the exact verification protocols and algorithms. Using this document, it should be possible for an able programmer to build a complete verification program in any modern programming language. For the sake of concreteness, each step in this document is illustrated using Python (2.3 or above.)
+    This document specifies all data formats and the exact verification protocols and algorithms. Using this document, it should be possible for an able programmer to build a complete verification program in any modern programming language. For the sake of concreteness, instead of pseudo-code, we use Python (2.3 or above.)
+</p>
+
+<h2>Accessing Data</h2>
+
+<p>
+    All data for an election is easily accessible using simple HTTP GET requests. Consider an election with election id <tt>&lt;ELECTION_ID&gt;</tt>. The election data structure, including the election public key, questions, etc., can be obtained by requesting the following URL:
+</p>
+
+<pre>
+    http://www.heliosvoting.org/elections/&lt;ELECTION_ID&gt;
+</pre>
+
+<p>
+    The list of voters, denoted <tt>&lt;VOTER_LIST&gt;</tt>, is available at:
+</p>
+
+<pre>
+    http://www.heliosvoting.org/elections/&lt;ELECTION_ID&gt;/voters
+</pre>
+
+<p>
+    Given this list, it is possible to extract individual voter identifiers, denoted <tt>&lt;VOTER_ID&gt;</tt> (the data structure will be explained later in this document.) Once obtained, a complete voter data structure, including encrypted vote, can be downloaded at:
+</p>
+
+<pre>
+    http://www.heliosvoting.org/elections/&lt;ELECTION_ID&gt;/voters/&lt;VOTER_ID&gt;
+</pre>    
+
+<p>
+    The result of an election is available at:
+</p>
+
+<pre>
+    http://www.heliosvoting.org/elections/&lt;ELECTION_ID&gt;/result
+</pre>    
+
+<p>
+    While the proof of this result is available at:
+</p>
+
+<pre>
+    http://www.heliosvoting.org/elections/&lt;ELECTION_ID&gt;/result_proof
+</pre>    
+    
+<p>
+    For testing purposes, the following election identifier can be used:
+</p>
+
+<pre>
+    agxoZWxpb3N2b3RpbmdyDgsSCEVsZWN0aW9uGCYM
+</pre>
+
+<p>
+    which means that its election information is at<br />
+    <a href="http://www.heliosvoting.org/elections/agxoZWxpb3N2b3RpbmdyDgsSCEVsZWN0aW9uGCYM">http://www.heliosvoting.org/elections/agxoZWxpb3N2b3RpbmdyDgsSCEVsZWN0aW9uGCYM</a>.
+</p>
+
+<p>
+    All data for this election was generated using the Helios system, and a verification program, built to the guidelines that follow, should be able to check all of the results.
+</p>
+
+<p>
+    If one wants to check the audit trail of a ballot, a new ballot audit trail can be generated at any time <a target="_blank" href="http://www.heliosvoting.org/elections/agxoZWxpb3N2b3RpbmdyDgsSCEVsZWN0aW9uGCYM/vote">using the voting booth interface for this election</a>. For convenience, one such ballot audit trail is available <a href="verification-specs-ballot-audit-trail.txt">here</a>, with choices <tt>[1,2]</tt> (the second choice for the first question, and the third choice for the second question.) The ballot fingerprint is <tt>93y/3rF9rSxRU2i7EG1Jn0Xk6x0</tt>.
 </p>
 
 <h2>Data Formats</h2>
@@ -142,6 +205,10 @@ by Ben Adida.
 "individual_proofs": [&lt;ZK_PROOF_0_or_1&gt;, &lt;ZK_PROOF_0_or_1&gt;, ...],
 "overall_proof": &lt;ZK_PROOF_0_or_1&gt;}</div>
 
+<p>
+    When a voter generates a ballot, Helios provides the ballot fingerprint, which is the base64-encoding of the SHA1 hash of the <tt>&lt;VOTE&gt;</tt> data structure defined above.
+</p>
+
 <h3>Proofs</h3>
 
 <p>
@@ -191,19 +258,19 @@ by Ben Adida.
 <h3>Result</h3>
 
 <p>
-    The result of an election is represented using two structures: <tt>&lt;RESULTS&gt;</tt> and <tt>&lt;RESULT_PROOF&gt;</tt>. The result simply displays the count of votes for each candidate within each question, in an array of arrays format.
+    The result of an election is represented using two structures: <tt>&lt;RESULT&gt;</tt> and <tt>&lt;RESULT_PROOF&gt;</tt>. The result simply displays the count of votes for each candidate within each question, in an array of arrays format.
 </p>
 
-<div class="codeblock"><div class="codetitle">&lt;RESULTS&gt;</div>
+<div class="codeblock"><div class="codetitle">&lt;RESULT&gt;</div>
 [[&lt;QUESTION_1_CANDIDATE_1_COUNT&gt;, &lt;QUESTION_1_CANDIDATE_2_COUNT&gt;, &lt;QUESTION_1_CANDIDATE_3_COUNT&gt;],
 [&lt;QUESTION_2_CANDIDATE_1_COUNT&gt;, &lt;QUESTION_2_CANDIDATE_2_COUNT&gt;]]
 </div>
 
 <p>
-    The <tt>&lt;RESULTS_PROOF&gt;</tt> data structure is formatted exactly the same way, with a Chaum-Pedersen proof of proper decryption for each candidate within each question:
+    The <tt>&lt;RESULT_PROOF&gt;</tt> data structure is formatted exactly the same way, with a Chaum-Pedersen proof of proper decryption for each candidate within each question:
 </p>
 
-<div class="codeblock"><div class="codetitle">&lt;RESULTS_PROOF&gt;</div>
+<div class="codeblock"><div class="codetitle">&lt;RESULT_PROOF&gt;</div>
 [[&lt;QUESTION_1_CANDIDATE_1_PROOF&gt;, &lt;QUESTION_1_CANDIDATE_2_PROOF&gt;, &lt;QUESTION_1_CANDIDATE_3_PROOF&gt;],
 [&lt;QUESTION_2_CANDIDATE_1_PROOF&gt;, &lt;QUESTION_2_CANDIDATE_2_PROOF&gt;]]
 </div>
@@ -307,6 +374,102 @@ return True
     
 <h2>Auditing/Spoiling a Single Ballot</h2>
 
+<p>
+    Given a <tt>&lt;VOTE_WITH_PLAINTEXTS&gt;</tt> and a claimed vote fingerprint, verification entails checking the fingerprint, checking all of the proofs to make sure the ballot is well-formed, and finally ensuring that the ballot actually encodes the claimed choices.
+</p>
+
+<div class="codeblock"><div class="codetitle">verify_ballot_audit(vote_with_plaintexts, election, vote_fingerprint)</div>
+# check the proofs
+if not verify_vote(election, vote_with_plaintexts):
+    return False
+    
+# check the proper encryption of each choice within each question
+# go through each encrypted answer
+for encrypted_answer in vote_with_plaintexts.answers:
+    # loop through each choice by integer (multiple arrays)
+    for choice_num in range(len(encrypted_answer.choices)):
+      # the ciphertext and randomness used to encrypt it
+      ciphertext = encrypted_answer.choices[choice_num]
+      randomness = encrypted_answer.randomness[choice_num]
+      
+      # the plaintext we expect, g^1 if selected, or g^0 if not selected
+      if choice_num == encrypted_answer.answer:
+        plaintext = public_key.g
+      else:
+        plaintext = 1
+        
+      # check alpha
+      if pow(public_key.g, randomness, public_key.p) != ciphertext.alpha:
+        return False
+        
+      # check beta
+      expected_beta = (pow(public_key.y, randomness, public_key.p) * plaintext) % public_key.p
+      if expected_beta != ciphertext.beta:
+        return False
+
+# check the fingerprint
+vote_without_plaintexts = vote_with_plaintexts.remove_plaintexts()
+computed_fingerprint = base64.b64encode(hash.new(vote_without_plaintexts.toJSON()).digest())[:-1]
+
+return computed_fingerprint == vote_fingerprint
+</div>
+
 <h2>Verifying a Complete Election Tally</h2>
+
+<p>
+    To verify a complete election tally, one should:
+</p>
+<ul>
+    <li> display the computed election fingerprint.</li>
+    <li> ensure that the list of voters matches the election voter-list hash.</li>
+    <li> display the fingerprint of each cast ballot.</li>
+    <li> check that each cast ballot is correctly formed by verifying the proofs.</li>
+    <li> homomorphically compute the encrypted tallies and verify, using the result proof, that they correctly decrypt to the claimed results. Display these results.</li>
+</ul>
+
+<p>
+    In other words, the complete results of a verified election includes: the election fingerprint, the list of ballot fingerprints, and the actual count. Any party who verifies the election should re-publish all of these items, as they are meaningless without one another. In other words, this is effectively a "re-tally".
+</p>
+
+<div class="codeblock"><div class="codetitle">retally_election(election, voters, result, result_proof):</div>
+# compute the election fingerprint
+election_fingerprint = b64_hash(election.toJSON())
+
+# compute the voter list hash on just the voter identities
+voters_without_votes = votes.remove_votes()
+voters_hash = b64_hash(voters_without_votes.toJSON())
+
+# verify, no need to continue if we fail here
+if voters_hash != election.voters_hash:
+    return False
+    
+# keep track of voter fingerprints
+vote_fingerprints = []
+
+# keep track of running tallies, initialize at 0
+# again, assuming operator overloading for homomorphic addition
+tallies = [[0 for a in question.answers] for question in election.questions]
+
+# go through each voter, check it
+for voter in voters:
+    if not verify_vote(election, voter.vote):
+        return False
+        
+    # compute fingerprint
+    vote_fingerprints.append(b64_hash(voter.vote.toJSON()))
+    
+    # update tallies, looping through questions and answers within them
+    for question_num in range(len(election.questions)):
+        for choice_num in range(len(election.questions[question_num].answers)):
+            tallies[question_num][choice_num] = voter.vote.answers[question_num].choices[choice_num] +
+                                                tallies[question_num][choice_num]
+    
+
+# now we have tallied everything in ciphertexts, we must verify proofs
+for question_num in range(len(election.questions)):
+    for choice_num in range(len(election.questions[question_num].answers)):
+        # verify the tally for that choice within that question
+        # WORK HERE
+</div>
 
 </body>
