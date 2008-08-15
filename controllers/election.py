@@ -195,7 +195,7 @@ class ElectionController(REST.Resource):
 
   @web
   @session.login_protect
-  def new_2(self, name, public_key, private_key=None, voting_starts_at=None, voting_ends_at=None):
+  def new_2(self, name, public_key, private_key=None, voting_starts_at=None, voting_ends_at=None, **kw):
     """
     Create the new election.
     """
@@ -219,7 +219,7 @@ class ElectionController(REST.Resource):
     election.public_key_json = simplejson.dumps(pk.to_dict())
     
     # the private key can be stored by the server
-    if private_key:
+    if private_key and private_key != "":
       sk = algs.EGSecretKey.from_dict(simplejson.loads(private_key))
       election.private_key_json = simplejson.dumps(sk.to_dict())
     
@@ -423,7 +423,33 @@ Your password: %s
     JavaScript-based driver for tallying by chunks
     """
     return self.render('drive_tally_chunk')
-
+    
+  @web
+  @session.login_protect
+  def drive_tally(self, election):
+    """
+    JavaScript-based driver for the entire tallying process, now done in JavaScript.
+    """
+    election_pk = election.get_pk()
+    election_pk_json = simplejson.dumps(election_pk.toJSONDict())
+    
+    election_sk = election.get_sk()
+    if election_sk:
+      election_sk_json = simplejson.dumps(election_sk.toJSONDict())
+    
+    return self.render('drive_tally')
+    
+  @web
+  @session.login_protect
+  def set_tally(self, election, tally):
+    """
+    Set the tally and proof.
+    """
+    tally_obj = simplejson.loads(tally)
+    election.set_result(tally_obj['result'], tally_obj['result_proof'])
+    election.update()
+    return "success"
+    
   @web
   @session.login_protect
   def compute_tally_chunk(self, election):

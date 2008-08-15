@@ -65,8 +65,45 @@ ElGamal.SecretKey = Class.extend({
   
   toJSONObject: function() {
     return {pk: this.pk.toJSONObject(), x: this.x.toJSONObject()};
+  },
+  
+  decrypt: function(ciphertext) {
+    var m = ciphertext.alpha.modPow(this.x, this.pk.p).modInverse(this.pk.p).multiply(ciphertext.beta).mod(this.pk.p);
+    var plaintext = new ElGamal.Plaintext(m, this.pk, false);
+    return plaintext;
+  },
+  
+  decryptAndProve: function(ciphertext, challenge_generator) {
+    var plaintext = this.decrypt(ciphertext);
+
+    // generate random w
+    var w = Random.getRandomInteger(this.pk.q);
+    
+    var proof = new ElGamal.Proof();
+    
+    // compute A=g^w, B=y^w
+    proof.commitment.A = this.pk.g.modPow(w, this.pk.p);
+    proof.commitment.B = ciphertext.alpha.modPow(w, this.pk.p);
+    
+    // Get the challenge from the callback that generates it
+    proof.challenge = challenge_generator(proof.commitment);
+    
+    // Compute response = w + x * challenge
+    proof.response = w.add(this.x.multiply(proof.challenge).mod(this.pk.q));
+    
+    return {
+      'plaintext': plaintext,
+      'proof': proof
+    };
   }
 });
+
+ElGamal.SecretKey.fromJSONObject = function(d) {
+  var sk = new ElGamal.SecretKey();
+  sk.pk = ElGamal.PublicKey.fromJSONObject(d.pk);
+  sk.x = BigInt.fromJSONObject(d.x);
+  return sk;
+}
 
 ElGamal.Ciphertext = Class.extend({
   init: function(alpha, beta, pk) {
@@ -350,12 +387,6 @@ ElGamal.encrypt = function(pk, plaintext, r) {
   var beta = (pk.y.modPow(r, pk.p)).multiply(plaintext.m).mod(pk.p);
   
   return new ElGamal.Ciphertext(alpha, beta, pk);
-};
-
-ElGamal.decrypt = function(sk, ciphertext) {
-  var m = ciphertext.alpha.modPow(sk.x, sk.pk.p).modInverse(sk.pk.p).multiply(ciphertext.beta).mod(sk.pk.p);
-  var plaintext = new ElGamal.Plaintext(m, sk.pk, false);
-  return plaintext.getPlaintext();
 };
 
 // a challenge generator based on a list of commitments of

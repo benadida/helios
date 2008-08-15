@@ -281,6 +281,9 @@ class EGSecretKey:
 
     @classmethod
     def from_dict(cls, d):
+        if not d:
+          return None
+          
         sk = cls()
         sk.x = int(d['x'])
         sk.pk = EGPublicKey.from_dict(d['pk'])

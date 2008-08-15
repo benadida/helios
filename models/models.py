@@ -119,12 +119,6 @@ class Election(DBObject):
   def is_frozen(self):
     return self.frozen_at != None
 
-  def set_permutations(self, perms):
-    self.permutations_json = simplejson.dumps([p.to_dict() for p in perms])
-
-  def get_permutations(self):
-    return [mixnet.Permutation.from_dict(p) for p in simplejson.loads(self.permutations_json or "null")]
-
   def set_result(self, tally_d, proof_d):
     self.result_json = simplejson.dumps(tally_d)
     self.decryption_proof = simplejson.dumps(proof_d)

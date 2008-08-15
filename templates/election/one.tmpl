@@ -26,8 +26,8 @@
 <li> <a href="voters_manage">manage voters</a></li><br />
 <li> <a href="freeze"><em>freeze</em> election and start voting.</a></li>
 #else
-#if not $election.encrypted_tally
-<li> <a href="drive_tally_chunk">compute tally</a></li>
+#if not $election.encrypted_tally and not $result
+<li> <a href="drive_tally">compute tally</a></li>
 #end if
 
 #if $election.encrypted_tally and not $result

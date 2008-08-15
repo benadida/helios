@@ -48,43 +48,65 @@ function check_dates() {
     return true;
 }
 
-
-// parse the params into bigints and such
+var SECRET_KEY;
 
 function generate_keypair() {
     ELGAMAL_PARAMS = ElGamal.Params.fromJSONObject($eg_params_json);
 
     \$('#generate_button').hide();
     
-    var kp;
-    
     try {
-        sk = ELGAMAL_PARAMS.generate();
+        SECRET_KEY = ELGAMAL_PARAMS.generate();
     } catch (e) {
         alert(e);
     }
 
-    \$('#pk')[0].value = jQuery.toJSON(sk.pk);
-    \$('#sk')[0].value = jQuery.toJSON(sk);    
+    \$('#pk')[0].value = jQuery.toJSON(SECRET_KEY.pk);
+    \$('#sk')[0].value = jQuery.toJSON(SECRET_KEY);    
     
-    \$('#generate_result').html("Key Generated");
-    \$('#create_button').show();
+    \$('#create_div').show();
 }
 
+\$(document).ready(function() {
+    \$('#create_div').hide();
+    \$('#sk_form').hide();
+    
+    \$("input[@name='server_admin_p']").change(function() {
+        if (\$(this).val() == 1) {
+            \$('#sk_form').hide();
+            \$('#sk').val(jQuery.toJSON(SECRET_KEY));
+        } else {
+            \$('#sk_form').show();
+            \$('#sk').val("");
+            \$('#sk_textarea').val(jQuery.toJSON(SECRET_KEY));
+            \$('#sk_textarea').attr("readonly", true);
+        }
+    });
+});
 </script>
 
   <h2 class="title">Create a New Election</h2>
-  <div class="entry">
   <form class="prettyform" action="new_2" onsubmit="return check_dates();" method="POST" id="create_election_form">
   <label for="name">Name:</label><input type="text" name="name" size="40" /><br />
 <!--  <label for="voting_starts_at">Starts At:</label><input type="text" id="voting_starts_at" name="voting_starts_at" size="12" /><span style="font-size: 12pt;" id="voting_starts_at_parsed"></span><br />
   <label for="voting_ends_at">Ends At:</label><input type="text" id="voting_ends_at" name="voting_ends_at" size="12" /><span style="font-size: 12pt;" id="voting_ends_at_parsed"></span><br /> -->
   <label for="generate_key">&nbsp;</label><button onclick="generate_keypair(); return false;" id="generate_button">Generate Election Keys</button>
-  <span id="generate_result"></span>
-  <br />
   <input type="hidden" name="public_key" id="pk" value="" />
-  <input type="hidden" name="private_key" id="sk" value="" />
-  <label for="">&nbsp;</label><input type="submit" value="Create Election" style="display: none;" id="create_button" />
-  </form>
+  <input type="hidden" name="private_key" id="sk" value="" /><br />
+  <div id="create_div">
+  <label for="">&nbsp;</label>Key Generated<br />
+  <label for="">&nbsp;</label><input type="radio" name="server_admin_p" value="1" checked /> Helios administers your election<br />
+  <label for="">&nbsp;</label><input type="radio" name="server_admin_p" value="0" /> You administer your election<br />
+  <label for="">&nbsp;</label><input type="submit" value="Create Election" id="create_button" />
   </div>
+  </form>
+  <br /><br />
+  <form style="padding-left: 200px;" id="sk_form" onsubmit="return false;">
+      Your Election's Secret Key:<br />
+      <label for="">&nbsp;</label>
+      <textarea id="sk_textarea" cols="60" rows="5">
+      </textarea><br />
+      (You need to copy and paste this key and keep it safe,<br />
+      otherwise you won't be able to tally your election.)
+  </form>
 #include "templates/footer.tmpl"
