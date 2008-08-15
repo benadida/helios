@@ -295,14 +295,14 @@ by Ben Adida.
 
 <div class="codeblock"><div class="codetitle">verify_proof(ciphertext, plaintext, proof, public_key):</div>
 if pow(public_key.g, proof.response, public_key.p) !=
-   proof.commitment.A * pow(ciphertext.alpha, proof.challenge, public_key.p):
+   ((proof.commitment.A * pow(ciphertext.alpha, proof.challenge, public_key.p)) % public_key.p):
       return False
 
 beta_over_m = modinverse(pow(public_key.g, plaintext, public_key.p), public_key.p) * ciphertext.beta
 beta_over_m_mod_p = beta_over_m % public_key.p
 
 if pow(public_key.y, proof.response, public_key.p) !=
-   proof.commitment.B * pow(beta_over_m_mod_p, proof.challenge, public_key.p):
+   ((proof.commitment.B * pow(beta_over_m_mod_p, proof.challenge, public_key.p)) % public_key.p):
       return False
 
 return True
@@ -328,9 +328,9 @@ if not verify_proof(ciphertext, 1, disjunctive_proof[1], public_key):
 # the overall challenge
 computed_challenge = (disjunctive_proof[0].challenge + disjunctive_proof[1].challenge) % public_key.p
 
-str_to_hash = str(disjunctive[0].commitment.A) + "," + str(disjunctive[0].commitment.B) + ","
-str_to_hash += str(disjunctive[1].commitment.A) + "," + str(disjunctive[1].commitment.B)
-expected_challenge = int(sha.new(str_to_hash).hexdigest(), 16)
+str_to_hash = str(disjunctive_proof[0].commitment.A) + "," + str(disjunctive_proof[0].commitment.B) + ","
+str_to_hash += str(disjunctive_proof[1].commitment.A) + "," + str(disjunctive_proof[1].commitment.B)
+expected_challenge = int_sha(str_to_hash)
 
 # last check
 return computed_challenge == expected_challenge
@@ -428,16 +428,46 @@ return computed_fingerprint == vote_fingerprint
 </ul>
 
 <p>
-    In other words, the complete results of a verified election includes: the election fingerprint, the list of ballot fingerprints, and the actual count. Any party who verifies the election should re-publish all of these items, as they are meaningless without one another. In other words, this is effectively a "re-tally".
+    In other words, the complete results of a verified election includes: the election fingerprint, the list of ballot fingerprints, and the actual count. Any party who verifies the election should re-publish all of these items, as they are meaningless without one another. This is effectively a "re-tally".
+</p>
+
+<p>
+    Part of this re-tally requires checking a decryption proof, which is almost the same, but not quite the same, as checking an encryption proof with given randomness. First, we document the verification of a decryption proof.    
+</p>
+
+<div class="codeblock"><div class="codetitle">verify_decryption_proof(ciphertext, plaintext, proof, public_key):</div>
+# Here, we prove that (g, y, alpha, beta/g^m) is a DDH tuple.
+# Before we were working with (g, alpha, y, beta/g^m)
+if pow(public_key.g, proof.response, public_key.p) !=
+   ((proof.commitment.A * pow(public_key.y, proof.challenge, public_key.p)) % public_key.p):
+      return False
+
+beta_over_m = modinverse(pow(public_key.g, plaintext, public_key.p), public_key.p) * ciphertext.beta
+beta_over_m_mod_p = beta_over_m % public_key.p
+
+if pow(ciphertext.alpha, proof.response, public_key.p) !=
+   ((proof.commitment.B * pow(beta_over_m_mod_p, proof.challenge, public_key.p)) % public_key.p):
+      return False
+
+# compute the challenge generation, Fiat-Shamir style
+str_to_hash = str(proof.commitment.A) + "," + str(proof.commitment.B)
+computed_challenge = int_sha(str_to_hash)
+
+# check that the challenge matches
+return computed_challenge == proof.challenge
+</div>
+
+<p>
+    Then, the re-tally proceeds as follows.
 </p>
 
 <div class="codeblock"><div class="codetitle">retally_election(election, voters, result, result_proof):</div>
 # compute the election fingerprint
-election_fingerprint = b64_hash(election.toJSON())
+election_fingerprint = b64_sha(election.toJSON())
 
 # compute the voter list hash on just the voter identities
 voters_without_votes = votes.remove_votes()
-voters_hash = b64_hash(voters_without_votes.toJSON())
+voters_hash = b64_sha(voters_without_votes.toJSON())
 
 # verify, no need to continue if we fail here
 if voters_hash != election.voters_hash:
@@ -456,7 +486,7 @@ for voter in voters:
         return False
         
     # compute fingerprint
-    vote_fingerprints.append(b64_hash(voter.vote.toJSON()))
+    vote_fingerprints.append(b64_sha(voter.vote.toJSON()))
     
     # update tallies, looping through questions and answers within them
     for question_num in range(len(election.questions)):
@@ -469,14 +499,19 @@ for voter in voters:
 for question_num in range(len(election.questions)):
     for choice_num in range(len(election.questions[question_num].answers)):
         # verify the tally for that choice within that question
-        if not verify_proof(tallies[question_num][choice_num],
-                            result[question_num][choice_num],
-                            result_proof[question_num][choice_num],
-                            election.public_key):
+        # check that it decrypts to the claimed result with the claimed proof
+        if not verify_decryption_proof(tallies[question_num][choice_num],
+                pow(election.public_key.g, result[question_num][choice_num], election.public_key.p),
+                result_proof[question_num][choice_num],
+                election.public_key):
             return False
             
-        # verify the computation of the challenge for that proof
-        # WORK HERE!
+# return the complete tally, now that it is confirmed
+return {
+    'election_fingerprint': election_fingerprint,
+    'vote_fingerprints' : vote_fingerprints,
+    'verified_tally' : result
+}
 </div>
 
 </body>
