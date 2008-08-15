@@ -469,7 +469,14 @@ for voter in voters:
 for question_num in range(len(election.questions)):
     for choice_num in range(len(election.questions[question_num].answers)):
         # verify the tally for that choice within that question
-        # WORK HERE
+        if not verify_proof(tallies[question_num][choice_num],
+                            result[question_num][choice_num],
+                            result_proof[question_num][choice_num],
+                            election.public_key):
+            return False
+            
+        # verify the computation of the challenge for that proof
+        # WORK HERE!
 </div>
 
 </body>
