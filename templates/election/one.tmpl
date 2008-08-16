@@ -27,7 +27,11 @@
 <li> <a href="freeze"><em>freeze</em> election and start voting.</a></li>
 #else
 #if not $election.encrypted_tally and not $result
+#if $election.get_sk()
+<li> <a href="drive_tally_chunk">compute tally</a></li>
+#else 
 <li> <a href="drive_tally">compute tally</a></li>
+#end if
 #end if
 
 #if $election.encrypted_tally and not $result
