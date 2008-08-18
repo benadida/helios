@@ -12,6 +12,18 @@ import simplejson
   
 import datetime
 
+def from_utf8(string):
+    if type(string) == str:
+        return string.decode('utf-8')
+    else:
+        return string
+    
+def to_utf8(string):
+    if type(string) == unicode:
+        return string.encode('utf-8')
+    else:
+        return string
+
 class DBObject():
 
     # GAE get_id
