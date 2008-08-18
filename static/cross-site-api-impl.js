@@ -26,25 +26,25 @@ Helios.setup_api= function() {
 
 // get the election
 Helios.get_election = function(params, callback) {
-  $.getJSON("/elections/" + params['election_id'], callback);
+  $.getJSON("/elections/" + params['election_id'] + "?date=" + new Date().getTime(), callback);
 };
 
 // get the voters
 Helios.get_election_voters = function(params, callback) {
-  $.getJSON("/elections/" + params['election_id'] + "/voters", callback);
+  $.getJSON("/elections/" + params['election_id'] + "/voters?date=" + new Date().getTime(), callback);
 };
 
 // get a single voter
 Helios.get_election_voter = function(params, callback) {
-  $.getJSON("/elections/" + params['election_id'] + "/voters/" + params['voter_id'], callback);
+  $.getJSON("/elections/" + params['election_id'] + "/voters/" + params['voter_id'] + "?date=" + new Date().getTime(), callback);
 };
 
 // get the result
 Helios.get_election_result = function(params, callback) {
-  $.getJSON("/elections/" + params['election_id'] + "/result", callback);
+  $.getJSON("/elections/" + params['election_id'] + "/result?date=" + new Date().getTime(), callback);
 };
 
 // get the result proof
 Helios.get_election_result_proof = function(params, callback) {
-  $.getJSON("/elections/" + params['election_id'] + "/result_proof", callback);
+  $.getJSON("/elections/" + params['election_id'] + "/result_proof?date=" + new Date().getTime(), callback);
 };

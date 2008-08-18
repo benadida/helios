@@ -20,7 +20,12 @@ Helios = (function() {
   
   return {
     'setup' : function() {
-        if (window.location.hostname == API_HOST) {
+        var host_str = window.location.hostname;
+        if (window.location.port != 80) {
+          host_str += ":" + window.location.port;
+        }
+
+        if (host_str == API_HOST) {
           // set up the cross-site-api-impl
           $.getScript('/static/cross-site-api-impl.js');
           return;

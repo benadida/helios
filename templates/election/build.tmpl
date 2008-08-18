@@ -3,6 +3,7 @@
   <h2 class="title">$election.name &mdash; Build <span style="font-size:0.7em;">[<a href="./view">done</a>]</span></h2>
 
   <script language="javascript">
+    Helios.setup();
     // utils
     var UTILS = {};
     UTILS.array_remove = function(arr, pos) {
@@ -23,18 +24,18 @@
     };
 
 
-    \$(document).ready(function() {
+    \$(window).load(function() {
         BUILDER.setup_templates();
 
         // load the election JSON
-	\$.getJSON("/elections/$election.election_id",
+	    Helios.get_election({'election_id': '$election.election_id'},
 	           function(data) {
-	  BUILDER.election = HELIOS.Election.fromJSONObject(data);
-	  BUILDER.pk = BUILDER.election.pk;
-	  BUILDER.election.pk = null;
+	               BUILDER.election = HELIOS.Election.fromJSONObject(data);
+	               BUILDER.pk = BUILDER.election.pk;
+	               BUILDER.election.pk = null;
 
-	  BUILDER.show_election();
-	});
+	               BUILDER.show_election();
+	    });
     });
 
     BUILDER.show_election = function() {

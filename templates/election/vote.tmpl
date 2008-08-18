@@ -6,7 +6,7 @@
 
 <script language="javascript">
 // utils
-
+Helios.setup();
 BOOTH = {};
 
 BOOTH.setup_templates = function() {
@@ -122,7 +122,7 @@ BOOTH.save_ballot_answer = function(question_num) {
     BOOTH.setup_templates();
 
     // the hash will be computed within the setup function call now
-    \$.getJSON("/elections/$election.election_id", function(data) {
+    Helios.get_election({'election_id': "$election.election_id"}, function(data) {
         BOOTH.setup_election(data);
         BOOTH.show_election();
     });

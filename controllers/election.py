@@ -44,7 +44,7 @@ class VoterController(REST.Resource):
 
   @web
   @json
-  def index(self, voter):
+  def index(self, voter, **kw):
     """
     View a single voter's info as JSON.
     """
@@ -54,7 +54,7 @@ class VoterController(REST.Resource):
     
   @web
   @json
-  def list(self):
+  def list(self, **kw):
     """
     Output a JSON list of all voters for a given election.
     """
@@ -267,7 +267,7 @@ class ElectionController(REST.Resource):
     
   @web
   @json
-  def result(self, election):
+  def result(self, election, *kw):
     """
     Machine-readable (JSON) election results.
     """
@@ -275,7 +275,7 @@ class ElectionController(REST.Resource):
 
   @web
   @json
-  def result_proof(self, election):
+  def result_proof(self, election, *kw):
     """
     Machine-readable (JSON) election result proof.
     """
@@ -313,7 +313,7 @@ class ElectionController(REST.Resource):
 
   @web
   @json
-  def index(self, election):
+  def index(self, election, **kw):
     """
     Machine-readable (JSON) election information.
     """

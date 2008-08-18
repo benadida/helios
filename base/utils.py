@@ -252,7 +252,11 @@ def get_url():
     return full_url
 
 def get_host():
-  return cherrypy.request.wsgi_environ['SERVER_NAME']
+  host_str = cherrypy.request.wsgi_environ['SERVER_NAME']
+  host_port = ""
+  if cherrypy.request.wsgi_environ['SERVER_PORT'] != '80':
+    host_port = ":" + cherrypy.request.wsgi_environ['SERVER_PORT']
+  return "%s%s" % (host_str, host_port)
         
 def JSONtoDict(json):
     x=simplejson.loads(json)
