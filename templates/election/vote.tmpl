@@ -59,7 +59,7 @@ BOOTH.setup_election = function(election) {
 };
 
 BOOTH.show = function(el) {
-  \$('#page div').hide();
+  \$('.panel').hide();
   el.show();
   return el;
 };
@@ -140,7 +140,8 @@ BOOTH.seal_ballot = function() {
     
     BOOTH.encrypted_ballot = new HELIOS.EncryptedVote(BOOTH.election, BOOTH.ballot.answers);
     
-    BOOTH.show(\$('#seal_div')).processTemplate({'encrypted_vote_hash' : BOOTH.encrypted_ballot.get_hash()});
+    \$('#seal_div').processTemplate({'encrypted_vote_hash' : BOOTH.encrypted_ballot.get_hash()});
+    BOOTH.show(\$('#seal_div'));
 };
 
 BOOTH.audit_ballot = function() {
@@ -210,30 +211,30 @@ BOOTH.show_receipt = function() {
 
 </script>
 <div id="page">
-  <div class="entry" id="election_div" class="panel">
+  <div id="election_div" class="panel">
     Loading Election Booth...
   </div>
 
-  <div class="entry" id="question_div" class="panel">
+  <div id="question_div" class="panel">
   </div>
 
-  <div class="entry" id="confirm_div" class="panel">
+  <div id="confirm_div" class="panel">
   </div>
   
-  <div class="entry" id="processing_div" class="panel">
+  <div id="processing_div" class="panel">
       <h3 align="center">Processing....</h3>
   </div>
 
-  <div class="entry" id="seal_div" class="panel">
+  <div id="seal_div" class="panel">
   </div>
 
-  <div class="entry" id="audit_div" class="panel">
+  <div id="audit_div" class="panel">
   </div>
 
-  <div class="entry" id="login_div" class="panel">
+  <div id="login_div" class="panel">
   </div>
 
-  <div class="entry" id="done_div" class="panel">
+  <div id="done_div" class="panel">
   </div>
 </div>
 #include "templates/booth-footer.tmpl"

@@ -7,7 +7,11 @@ Ben Adida (ben@adida.net)
 # needs a rewrite for GAE
 
 from base import config
-from google.appengine.api import mail
+
+try:
+  from google.appengine.api import mail
+except:
+  pass
 
 def no_send(recipient_names, recipient_emails, sender_name, sender_email, subject, body, reply_to=None):
   print "not sending email as per config (GAE update needed to see email)"

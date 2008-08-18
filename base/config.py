@@ -4,7 +4,8 @@
 #
 
 root = '.'
-hostname = 'www.heliosvoting.org'
+#hostname = 'www.heliosvoting.org'
+hostname = 'localhost:8082'
 webroot = 'http://' + hostname
 
 #
@@ -18,3 +19,9 @@ PYTHON_DEBUG = True
 ##
 SEND_MAIL = True
 
+#
+# database
+#
+DB_HOST = "localhost"
+DB_NAME = "helios"
+DB_PORT = 5432

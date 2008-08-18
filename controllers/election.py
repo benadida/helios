@@ -7,12 +7,19 @@ Ben Adida (ben@adida.net)
 from base import *
 from base import REST, session, Controller, template, mail
 from crypto import algs
-from models import models as do
+import models as do
 
 import cherrypy, time, logging
-from django.utils import simplejson
 
-from google.appengine.api import users
+try:
+  from django.utils import simplejson
+except:
+  import simplejson
+
+try:
+  from google.appengine.api import users
+except:
+  pass
 
 import basic
 

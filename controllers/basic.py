@@ -5,10 +5,14 @@ Ben Adida (ben@adida.net)
 """
 
 from base import *
-from base import REST, session, Controller, template, utils
+from base import REST, session, Controller, template
 
 import cherrypy, time, logging
-from django.utils import simplejson
+
+try:
+  from django.utils import simplejson
+except:
+  import simplejson
 
 class HeliosController(Controller):
   """

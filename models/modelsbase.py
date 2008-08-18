@@ -1,58 +1,26 @@
 """
-Data Objects for Helios GAE.
-
-FIXME: refactor to be not GAE-specific, leave that to DBObject.py
-
-Ben Adida
-(ben@adida.net)
+Base stuff for all models
 """
 
-from base import utils
+#from base import utils
 from base.DBObject import DBObject
-from django.utils import simplejson
+from base import utils
+
+try:
+  from django.utils import simplejson
+except:
+  import simplejson
+  
 import datetime, logging
 
 from crypto import algs
 
-from google.appengine.ext import db
-from google.appengine.api import users
-from google.appengine.ext import webapp
+import models
 
-
-class Election(DBObject):
-  admin = db.UserProperty()
-  name = db.StringProperty(multiline=False)
-  public_key_json = db.TextProperty()
-  private_key_json = db.TextProperty()
-  questions_json = db.TextProperty()
-  
-  # voter list fixed or open
-  openreg_enabled = db.BooleanProperty(default=False)
-
-  # dates at which things happen for the election
-  frozen_at = db.DateTimeProperty(auto_now_add=False)
-  voting_starts_at = db.DateTimeProperty(auto_now_add=False)
-  voting_ends_at = db.DateTimeProperty(auto_now_add=False)
-
-  # encrypted tally, each a JSON string
-  # used only for homomorphic tallies
-  encrypted_tally = db.TextProperty()
-
-  # results of the election
-  running_tally = db.TextProperty()
-  result_json = db.TextProperty()
-
-  # decryption proof, a JSON object
-  decryption_proof = db.TextProperty()
-
-  # type of election (homomorphic, mixnet, possibly with more detail)
-  election_type = db.StringProperty(multiline=False)
-
+class ElectionBase(DBObject):
   # when JSON'ified
   JSON_FIELDS = ['election_id', 'name', 'pk', 'questions', 'voters_hash', 'openreg', 'voting_starts_at', 'voting_ends_at']
-  
-  election_id = property(DBObject.get_id)
-    
+      
   def toJSONDict(self):
     self.pk = self.get_pk()
     self.questions = self.get_questions()
@@ -99,7 +67,7 @@ class Election(DBObject):
     return simplejson.loads(questions_json)
 
   def get_voters(self, offset=None, limit=None):
-    return Voter.selectAllByKeys({'election': self}, offset=offset, limit=limit)
+    return models.Voter.selectAllByKeys({'election': self}, offset=offset, limit=limit)
     
   def get_cast_votes(self, offset=None, limit=None):
     return [voter.get_vote() for voter in self.get_voters(offset = offset, limit = limit) if voter.cast_id != None]
@@ -110,7 +78,7 @@ class Election(DBObject):
     return utils.hash_b64(voters_json)
 
   def get_votes(self, question_num):
-    return Voter.selectAllWithVote(election = self, question_num = question_num)
+    return models.Voter.selectAllWithVote(election = self, question_num = question_num)
 
   def freeze(self):
     self.frozen_at = datetime.datetime.utcnow()
@@ -129,39 +97,6 @@ class Election(DBObject):
   def get_result_proof(self):
     return simplejson.loads(self.decryption_proof or "null")
   
-  def decoded_answers(self, question, plaintext, format_answer_func = None):
-    """
-    get the decoded answer in array form, with integer position of candidates selected.
-    If format_answer_func is provided, that function is applied to the array of answers for a single
-    question as:
-
-    format_answer_func(question, decoded_answers_for_that_question)
-    """
-
-    int_answer = plaintext.m
-    
-    # convert the int to a list of candidates
-    answers = []
-
-    for i in range(len(question['answers'])):
-      # look at least significant bit
-      if int_answer & 1 == 1:
-        answers.append(i)
-
-      int_answer = int_answer >> 1
-
-    if format_answer_func:
-      answers = format_answer_func(question, answers)
-        
-    return answers
-    
-  def pretty_answers(self, question, plaintext):
-    def prettify_answer_list(question, answer_list):
-      pretty_answer_list = [question['answers'][a] for a in answer_list]
-      return ", ".join(pretty_answer_list)
-      
-    return self.decoded_answers(question, plaintext, prettify_answer_list)
-    
   def set_running_tally(self, running_tally):
     self.running_tally = simplejson.dumps([[c.toJSONDict() for c in q] for q in running_tally])
     
@@ -176,7 +111,7 @@ class Election(DBObject):
     """
     Return the voter that hasn't been counted yet, in order of cast_id
     """
-    query = Voter.all().filter('election = ', self)
+    query = models.Voter.all().filter('election = ', self)
     query.filter('tallied_at = ', None).filter('cast_id > ', None)
     query.order('cast_id')
     
@@ -333,7 +268,7 @@ class Election(DBObject):
       
       for choice in question:
         plaintext_and_proof = sk.prove_decryption(algs.EGCiphertext.from_dict(choice))
-        question_tally.append(ElectionExponent.get_exp(self, plaintext_and_proof['plaintext']))
+        question_tally.append(models.ElectionExponent.get_exp(self, plaintext_and_proof['plaintext']))
         question_proof.append(plaintext_and_proof['proof'])
         
       decrypted_tally.append(question_tally)
@@ -347,13 +282,10 @@ class Election(DBObject):
     query = cls.all().filter('admin = ', user)
     return [r for r in query]
     
-class ElectionExponent(DBObject):
+class ElectionExponentBase(DBObject):
   """
   A set of g^i for i <= num_voters, so we can do decryption easily.
   """
-  election = db.ReferenceProperty(Election)
-  exponent = db.IntegerProperty()
-  value = db.StringProperty(multiline=False)
   
   @classmethod
   def get_max_by_election(cls, election):
@@ -375,7 +307,7 @@ class ElectionExponent(DBObject):
       exp = the_max.exponent + 1
       value = (int(the_max.value) * pk.g) % pk.p
       
-    new_exp = ElectionExponent()
+    new_exp = models.ElectionExponent()
     new_exp.exponent = exp
     new_exp.value = str(value)
     new_exp.election = election
@@ -389,38 +321,21 @@ class ElectionExponent(DBObject):
       
     return cls.selectByKeys({'value': str(value), 'election' : election}).exponent
     
-class Voter(DBObject):
-  election = db.ReferenceProperty(Election)
-  email = db.StringProperty(multiline=False)
-  openid_url = db.StringProperty(multiline = False)
-  name = db.StringProperty(multiline=False)
-  password = db.StringProperty(multiline=False)
-
-  # an identifier of when the vote was cast
-  # in an open registration election, the cast_id isn't set
-  # until the verification happens.
-  cast_id = db.StringProperty()
-  tallied_at = db.DateTimeProperty(auto_now_add=False, default=None)
-  
-  # each answer to a question is a JSON string
-  vote = db.TextProperty()
-  vote_hash = db.StringProperty()
-  
+class VoterBase(DBObject):  
   JSON_FIELDS = ['voter_id','name', 'email']
-  voter_id = property(DBObject.get_id)
   
   def save(self):
     if not self.is_saved():
       # add an election exponent
-      ElectionExponent.add_exp_to_election(self.election)
+      models.ElectionExponent.add_exp_to_election(self.election)
     
-    super(Voter, self).save()
+    super(VoterBase, self).save()
       
   def generate_password(self):
     self.password = utils.random_string(10)
 
   def set_encrypted_vote(self, votes_json_string):
-    self.vote = db.Text(votes_json_string)
+    self.vote = votes_json_string
     self.vote_hash = self.compute_vote_hash()
     self.cast_id = str(datetime.datetime.utcnow()) + str(self.voter_id)
     self.save()
@@ -514,4 +429,3 @@ class Voter(DBObject):
   def selectAllWithVote(cls, election, question_num):
     # TODO: check that this is really what we want given that we reversed the voter/vote
     return Vote.all().filter('election = ', election).filter('question_num=', question_num)
-

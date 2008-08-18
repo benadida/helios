@@ -24,7 +24,7 @@ function load_election_and_ballots(election_id) {
     VOTER_LIST = [];
     
     // get the election data
-    Helios.get_election({'election_id' : election_id}, function(election) {
+    Helios.get_election({'election_id' : election_id}, function(election_json) {
         var election = HELIOS.Election.fromJSONObject(election_json);        
         ELECTION = election;
         
@@ -158,8 +158,7 @@ function do_tally() {
 <div id="sk_section">
     <form onsubmit="return false;">
         Your Secret Key:<br />
-        <textarea id="sk_textarea" cols="60" rows="5">
-        </textarea>
+        <textarea id="sk_textarea" cols="60" rows="5"></textarea>
     </form>
 </div>
 

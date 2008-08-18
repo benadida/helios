@@ -19,7 +19,6 @@
 
 
 import wsgiref.handlers
-import models
 
 import cherrypy
 import sitemap
