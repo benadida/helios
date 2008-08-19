@@ -60,6 +60,13 @@ function when_ready_verify_ballots_and_tally() {
     }
 }
 
+NUM_VOTES = 0;
+
+function increment_vote_tally_count() {
+    NUM_VOTES += 1;
+    \$('#num_votes').html(NUM_VOTES);
+}
+
 function verify_ballots_and_tally() {
     // check that ballots are here
     for (var i=0; i<VOTER_LIST.length; i++) {
@@ -112,7 +119,9 @@ function verify_ballots_and_tally() {
             }
         });
         
-        VALID_P = VALID_P && this_vote_result;        
+        VALID_P = VALID_P && this_vote_result;
+        
+        increment_vote_tally_count();
     });
     
     // are we okay?
