@@ -48,3 +48,7 @@ Helios.get_election_result = function(params, callback) {
 Helios.get_election_result_proof = function(params, callback) {
   $.getJSON("/elections/" + params['election_id'] + "/result_proof?date=" + new Date().getTime(), callback);
 };
+
+Helios.is_ready = function() {
+  return true;
+};

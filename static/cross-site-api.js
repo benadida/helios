@@ -14,6 +14,7 @@ if (typeof(API_HOST) == 'undefined') {
 Helios = (function() {
   var CALL_ID = 0;
   var CALLBACKS = {};
+  var READY_P = false;
   
   // add an iframe
   var API_FRAME;
@@ -21,10 +22,10 @@ Helios = (function() {
   return {
     'setup' : function() {
         var host_str = window.location.hostname;
-        if (window.location.port != 80) {
+        if (window.location.port != 80 && window.location.port != "") {
           host_str += ":" + window.location.port;
         }
-
+        
         if (host_str == API_HOST) {
           // set up the cross-site-api-impl
           $.getScript('/static/cross-site-api-impl.js');
@@ -59,6 +60,13 @@ Helios = (function() {
           // do the callback
           Helios.api_return(result['call_id'], result['result']);
         }, false);
+        
+        // mark ourselves as ready
+        READY_P = true;
+    },
+    
+    'is_ready' : function() {
+      return READY_P;
     },
     
     'call_api' : function(func, params, callback) {
