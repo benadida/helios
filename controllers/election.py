@@ -267,7 +267,7 @@ class ElectionController(REST.Resource):
     
   @web
   @json
-  def result(self, election, *kw):
+  def result(self, election, **kw):
     """
     Machine-readable (JSON) election results.
     """
@@ -275,7 +275,7 @@ class ElectionController(REST.Resource):
 
   @web
   @json
-  def result_proof(self, election, *kw):
+  def result_proof(self, election, **kw):
     """
     Machine-readable (JSON) election result proof.
     """
