@@ -39,6 +39,7 @@ class Election(mbase.ElectionBase):
   frozen_at = db.DateTimeProperty(auto_now_add=False)
   voting_starts_at = db.DateTimeProperty(auto_now_add=False)
   voting_ends_at = db.DateTimeProperty(auto_now_add=False)
+  archived_at = db.DateTimeProperty(auto_now_add=False, default=None)
 
   # encrypted tally, each a JSON string
   # used only for homomorphic tallies

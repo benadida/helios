@@ -22,7 +22,7 @@ class Election(mbase.ElectionBase):
   SEQ_NAME = 'election_id_seq'
   FIELDS = ['election_id','admin_user_id','election_type','name','election_hash','questions_json','public_key_json','private_key_json',
             'election_frozen_at','voting_starts_at','voting_ends_at','openreg_enabled','encrypted_tally','running_tally','decryption_proof',
-            'result_json']
+            'result_json', 'archived_at']
   
   # when JSON'ified
   JSON_FIELDS = mbase.ElectionBase.JSON_FIELDS

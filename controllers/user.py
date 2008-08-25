@@ -31,14 +31,14 @@ class UserController(Controller):
   TEMPLATES_DIR = basic.HeliosController.TEMPLATES_DIR + 'user/'
 
   @web
-  def index(self):
+  def index(self, include_archived=False):
     """
     Display user homepage.
     """
     user = self.user()
 
     if user:
-      elections = do.Election.getByAdmin(user)
+      elections = do.Election.getByAdmin(user, include_archived)
       status = session.get_status()
       return self.render('index')
     else:

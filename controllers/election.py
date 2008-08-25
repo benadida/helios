@@ -11,6 +11,8 @@ import models as do
 
 import cherrypy, time, logging
 
+import datetime
+
 try:
   from django.utils import simplejson
 except:
@@ -264,6 +266,20 @@ class ElectionController(REST.Resource):
     election.openreg_enabled = open_p
     election.save()
     self.redirect("./voters_manage")
+    
+  @web
+  @session.login_protect
+  def archive(self, election, archive_p=True):
+    """
+    archive an election
+    """
+    user, election = self.check(election)
+    if bool(int(archive_p)):
+      election.archived_at = datetime.datetime.utcnow()
+    else:
+      election.archived_at = None
+    election.save()
+    self.redirect("./view")
     
   @web
   @json

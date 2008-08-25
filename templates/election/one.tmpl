@@ -44,6 +44,11 @@
 <br /><li> <a href="email_voters">email voters</a></li>
 #end if
 
+#if not $election.archived_at
+<br /><li> <a href="archive">archive election</a></li>
+#else
+<br /><br /><em>election archived</em> [<a href="./archive?archive_p=0">un-archive</a>]
+#end if
 </ul>
 </div>
 #end if

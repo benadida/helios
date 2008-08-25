@@ -278,8 +278,10 @@ class ElectionBase(DBObject):
     self.save()
     
   @classmethod
-  def getByAdmin(cls, user):
+  def getByAdmin(cls, user, include_archived = False):
     query = cls.all().filter('admin = ', user)
+    if not include_archived:
+      query.filter('archived_at = ', None)
     return [r for r in query]
     
 class ElectionExponentBase(DBObject):
