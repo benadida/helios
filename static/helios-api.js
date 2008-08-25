@@ -31,8 +31,6 @@ _Helios_SameSite = Class.extend({
         });
       }, false);
     }
-    
-    alert('setup!');
   },
   
   get_election: function(params, callback) {
@@ -98,8 +96,6 @@ _Helios_CrossSite = Class.extend({
       // do the callback
       self.api_return(result['call_id'], result['result']);
     }, false);
-    
-    alert('setup xsite!');
   },
   
   'call_api' : function(func, params, callback) {
@@ -152,10 +148,8 @@ if (typeof(API_HOST) == 'undefined') {
 }
 
 if (host_str == API_HOST) {
-  alert('same site');
   Helios = new _Helios_SameSite();
 } else {
-  alert('cross site');
   Helios = new _Helios_CrossSite();
 }
 
