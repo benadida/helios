@@ -15,18 +15,24 @@ _Helios_SameSite = Class.extend({
   
   // register event listeners for cross-frame messaging
   setup: function() {
-    window.addEventListener('message', function(message_evt) {
-      // we allow calls from anywhere, but we record where it's from
-      var source = message_evt.source;
+    // FIXME: make this more jQuery friendly and add something about
+    // whether this needs the callback
+    if (window.addEventListener) {
+      window.addEventListener('message', function(message_evt) {
+        // we allow calls from anywhere, but we record where it's from
+        var source = message_evt.source;
 
-      // parse the JSON securely
-      var call = jQuery.secureEvalJSON(message_evt.data);
+        // parse the JSON securely
+        var call = jQuery.secureEvalJSON(message_evt.data);
 
-      this[call['function']](call['params'], function(result) {
-        var response = {'call_id' : call['call_id'], 'result' : result};
-        source.postMessage(jQuery.toJSON(response), '*');
-      });
-    }, false);
+        this[call['function']](call['params'], function(result) {
+          var response = {'call_id' : call['call_id'], 'result' : result};
+          source.postMessage(jQuery.toJSON(response), '*');
+        });
+      }, false);
+    }
+    
+    alert('setup!');
   },
   
   get_election: function(params, callback) {
@@ -92,7 +98,8 @@ _Helios_CrossSite = Class.extend({
       // do the callback
       self.api_return(result['call_id'], result['result']);
     }, false);
-      
+    
+    alert('setup xsite!');
   },
   
   'call_api' : function(func, params, callback) {
@@ -143,8 +150,6 @@ if (window.location.port != 80 && window.location.port != "") {
 if (typeof(API_HOST) == 'undefined') {
   API_HOST = 'www.heliosvoting.org';
 }
-
-var Helios;
 
 if (host_str == API_HOST) {
   alert('same site');
