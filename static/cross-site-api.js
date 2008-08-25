@@ -107,3 +107,4 @@ Helios.get_election_result = function(params, callback) {
 Helios.get_election_result_proof = function(params, callback) {
   Helios.call_api('get_election_result_proof', params, callback);
 };
+

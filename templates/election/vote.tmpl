@@ -119,11 +119,6 @@ BOOTH.save_ballot_answer = function(question_num) {
 };
 
 BOOTH.load_and_setup_election = function() {
-    if (!Helios.is_ready || !Helios.is_ready()) {
-        window.setTimeout("BOOTH.load_and_setup_election()", 1000);
-        return;
-    }
-        
     // the hash will be computed within the setup function call now
     Helios.get_election({'election_id': "$election.election_id"}, function(data) {
         BOOTH.setup_election(data);
