@@ -4,6 +4,8 @@ The stuff for the base package
 
 import cherrypy
 
+from base import utils
+
 try:
   from django.utils import simplejson
 except:
@@ -34,7 +36,7 @@ def json(func):
     web client.
     """
     def convert_to_json(self, *args, **kwargs):
-        return simplejson.dumps(func(self, *args, **kwargs), sort_keys = True)
+        return utils.to_json(func(self, *args, **kwargs))
 
     return convert_to_json
 

@@ -67,7 +67,7 @@ class DBObject(db.Model):
         if order_by:
             query.order(order_by)
         
-        return query.fetch(limit or 1000, offset or 0)
+        return query.fetch(limit=limit or 1000, offset=offset or 0)
 
     @classmethod
     def selectAllByKey(cls, key_name, key_value, order_by = None, offset = None, limit = None):
@@ -76,7 +76,7 @@ class DBObject(db.Model):
         return cls.selectAllByKeys(keys, order_by, offset, limit)
         
     @classmethod
-    def selectAllByKeys(cls, keys, order_by = None, offset = None, limit = None):
+    def selectAllByKeys(cls, keys, order_by = None, offset = None, after = None, limit = None):
         # unicode
         for k,v in keys.items():
             keys[k] = to_utf8(v)
@@ -91,8 +91,12 @@ class DBObject(db.Model):
         # conditions
         for k,v in keys.items():
           query.filter('%s' % k, v)
+          
+        # after
+        if order_by and after:
+          query.filter('%s > ' % order_by, after)
 
-        return query.fetch(limit or 1000, offset or 0)        
+        return query.fetch(limit=limit or 1000, offset=offset or 0)        
 
     def _load_from_row(self, row, extra_fields=[]):
 
@@ -178,4 +182,4 @@ class DBObject(db.Model):
         return json_dict
         
     def toJSON(self):
-        return simplejson.dumps(self.toJSONDict())
+        return utils.to_json(self.toJSONDict())

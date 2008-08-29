@@ -91,7 +91,7 @@ def http_json_get(relative_url, with_hash = False):
     req = urllib2.Request(url = SERVER_URL + relative_url)
     f = urllib2.urlopen(req)
     content = f.read()
-    parsed_content = simplejson.loads(content)
+    parsed_content = utils.from_json(content)
 
     if with_hash:
         return parsed_content, hash_b64(content)
@@ -156,5 +156,5 @@ if __name__ == '__main__':
     ballot_content = f.read()
     f.close()
 
-    ballot = simplejson.loads(ballot_content)
+    ballot = utils.from_json(ballot_content)
     verify_ballot(ballot)

@@ -111,7 +111,7 @@ class DBObject():
         """
         # GAE
         self.save()
-
+        
     # DELETE inherited from GAE
             
     @classmethod
@@ -171,4 +171,4 @@ class DBObject():
         return json_dict
         
     def toJSON(self):
-        return simplejson.dumps(self.toJSONDict())
+        return utils.to_json(self.toJSONDict())

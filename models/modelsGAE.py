@@ -86,8 +86,26 @@ class Voter(mbase.VoterBase):
   vote = db.TextProperty()
   vote_hash = db.StringProperty()
   
-  JSON_FIELDS = mbase.VoterBase.JSON_FIELDS
-  voter_id = property(DBObject.get_id)
+  # keep a copy of the voter_id that we can sort by
+  voter_id = db.StringProperty()
   
+  # categorize voters
+  category = db.StringProperty()
+  
+  JSON_FIELDS = mbase.VoterBase.JSON_FIELDS
+  #voter_id = property(DBObject.get_id)
+  
+  def save(self):
+    """
+    Save object.
+    Save it twice if it's a new voter
+    """
+    # save once, get the key(), and store it in a separate field.
+    if not self.is_saved():
+      super(Voter, self).save()
+      self.voter_id = str(self.key())
+
+    super(Voter, self).save()
+      
 
 

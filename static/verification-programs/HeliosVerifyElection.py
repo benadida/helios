@@ -86,7 +86,7 @@ def http_json_get(relative_url, with_hash = False):
     req = urllib2.Request(url = SERVER_URL + relative_url)
     f = urllib2.urlopen(req)
     content = f.read()
-    parsed_content = simplejson.loads(content)
+    parsed_content = utils.from_json(content)
 
     if with_hash:
         return parsed_content, hash_b64(content)
@@ -130,7 +130,7 @@ def get_shuffle_proofs(election_id, question_num):
     shuffle_proofs = http_json_get("/election/shuffle_proofs?election_id=%s&question_num=%s" % (election_id,question_num))
 
     # generate a hash of the secondary outputs
-    secondary_outputs_hash = hash(simplejson.dumps([sp['secondary_outputs'] for sp in shuffle_proofs]))
+    secondary_outputs_hash = hash(utils.to_json([sp['secondary_outputs'] for sp in shuffle_proofs]))
 
     # make sure all integer values are cast to integers
     for sp in shuffle_proofs:

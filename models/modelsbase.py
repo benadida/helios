@@ -36,49 +36,51 @@ class ElectionBase(DBObject):
     return DBObject.toJSONDict(self)
 
   def save_dict(self, d):
-    self.questions_json = simplejson.dumps(d['questions'])
+    self.questions_json = utils.to_json(d['questions'])
     self.update()
 
   def get_hash(self):
-    str_val = simplejson.dumps(self.toJSONDict(), sort_keys=True)
-    logging.info("election string to hash is " + str_val)
+    str_val = utils.to_json(self.toJSONDict())
+    # logging.info("election string to hash is " + str_val)
     return utils.hash_b64(str_val)
 
   def save_questions(self, questions):
-    self.questions_json = simplejson.dumps(questions)
+    self.questions_json = utils.to_json(questions)
     self.update()
     
   def set_pk(self, pk):
-    self.public_key_json = simplejson.dumps(pk.to_dict())
+    self.public_key_json = utils.to_json(pk.to_dict())
 
   def get_pk(self):
     pk_json = self.public_key_json or 'null'
-    return algs.EGPublicKey.from_dict(simplejson.loads(pk_json))
+    return algs.EGPublicKey.from_dict(utils.from_json(pk_json))
 
   def set_sk(self, sk):
-    self.private_key_json = simplejson.dumps(sk.to_dict())
+    self.private_key_json = utils.to_json(sk.to_dict())
 
   def get_sk(self):
     sk_json = self.private_key_json or 'null'
-    return algs.EGSecretKey.from_dict(simplejson.loads(sk_json))
+    return algs.EGSecretKey.from_dict(utils.from_json(sk_json))
 
   def get_questions(self):
     questions_json = self.questions_json or '[]'
-    return simplejson.loads(questions_json)
+    return utils.from_json(questions_json)
 
-  def get_voters(self, offset=None, limit=None):
-    return models.Voter.selectAllByKeys({'election': self}, offset=offset, limit=limit)
+  def get_voters(self, category=None, after=None, limit=None):
+    keys = {'election': self}
+    if category:
+      keys['category'] = category
+    
+    return models.Voter.selectAllByKeys(keys, after=after, limit=limit)
     
   def get_cast_votes(self, offset=None, limit=None):
     return [voter.get_vote() for voter in self.get_voters(offset = offset, limit = limit) if voter.cast_id != None]
 
   def get_voters_hash(self):
     voters = self.get_voters()
-    voters_json = simplejson.dumps([v.toJSONDict() for v in voters])
+    voters_json = utils.to_json([v.toJSONDict() for v in voters])
+    logging.info("json for voters is: " + voters_json)
     return utils.hash_b64(voters_json)
-
-  def get_votes(self, question_num):
-    return models.Voter.selectAllWithVote(election = self, question_num = question_num)
 
   def freeze(self):
     self.frozen_at = datetime.datetime.utcnow()
@@ -88,20 +90,20 @@ class ElectionBase(DBObject):
     return self.frozen_at != None
 
   def set_result(self, tally_d, proof_d):
-    self.result_json = simplejson.dumps(tally_d)
-    self.decryption_proof = simplejson.dumps(proof_d)
+    self.result_json = utils.to_json(tally_d)
+    self.decryption_proof = utils.to_json(proof_d)
 
   def get_result(self):
-    return simplejson.loads(self.result_json or "null")
+    return utils.from_json(self.result_json or "null")
     
   def get_result_proof(self):
-    return simplejson.loads(self.decryption_proof or "null")
+    return utils.from_json(self.decryption_proof or "null")
   
   def set_running_tally(self, running_tally):
-    self.running_tally = simplejson.dumps([[c.toJSONDict() for c in q] for q in running_tally])
+    self.running_tally = utils.to_json([[c.toJSONDict() for c in q] for q in running_tally])
     
   def get_running_tally(self):
-    running_tally = simplejson.loads(self.running_tally or "null")
+    running_tally = utils.from_json(self.running_tally or "null")
     if running_tally:
       return [[algs.EGCiphertext.from_dict(d) for d in q] for q in running_tally]
     else:
@@ -238,7 +240,6 @@ class ElectionBase(DBObject):
           # count it
           answer_ciphertext = algs.EGCiphertext.from_dict(vote[question_num]['choices'][answer_num])
           answer_ciphertext.pk = pk
-          logging.info("answer ciphertext is %s " % simplejson.dumps(answer_ciphertext.toJSONDict()))
           if answer_tally == None:
             answer_tally = answer_ciphertext
           else:
@@ -250,13 +251,13 @@ class ElectionBase(DBObject):
       # Now we have the tally for that whole question
       tally[question_num] = question_tally
     
-    self.encrypted_tally = simplejson.dumps(tally)
+    self.encrypted_tally = utils.to_json(tally)
     self.save()
     
   def decrypt(self):
     # get basic data needed
     sk = self.get_sk()    
-    encrypted_tally = simplejson.loads(self.encrypted_tally)
+    encrypted_tally = utils.from_json(self.encrypted_tally)
 
     # for all choices of all questions (double list comprehension)
     decrypted_tally = []
@@ -291,7 +292,7 @@ class ElectionExponentBase(DBObject):
   
   @classmethod
   def get_max_by_election(cls, election):
-    all_exps = cls.selectAllByKeys({'election' : election}, '-exponent', None, 1)
+    all_exps = cls.selectAllByKeys(keys={'election' : election}, order_by='-exponent', offset=None, limit=1)
     if len(all_exps) == 0:
       return None
     else:
@@ -350,7 +351,7 @@ class VoterBase(DBObject):
     return vote_hash
   
   def get_vote(self):
-    return simplejson.loads(self.vote or "null")
+    return utils.from_json(self.vote or "null")
     
   def verifyProofsAndTally(self, election, running_tally):
     # copy the tally array
@@ -425,9 +426,3 @@ class VoterBase(DBObject):
     self.save()
     
     return new_running_tally
-    
-    
-  @classmethod
-  def selectAllWithVote(cls, election, question_num):
-    # TODO: check that this is really what we want given that we reversed the voter/vote
-    return Vote.all().filter('election = ', election).filter('question_num=', question_num)

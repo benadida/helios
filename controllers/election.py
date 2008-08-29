@@ -5,7 +5,7 @@ Ben Adida (ben@adida.net)
 """
 
 from base import *
-from base import REST, session, Controller, template, mail
+from base import REST, session, Controller, template, mail, utils
 from crypto import algs
 import models as do
 
@@ -81,7 +81,7 @@ class VoterController(REST.Resource):
     self.redirect("../../voters_manage")
 
   @session.login_protect
-  def add(self, email, name):
+  def add(self, email, name, category=None):
     """
     Add a new voter to an election.
     """
@@ -91,6 +91,7 @@ class VoterController(REST.Resource):
     v.election = election
     v.email = email
     v.name = name
+    v.category = category
     v.generate_password()
     v.insert()
 
@@ -199,7 +200,7 @@ class ElectionController(REST.Resource):
     """
     The form for creating a new election.
     """
-    eg_params_json = simplejson.dumps(ELGAMAL_PARAMS.toJSONDict(), sort_keys=True)
+    eg_params_json = utils.to_json(ELGAMAL_PARAMS.toJSONDict())
     return self.render('new')
 
   @web
@@ -224,13 +225,13 @@ class ElectionController(REST.Resource):
     # keypair = ELGAMAL_PARAMS.generate_keypair()
 
     # serialize the keys to JSON and store them
-    pk = algs.EGPublicKey.from_dict(simplejson.loads(public_key))
-    election.public_key_json = simplejson.dumps(pk.to_dict())
+    pk = algs.EGPublicKey.from_dict(utils.from_json(public_key))
+    election.public_key_json = utils.to_json(pk.to_dict())
     
     # the private key can be stored by the server
     if private_key and private_key != "":
-      sk = algs.EGSecretKey.from_dict(simplejson.loads(private_key))
-      election.private_key_json = simplejson.dumps(sk.to_dict())
+      sk = algs.EGSecretKey.from_dict(utils.from_json(private_key))
+      election.private_key_json = utils.to_json(sk.to_dict())
     
     election.save()
     
@@ -315,7 +316,7 @@ class ElectionController(REST.Resource):
     """
     user, election = self.check(election)
 
-    election.save_dict(simplejson.loads(election_json))
+    election.save_dict(utils.from_json(election_json))
 
     return self.render('build')
 
@@ -400,13 +401,13 @@ class ElectionController(REST.Resource):
 
   @web
   @session.login_protect
-  def email_voters_2(self, election, introductory_message, offset="0", limit="10"):
+  def email_voters_2(self, election, introductory_message):
     """
     Send email to voters of an election.
     """
     user, election = self.check(election, True, True)
 
-    voters = election.get_voters(offset = int(offset), limit = int(limit))
+    voters = election.get_voters()
 
     for voter in voters:
       message_header = """
@@ -433,7 +434,7 @@ Your password: %s
     if len(voters) == 0:
       return "DONE"
     else:
-      return simplejson.dumps([v.toJSONDict() for v in voters])
+      return utils.to_json([v.toJSONDict() for v in voters])
   
   @web
   @session.login_protect
@@ -462,11 +463,11 @@ Your password: %s
     JavaScript-based driver for the entire tallying process, now done in JavaScript.
     """
     election_pk = election.get_pk()
-    election_pk_json = simplejson.dumps(election_pk.toJSONDict())
+    election_pk_json = utils.to_json(election_pk.toJSONDict())
     
     election_sk = election.get_sk()
     if election_sk:
-      election_sk_json = simplejson.dumps(election_sk.toJSONDict())
+      election_sk_json = utils.to_json(election_sk.toJSONDict())
     
     return self.render('drive_tally')
     
@@ -476,7 +477,7 @@ Your password: %s
     """
     Set the tally and proof.
     """
-    tally_obj = simplejson.loads(tally)
+    tally_obj = utils.from_json(tally)
     election.set_result(tally_obj['result'], tally_obj['result_proof'])
     election.update()
     return "success"

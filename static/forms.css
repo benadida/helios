@@ -30,6 +30,11 @@ input.pretty {
     border: 1px solid black;
 }
 
+input.prettysmall {
+    font-size: 12pt;
+    border: 1px solid black;
+}
+
 
 table.pretty {
     margin: 1em 1em 1em 2em;
