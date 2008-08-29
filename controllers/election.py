@@ -320,12 +320,20 @@ class ElectionController(REST.Resource):
     return self.render('build')
 
   @web
+  @json
   def get_voter_by_email(self, election, email):
     """
     Look up the voter ID by email for given election.
     """
-    voter = do.Voter.selectByKeys({'election': election, 'email' : email})
-    self.redirect("voters/%s" % voter.voter_id)
+    return do.Voter.selectByKeys({'election': election, 'email' : email}).toJSONDict()
+
+  @web
+  @json
+  def get_voter_by_openid(self, election, openid_url):
+    """
+    Look up the voter ID by Open ID for given election.
+    """
+    return do.Voter.selectByKeys({'election': election, 'openid_url' : openid_url}).toJSONDict()
 
   @web
   @json
