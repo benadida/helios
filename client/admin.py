@@ -37,8 +37,19 @@ class HeliosClient(object):
     result = self.post("/elections/%s/set_reg" % election_id, {'open_p' : str(int(open_reg))})
     return result == "SUCCESS"
     
+  def election_questions_save(self, election_id, questions):
+    result = self.post("/elections/%s/save" % election_id, {'election_json' : utils.to_json(questions)})
+    return result == "SUCCESS"
+    
   def election_freeze(self, election_id):
     result = self.post("/elections/%s/freeze_2" % election_id, {})
+    return result == "SUCCESS"
+    
+  def set_tally(self, election_id, result, result_proof):
+    tally_obj = {'result' : result, 'result_proof' : result_proof}
+    tally_obj_json = utils.to_json(tally_obj)
+    
+    result = self.post("/elections/%s/set_tally" % election_id, {'tally' : tally_obj_json})
     return result == "SUCCESS"
 
 helios = HeliosClient({'consumer_key': 'votehere', 'consumer_secret': 'votehere',

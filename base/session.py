@@ -37,6 +37,10 @@ def get_api_client():
 
   oauth_request = oauth.OAuthRequest.from_request(request.method, request.path_info, headers= request.headers,
                                                   parameters=request.params, query_string=None)
+                                                  
+  if not oauth_request:
+    return None
+    
   try:
     consumer, token, params = Session.OAUTH_SERVER.verify_request(oauth_request)
     return consumer

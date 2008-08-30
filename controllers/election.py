@@ -278,6 +278,22 @@ class ElectionController(REST.Resource):
     user, api_client, election = self.check(election)
     voters = election.get_voters()
     return self.render('voters')
+    
+  @web
+  def open_submit(self, election, encrypted_vote, email=None, openid_url=None):
+    """
+    Submitting a vote in an open election
+    """
+    if not election.openreg_enabled:
+      self.error("Election not open")
+    
+    api_client = Controller.api_client()
+    if not api_client or election.api_client != api_client:
+      self.error("Bad Authentication Authentication")
+    
+    # API client is authenticated to manage this election
+    # CREATE a voter and add it, recording the encrypted vote
+    # FIXME: work here
 
   @web
   @session.login_protect
@@ -345,7 +361,8 @@ class ElectionController(REST.Resource):
 
     election.save_dict(utils.from_json(election_json))
 
-    return self.render('build')
+    # always a machine API
+    return "SUCCESS"
 
   @web
   @json
