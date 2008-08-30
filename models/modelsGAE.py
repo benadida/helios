@@ -24,9 +24,22 @@ from google.appengine.ext import db
 from google.appengine.api import users
 from google.appengine.ext import webapp
 
+##
+## Machine API
+##
 
+class APIClient(mbase.APIClient):
+  consumer_key = db.StringProperty()
+  consumer_secret = db.StringProperty()
+  access_token = db.StringProperty()
+  access_token_secret = db.StringProperty()
+  
 class Election(mbase.ElectionBase):
   admin = db.UserProperty()
+  
+  # if machine-able API
+  api_client = db.ReferenceProperty(APIClient)
+  
   name = db.StringProperty(multiline=False)
   public_key_json = db.TextProperty()
   private_key_json = db.TextProperty()
@@ -107,5 +120,4 @@ class Voter(mbase.VoterBase):
 
     super(Voter, self).save()
       
-
 

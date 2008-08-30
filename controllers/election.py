@@ -50,19 +50,22 @@ class VoterController(REST.Resource):
     """
     View a single voter's info as JSON.
     """
-    v_dict = voter.toJSONDict()
-    v_dict['vote'] = voter.get_vote()
-    return v_dict
+    return voter.toJSONDict(with_vote=True)
     
   @web
   @json
-  def list(self, **kw):
+  def list(self, with_vote=False, category=None, after=None, limit=None, **kw):
     """
     Output a JSON list of all voters for a given election.
     """
     election = self.parent
-    voters = election.get_voters()
-    return [v.toJSONDict() for v in voters]
+
+    # normalize limit
+    limit = int(limit or 500)
+    if limit > 500: limit = 500
+      
+    voters = election.get_voters(category= category, after=after, limit= limit)
+    return [v.toJSONDict(with_vote=with_vote) for v in voters]
 
   @web
   @session.login_protect
@@ -170,6 +173,13 @@ class ElectionController(REST.Resource):
     return do.Election()
   ########
   
+  @web
+  def test(self, **kw):
+    """
+    Testing OAuth
+    """
+    return session.get_api_client().key
+    
   @web
   def verifier(self):
     """

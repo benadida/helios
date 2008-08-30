@@ -14,7 +14,7 @@ try:
 except:
   pass
 
-import models as do
+from base import oauth
 
 def get_session():
     if not hasattr(cherrypy.serving,'base_session') or cherrypy.serving.base_session == None:
@@ -27,83 +27,98 @@ def get_status():
 
 def set_status(status):
     get_session().set_status(status)
-    
+
+def get_api_client():
+  """
+  Determine if this is an API client making the call
+  """
+  # verify the OAuth request
+  request = cherrypy.request
+
+  oauth_request = oauth.OAuthRequest.from_request(request.method, request.path_info, headers= request.headers,
+                                                  parameters=request.params, query_string=None)
+  try:
+    consumer, token, params = Session.OAUTH_SERVER.verify_request(oauth_request)
+    return consumer
+  except oauth.OAuthError:
+    return None
+  
+
 def login_protect(func, redirect_to = None):
     """
-    A decorator that enables cherrypy
-    but also that enables certain global property checking
+    A decorator that enables checks that the request is authenticated
     """
-    def ensure_user_logged_in(self, *args, **kwargs):
-        if not get_session().get_user():
-            raise cherrypy.HTTPRedirect(redirect_to or users.create_login_url("/"))
+    def ensure_auth(self, *args, **kwargs):
+      if not get_session().get_user() or get_api_client():
+        raise cherrypy.HTTPRedirect(redirect_to or users.create_login_url("/"))
         
-        return func(self, *args, **kwargs)
+      return func(self, *args, **kwargs)
     
-    return ensure_user_logged_in
+    return ensure_auth
 
-
-def login_protect_class(cls, redirect_to = None):
-    def ensure_user_logged_in(self):
-        if not get_session().get_user():
-            raise cherrypy.HTTPRedirect(redirect_to or users.create_login_url("/"))
-        
-    cls.before_filter = ensure_user_logged_in
+def admin_protect(func, redirect_to = None):
+  """
+  A decorator that enables checks that the request is authenticated
+  """
+  def ensure_admin(self, *args, **kwargs):
+    if not get_session().is_admin():
+      raise cherrypy.HTTPRedirect(redirect_to or users.create_login_url("/"))
+      
+    return func(self, *args, **kwargs)
+  
+  return ensure_admin
 
 def logout():
     get_session().logout()
 
 class Session:
-    def __init__(self, cherrypy_session=None):
-        self._user = users.get_current_user()
-        #if self.has_key('user_id'):
-        #    self._user = do.User.selectById(self["user_id"])
+  ## OAUTH
 
-    def __getitem__(self, key):
-        if self._cp_session.has_key(key):
-            return self._cp_session[key]
-        else:
-            return None
+  OAUTH_SERVER = None
 
-    def __setitem__(self, key, value):
-        self._cp_session[key] = value
+  @classmethod
+  def setup_oauth(cls, oauth_datastore):
+    Session.OAUTH_SERVER = oauth.OAuthServer(oauth_datastore)
+    Session.OAUTH_SERVER.add_signature_method(oauth.OAuthSignatureMethod_HMAC_SHA1())
 
-    def __delitem__(self, key):
-        del self._cp_session[key]
+  def __init__(self, cherrypy_session=None):
+    self._user = users.get_current_user()
+    self._admin_p = users.is_current_user_admin()
+    #if self.has_key('user_id'):
+    #    self._user = do.User.selectById(self["user_id"])
 
-    def has_key(self, key):
-        return self._cp_session.has_key(key)
+  def __getitem__(self, key):
+    if self._cp_session.has_key(key):
+      return self._cp_session[key]
+    else:
+      return None
 
-    def login(self, email, password):
-        user = do.User.select_by_email(email)
-        if not user:
-            raise Exception('no such user')
+  def __setitem__(self, key, value):
+    self._cp_session[key] = value
 
-        if not user.verified_p:
-            self.set_status('Your account has not been verified: <a href="/user/send_confirmation_email?email=%s">send confirmation email</a>.' % email)
-            return None
+  def __delitem__(self, key):
+    del self._cp_session[key]
 
-        if user.verify_password(password):
-            self['user_id'] = user.user_id
-            self._user = user
-            return self._user
-        else:
-            self.set_status('bad password')
-            return None
+  def has_key(self, key):
+    return self._cp_session.has_key(key)
 
-    def logout(self):
-        self._user = None
-        #del self['user_id']
+  def logout(self):
+    self._user = None
+    #del self['user_id']
         
-    def get_user(self):
-        return self._user
+  def get_user(self):
+    return self._user
+        
+  def set_user(self, user):
+    self._user = user
 
-    def set_user(self, user):
-        self._user = user
+  def set_status(self, status):
+    pass
+    #self['__status'] = status
 
-    def set_status(self, status):
-        pass
-        #self['__status'] = status
-
-    def get_status(self):
-        return ""
+  def get_status(self):
+    return ""
+        
+  def is_admin(self):
+    return self._admin_p
 

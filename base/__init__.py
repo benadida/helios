@@ -4,14 +4,12 @@ The stuff for the base package
 
 import cherrypy
 
-from base import utils
-
 try:
   from django.utils import simplejson
 except:
   import simplejson
   
-import session
+import session, oauth, utils
 import sys, traceback
 
 FAILURE = "failure"

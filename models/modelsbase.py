@@ -4,7 +4,7 @@ Base stuff for all models
 
 #from base import utils
 from base.DBObject import DBObject
-from base import utils
+from base import utils, oauth, session
 
 try:
   from django.utils import simplejson
@@ -71,7 +71,7 @@ class ElectionBase(DBObject):
     if category:
       keys['category'] = category
     
-    return models.Voter.selectAllByKeys(keys, after=after, limit=limit)
+    return models.Voter.selectAllByKeys(keys, order_by= 'voter_id', after=after, limit=limit)
     
   def get_cast_votes(self, offset=None, limit=None):
     return [voter.get_vote() for voter in self.get_voters(offset = offset, limit = limit) if voter.cast_id != None]
@@ -353,6 +353,12 @@ class VoterBase(DBObject):
   def get_vote(self):
     return utils.from_json(self.vote or "null")
     
+  def toJSONDict(self, with_vote = False):
+    json_dict = super(VoterBase, self).toJSONDict()
+    if with_vote:
+      json_dict['vote'] = self.get_vote()
+    return json_dict
+    
   def verifyProofsAndTally(self, election, running_tally):
     # copy the tally array
     new_running_tally = [[a for a in q] for q in running_tally]
@@ -426,3 +432,12 @@ class VoterBase(DBObject):
     self.save()
     
     return new_running_tally
+
+
+##
+## Machine API
+##
+
+class APIClient(DBObject):
+  pass
+  

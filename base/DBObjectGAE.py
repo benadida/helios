@@ -43,11 +43,7 @@ class DBObject(db.Model):
         
     @classmethod
     def selectByKey(cls, key_name, key_value):
-        obj = cls()
-        if obj.select(keys={key_name:key_value}):
-            return obj
-        else:
-            return None
+      return cls.selectByKeys({key_name: key_value})
     
     @classmethod
     def selectByKeys(cls, keys):
