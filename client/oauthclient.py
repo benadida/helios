@@ -1,12 +1,11 @@
 """
-A tally program for Helios
+OAuth Client for Helios
 
 Ben Adida
 2008-08-30
 """
 
-from base import oauth
-from crypto import algs
+from base import oauth, utils
 
 import httplib
 
@@ -25,14 +24,11 @@ class MachineOAuthClient(object):
     oauth_request = oauth.OAuthRequest.from_consumer_and_token(self.consumer, token=self.token, http_method=method, http_url=url, parameters=parameters)
     oauth_request.sign_request(MachineOAuthClient.SIG_METHOD, self.consumer, self.token)
 
+    headers = oauth_request.to_header()
+    if parameters == {}:
+      headers['Content-Length'] = 0
+      
     connection = httplib.HTTPConnection("%s:%d" % (self.server, self.port))
-    connection.request(method, url, headers= oauth_request.to_header())
+    connection.request(method, url, headers= headers, body = utils.dictToURLParams(parameters))
     response = connection.getresponse()
     return response.read()
-    
-consumer = oauth.OAuthConsumer('votehere','votehere')
-token = oauth.OAuthToken('123','1235')
-moc = MachineOAuthClient(consumer, token, 'localhost', 8082)
-
-print moc.access_resource("GET", "/elections/test", {})
-    

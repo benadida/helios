@@ -73,7 +73,7 @@ class VoterController(REST.Resource):
     """
     Remove a given voter from an election.
     """
-    user, election = ElectionController.check(self.parent)
+    user, api_client, election = ElectionController.check(self.parent)
 
     voter = do.Voter.selectByKeys({'election': election, 'email' : email})
     if voter:
@@ -88,7 +88,7 @@ class VoterController(REST.Resource):
     """
     Add a new voter to an election.
     """
-    user, election = ElectionController.check(self.parent)
+    user, api_client, election = ElectionController.check(self.parent)
 
     v = do.Voter()
     v.election = election
@@ -153,8 +153,9 @@ class ElectionController(REST.Resource):
     An internal check that the user is allowed to administer this given election.
     Optional parameters check the status of the election.
     """
-    user = session.get_session().get_user()
-    if user != election.admin:
+    user = Controller.user()
+    api_client = Controller.api_client()
+    if user != election.admin and api_client != election.api_client:
       raise cherrypy.HTTPRedirect('/')
 
     if election.is_frozen() and not allow_frozen:
@@ -163,7 +164,7 @@ class ElectionController(REST.Resource):
     if not election.is_frozen() and require_frozen:
       raise cherrypy.HTTPError(500, "Election must be frozen before emailing voters.")
 
-    return user, election
+    return user, api_client, election
     
   # REST stuff
   def REST_instantiate(self, election_id):
@@ -179,6 +180,14 @@ class ElectionController(REST.Resource):
     Testing OAuth
     """
     return session.get_api_client().key
+    
+  @web
+  @json
+  def params(self, **kw):
+    """
+    The crypto params for keys
+    """
+    return ELGAMAL_PARAMS.toJSONDict()
     
   @web
   def verifier(self):
@@ -226,7 +235,7 @@ class ElectionController(REST.Resource):
     
     # basic election parameters
     election.name = name
-    election.admin = self.user()
+    election.admin, election.api_client = self.user(), self.api_client()
     election.voting_starts_at = utils.string_to_datetime(voting_starts_at)
     election.voting_ends_at = utils.string_to_datetime(voting_ends_at)
 
@@ -245,7 +254,11 @@ class ElectionController(REST.Resource):
     
     election.save()
     
-    raise cherrypy.HTTPRedirect("./%s/view" % str(election.election_id))
+    # user or api_client?
+    if election.admin:
+      raise cherrypy.HTTPRedirect("./%s/view" % str(election.election_id))
+    else:
+      return str(election.election_id)
 
   @web
   def view(self, election):
@@ -262,7 +275,7 @@ class ElectionController(REST.Resource):
     """
     Manage voters for the given election.
     """
-    user, election = self.check(election)
+    user, api_client, election = self.check(election)
     voters = election.get_voters()
     return self.render('voters')
 
@@ -272,11 +285,15 @@ class ElectionController(REST.Resource):
     """
     Set whether this is open registration or not
     """
-    user, election = self.check(election)
+    user, api_client, election = self.check(election)
     open_p = bool(int(open_p))
     election.openreg_enabled = open_p
     election.save()
-    self.redirect("./voters_manage")
+    
+    if user:
+      self.redirect("./voters_manage")
+    else:
+      return "SUCCESS"
     
   @web
   @session.login_protect
@@ -284,7 +301,7 @@ class ElectionController(REST.Resource):
     """
     archive an election
     """
-    user, election = self.check(election)
+    user, api_client, election = self.check(election)
     if bool(int(archive_p)):
       election.archived_at = datetime.datetime.utcnow()
     else:
@@ -314,7 +331,7 @@ class ElectionController(REST.Resource):
     """
     JavaScript human interface for building the election questions.
     """
-    user, election = self.check(election)
+    user, api_client, election = self.check(election)
 
     return self.render('build')
 
@@ -324,7 +341,7 @@ class ElectionController(REST.Resource):
     """
     Save the election questions.
     """
-    user, election = self.check(election)
+    user, api_client, election = self.check(election)
 
     election.save_dict(utils.from_json(election_json))
 
@@ -361,7 +378,7 @@ class ElectionController(REST.Resource):
     Form for freezing the election: no more changes to voter list or questions.
     Ready for voting!
     """
-    user, election = self.check(election_id)
+    user, api_client, election = self.check(election_id)
 
     return self.render('freeze')
 
@@ -371,11 +388,14 @@ class ElectionController(REST.Resource):
     """
     Freeze the election.
     """
-    user, election = self.check(election)
+    user, api_client, election = self.check(election)
 
     election.freeze()
 
-    self.redirect("/elections/%s/view" % election.election_id)
+    if user:
+      self.redirect("/elections/%s/view" % election.election_id)
+    else:
+      return "SUCCESS"
     
   @web
   def vote(self, election):
@@ -405,7 +425,7 @@ class ElectionController(REST.Resource):
     """
     Form for emailing voters.
     """
-    user, election = self.check(election_id, True, True)
+    user, api_client, election = self.check(election_id, True, True)
 
     return self.render('email_voters')
 
@@ -415,7 +435,7 @@ class ElectionController(REST.Resource):
     """
     Send email to voters of an election.
     """
-    user, election = self.check(election, True, True)
+    user, api_client, election = self.check(election, True, True)
 
     voters = election.get_voters()
 
@@ -452,7 +472,7 @@ Your password: %s
     """
     Compute the election encrypted tally.
     """
-    user, election = self.check(election, True, True)
+    user, api_client, election = self.check(election, True, True)
 
     election.tally()
     
@@ -498,7 +518,7 @@ Your password: %s
     """
     Compute a small chunk of the tally, because GAE is not so good with long requests
     """
-    user, election = self.check(election, True, True)
+    user, api_client, election = self.check(election, True, True)
     
     if election.tally_chunk():
       return "CONTINUE"
@@ -511,7 +531,7 @@ Your password: %s
     """
     Decrypt and prove the tally.
     """
-    user, election = self.check(election, True, True)
+    user, api_client, election = self.check(election, True, True)
 
     election.decrypt()
 

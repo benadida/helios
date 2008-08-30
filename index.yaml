@@ -37,7 +37,7 @@ indexes:
   - name: tallied_at
   - name: cast_id
 
-# Used 20 times in query history.
+# Used 25 times in query history.
 - kind: Voter
   properties:
   - name: election

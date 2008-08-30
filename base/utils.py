@@ -281,7 +281,10 @@ def isBlank(s):
       return (len(s.strip()) == 0 )
       
 def dictToURLParams(d):
+  if d:
     return '&'.join([i + '=' + urlencode(v) for i,v in d.items()])
+  else:
+    return None
 ##
 ## XML escaping and unescaping
 ## 

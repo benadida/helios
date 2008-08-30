@@ -49,7 +49,7 @@ def login_protect(func, redirect_to = None):
     A decorator that enables checks that the request is authenticated
     """
     def ensure_auth(self, *args, **kwargs):
-      if not get_session().get_user() or get_api_client():
+      if not get_session().get_user() and not get_api_client():
         raise cherrypy.HTTPRedirect(redirect_to or users.create_login_url("/"))
         
       return func(self, *args, **kwargs)

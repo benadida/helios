@@ -439,5 +439,6 @@ class VoterBase(DBObject):
 ##
 
 class APIClient(DBObject):
-  pass
-  
+  @classmethod
+  def get_by_consumer_key(cls, consumer_key):
+    return cls.selectByKey('consumer_key', consumer_key)

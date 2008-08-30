@@ -3,6 +3,7 @@ The stuff for the base package
 """
 
 import cherrypy
+import models as do
 
 try:
   from django.utils import simplejson
@@ -43,16 +44,25 @@ class Controller:
     The core controller class, with filter implementation and basic template rendering hooks.
     """
     def render(self, tmpl):
-        return template.render(self.__class__.TEMPLATES_DIR + tmpl, 1)
+      return template.render(self.__class__.TEMPLATES_DIR + tmpl, 1)
     
     def before_filter(self):
-        pass
+      pass
     
+    @classmethod
     def user(self):
-        return session.get_session().get_user()
+      return session.get_session().get_user()
+        
+    @classmethod
+    def api_client(self):
+      consumer = session.get_api_client()
+      if not consumer:
+        return None
+      
+      return do.APIClient.get_by_consumer_key(consumer.key)
 
     def error(self, msg):
-        raise cherrypy.HTTPError(500, msg)
+      raise cherrypy.HTTPError(500, msg)
         
     def redirect(self, url):
-        raise cherrypy.HTTPRedirect(url)
+      raise cherrypy.HTTPRedirect(url)
