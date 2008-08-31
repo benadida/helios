@@ -45,6 +45,15 @@ class HeliosClient(object):
     result = self.post("/elections/%s/freeze_2" % election_id, {})
     return result == "SUCCESS"
     
+  def open_submit(self, election_id, encrypted_vote, email=None, openid_url=None, name=None, category=None):
+    """
+    encrypted_vote is a JSON string
+    """
+    result = self.post("/elections/%s/open_submit" % election_id, {'encrypted_vote' : encrypted_vote, 'email': email,
+                                                                  'openid_url' : openid_url, 'name' : name, 'category' :category})
+                                                                  
+    return result
+    
   def set_tally(self, election_id, result, result_proof):
     tally_obj = {'result' : result, 'result_proof' : result_proof}
     tally_obj_json = utils.to_json(tally_obj)
@@ -73,3 +82,7 @@ print helios.election_set_reg(election_id, open_reg= True)
 
 # freeze it
 print helios.election_freeze(election_id)
+
+# open submit a couple of votes
+print helios.open_submit(election_id, '{"foo":"bar"}', 'ben@adida.net', None, 'Ben Adida', 'Foo Category')
+print helios.open_submit(election_id, '{"foo":"bazzz"}', 'ben2@adida.net', 'http://benadida.myopenid.com', 'Ben2 Adida', 'Bar Category')

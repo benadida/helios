@@ -33,6 +33,8 @@ class APIClient(mbase.APIClient):
   consumer_secret = db.StringProperty()
   access_token = db.StringProperty()
   access_token_secret = db.StringProperty()
+
+  api_client_id = property(DBObject.get_id)
   
 class Election(mbase.ElectionBase):
   admin = db.UserProperty()

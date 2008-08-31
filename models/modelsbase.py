@@ -327,6 +327,22 @@ class ElectionExponentBase(DBObject):
 class VoterBase(DBObject):  
   JSON_FIELDS = ['voter_id','name', 'email']
   
+  @classmethod
+  def selectByEmailOrOpenID(cls, election, email, openid_url):
+    email_voter = openid_voter = None
+    
+    if email:
+      email_voter = cls.selectByKeys({'election': election, 'email': email})
+    
+    if openid_url:
+      openid_voter = cls.selectByKeys({'election': election, 'openid_url': openid_url})
+      
+    # two voters, not the same?
+    if email_voter and openid_voter and email_voter.voter_id != openid_voter.voter_id:
+      raise Exception("problem matching openid and email")
+            
+    return email_voter or openid_voter
+    
   def save(self):
     if not self.is_saved():
       # add an election exponent
