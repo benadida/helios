@@ -3,13 +3,13 @@
 <script>
 BATCH_SIZE = 10;
 
-function send_email(offset) {
+function send_email() {
     var form = document.forms['email_form'];
     
-    \$.post("email_voters_2", {'introductory_message' : form.introductory_message.value, 'offset' : offset, 'limit' : BATCH_SIZE}, function(data) {
+    \$.post("email_voters_2", {'introductory_message' : form.introductory_message.value}, function(data) {
        // decide whether or not to keep going
        if (data != "DONE") {
-         setTimeout("send_email(" + (offset + BATCH_SIZE) + ")", 5000);
+           alert('oy unexpected: ' + data);
        } else {
          alert('done!');
          document.location = "./view";
@@ -25,7 +25,7 @@ You are about to email all voters in this election. You can fill in the middle p
 </p>
 
 <blockquote>
-<form name="email_form" method="post" onsubmit="send_email(this.offset.value); return false;">
+<form name="email_form" method="post" onsubmit="send_email(); return false;">
 
 <pre>
 Dear [VOTER_NAME],
@@ -41,8 +41,6 @@ Your password: [VOTER_PASSWORD]
 </blockquote>
 
 <br />
-<br />
-Offset: <input type="text" name="offset" size="10" value="0" />
 <br /><br />
 <input type="submit" value="send now!" class="pretty" />
 </form>

@@ -496,11 +496,8 @@ Your password: %s
 
       mail.simple_send([voter.name],[voter.email],"Helios","ben@adida.net","An Invitation to Vote in %s" % election.name, message)
 
-    # raise cherrypy.HTTPRedirect("/elections/%s/view" % election.election_id)
-    if len(voters) == 0:
-      return "DONE"
-    else:
-      return utils.to_json([v.toJSONDict() for v in voters])
+    # hack for now, no more batching
+    return "DONE"
   
   @web
   @session.login_protect
