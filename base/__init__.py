@@ -3,14 +3,13 @@ The stuff for the base package
 """
 
 import cherrypy
-import models as do
 
 try:
   from django.utils import simplejson
 except:
   import simplejson
   
-import session, oauth, utils
+import session, oauth, utils, config
 import sys, traceback
 
 FAILURE = "failure"
@@ -59,7 +58,7 @@ class Controller:
       if not consumer:
         return None
       
-      return do.APIClient.get_by_consumer_key(consumer.key)
+      return consumer.key
 
     def error(self, msg):
       raise cherrypy.HTTPError(500, msg)

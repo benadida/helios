@@ -219,6 +219,8 @@ class EGPublicKey:
         pk.g = int(d['g'])
         pk.q = int(d['q'])
         return pk
+        
+    fromJSONDict = from_dict
 
 class EGSecretKey:
     def __init__(self):
@@ -267,14 +269,11 @@ class EGSecretKey:
 
         t = (w + self.x * c) % self.pk.q
 
-        return {
-          'plaintext': str(m),
-          'proof' : {
+        return m, {
             'commitment' : {'A' : str(a), 'B': str(b)},
             'challenge' : str(c),
             'response' : str(t)
           }
-        }
 
     def to_dict(self):
         return {'x' : str(self.x), 'pk' : self.pk.to_dict()}
@@ -290,6 +289,8 @@ class EGSecretKey:
         sk.x = int(d['x'])
         sk.pk = EGPublicKey.from_dict(d['pk'])
         return sk
+        
+    fromJSONDict = from_dict
 
 class EGPlaintext:
     def __init__(self, m = None, pk = None):
@@ -316,7 +317,7 @@ class EGCiphertext:
         """
         Homomorphic Multiplication of ciphertexts.
         """
-        if type(other) == int and other == 1:
+        if type(other) == int and (other == 0 or other == 1):
           return self
           
         if self.pk != other.pk:
@@ -382,7 +383,7 @@ class EGCiphertext:
       
       return (first_check and second_check)
     
-    def verify_disjunctive_encryption_proof(self, plaintexts, proofs, challenge_generator):
+    def verify_disjunctive_encryption_proof(self, plaintexts, proof, challenge_generator):
       """
       plaintexts and proofs are all lists of equal length, with matching.
       
@@ -390,13 +391,13 @@ class EGCiphertext:
       """
       for i in range(len(plaintexts)):
         # if a proof fails, stop right there
-        if not self.verify_encryption_proof(plaintexts[i], proofs[i]):
+        if not self.verify_encryption_proof(plaintexts[i], proof.proofs[i]):
           return False
           
       logging.info("made it past the two encryption proofs")
           
       # check the overall challenge
-      return challenge_generator([proof.commitment for proof in proofs]) == (sum([proof.challenge for proof in proofs]) % self.pk.q)
+      return (challenge_generator([p.commitment for p in proof.proofs]) == (sum([p.challenge for p in proof.proofs]) % self.pk.q))
       
     def verify_decryption_proof(self, plaintext, proof):
       """
@@ -414,10 +415,11 @@ class EGCiphertext:
         return "%s,%s" % (self.alpha, self.beta)
     
     @classmethod
-    def from_dict(cls, d):
+    def from_dict(cls, d, pk = None):
         result = cls()
         result.alpha = int(d['alpha'])
         result.beta = int(d['beta'])
+        result.pk = pk
         return result
     
     @classmethod
@@ -448,6 +450,21 @@ class EGZKProof:
       'challenge': str(self.challenge),
       'response': str(self.response)
     }
+  
+  toJSONDict = to_dict
+  
+class EGZKDisjunctiveProof:
+  def __init__(self, proofs = None):
+    self.proofs = proofs
+  
+  @classmethod
+  def from_dict(cls, d):
+    dp = cls()
+    dp.proofs = [EGZKProof.from_dict(p) for p in d]
+    return dp
+    
+  def to_dict(self):
+    return [p.to_dict() for p in self.proofs]
   
   toJSONDict = to_dict
 

@@ -13,7 +13,7 @@ except:
   
 import datetime, logging
 
-from crypto import algs
+from crypto import algs, electionalgs
 
 import models
 
@@ -38,33 +38,33 @@ class ElectionBase(DBObject):
   def save_dict(self, d):
     self.questions_json = utils.to_json(d['questions'])
     self.update()
-
-  def get_hash(self):
-    str_val = utils.to_json(self.toJSONDict())
-    # logging.info("election string to hash is " + str_val)
-    return utils.hash_b64(str_val)
+    
+  def toElection(self):
+    """
+    Transforms to a standalone election object, independent of storage
+    """
+    return electionalgs.Election.fromJSONDict(self.toJSONDict())
 
   def save_questions(self, questions):
     self.questions_json = utils.to_json(questions)
     self.update()
     
+  def get_questions(self):
+    return utils.from_json(self.questions_json)
+    
   def set_pk(self, pk):
-    self.public_key_json = utils.to_json(pk.to_dict())
-
-  def get_pk(self):
-    pk_json = self.public_key_json or 'null'
-    return algs.EGPublicKey.from_dict(utils.from_json(pk_json))
+    self.public_key_json = utils.to_json(pk.toJSONDict())
 
   def set_sk(self, sk):
     self.private_key_json = utils.to_json(sk.to_dict())
 
+  def get_pk(self):
+    if not self.public_key_json: return None
+    return algs.EGPublicKey.fromJSONDict(utils.from_json(self.public_key_json))
+    
   def get_sk(self):
-    sk_json = self.private_key_json or 'null'
-    return algs.EGSecretKey.from_dict(utils.from_json(sk_json))
-
-  def get_questions(self):
-    questions_json = self.questions_json or '[]'
-    return utils.from_json(questions_json)
+    if not self.private_key_json: return None
+    return algs.EGSecretKey.fromJSONDict(utils.from_json(self.private_key_json))
 
   def get_voters(self, category=None, after=None, limit=None):
     keys = {'election': self}
@@ -73,8 +73,8 @@ class ElectionBase(DBObject):
     
     return models.Voter.selectAllByKeys(keys, order_by= 'voter_id', after=after, limit=limit)
     
-  def get_cast_votes(self, offset=None, limit=None):
-    return [voter.get_vote() for voter in self.get_voters(offset = offset, limit = limit) if voter.cast_id != None]
+  def get_cast_votes(self, after=None, limit=None):
+    return [voter.get_vote() for voter in self.get_voters(after=after, limit = limit) if voter.cast_id != None]
 
   def get_voters_hash(self):
     voters = self.get_voters()
@@ -163,119 +163,28 @@ class ElectionBase(DBObject):
     
     return new_running_tally
 
-  def tally(self):
+  def tally_and_decrypt(self):
     """
     Tally the decrypted votes
     """
     # load all the votes
     # FIXME: let's page this, maybe 100 at a time
     votes = self.get_cast_votes()
-    
-    pk = self.get_pk()
-    
-    election_hash = self.get_hash()
-    
-    # go through all of the questions
-    questions = self.get_questions()
-    num_questions = len(questions)
 
-    tally = [None for i in range(num_questions)]      
+    election_obj = self.toElection()
 
-    possible_plaintexts = [algs.EGPlaintext(1, pk), algs.EGPlaintext(pk.g, pk)]
-      
-    for question_num in range(num_questions):
-      question = questions[question_num]
-      num_answers = len(question['answers'])
-      
-      # verify the votes for this question
-      for vote_num in range(len(votes)):
-        # non-vote? Keep going
-        if votes[vote_num] == None:
-          continue
+    # tally the votes
+    tally = election_obj.init_tally()
+    for vote in votes:
+      tally.add_vote(vote)
           
-        # check election hash
-        if votes[vote_num]['election_hash'] != election_hash:
-          raise Exception('vote for wrong election')
-          
-        vote = votes[vote_num]['answers']
-        # verify that the vote is good
-        individual_proofs = vote[question_num]['individual_proofs']
-        overall_proof = vote[question_num]['overall_proof']
-
-        # correct num of proofs
-        if len(individual_proofs) != num_answers:
-          raise Exception('not the right number of proofs')
-        
-        homomorphic_sum = None
-        
-        # check the individual proofs for each option of that question
-        for answer_num in range(num_answers):
-          # check the disjunctive proof
-          ciphertext = algs.EGCiphertext.from_dict(vote[question_num]['choices'][answer_num])
-          ciphertext.pk = pk
-
-          proofs = [algs.EGZKProof.from_dict(p) for p in individual_proofs[answer_num]]
-          
-          if not ciphertext.verify_disjunctive_encryption_proof(possible_plaintexts, proofs, algs.EG_disjunctive_challenge_generator):
-            raise Exception("Vote #%s, Question #%s, Answer #%s don't work" % (vote_num, question_num, answer_num))
-            
-          # compute the homomorphic sum of all the answers
-          if homomorphic_sum == None:
-            homomorphic_sum = ciphertext
-          else:
-            homomorphic_sum *= ciphertext
-
-        # check the overall proof by homomorphic combination
-        if not homomorphic_sum.verify_disjunctive_encryption_proof(possible_plaintexts, algs.EGZKProof.from_dict(vote[question_num]['overall_proof']), algs.EG_disjunctive_challenge_generator):
-          raise Exception("Overall proof for vote #%s Question #%s doesn't work" % (vote_num, question_num))
-      
-      question_tally = [None for i in range(num_answers)]
-
-      # go through the options for that question
-      for answer_num in range(num_answers):
-        answer_tally = None
-        
-        # go through all votes, picking out the vote for that question and possible answer.
-        for vote in [v['answers'] for v in [v for v in votes if v]]:
-          # count it
-          answer_ciphertext = algs.EGCiphertext.from_dict(vote[question_num]['choices'][answer_num])
-          answer_ciphertext.pk = pk
-          if answer_tally == None:
-            answer_tally = answer_ciphertext
-          else:
-            answer_tally *= answer_ciphertext
-            
-        # Now we have the tally for that answer
-        question_tally[answer_num] = answer_tally.toJSONDict()
-        
-      # Now we have the tally for that whole question
-      tally[question_num] = question_tally
-    
-    self.encrypted_tally = utils.to_json(tally)
+    self.encrypted_tally = utils.to_json(tally.toJSONDict())
     self.save()
     
-  def decrypt(self):
-    # get basic data needed
-    sk = self.get_sk()    
-    encrypted_tally = utils.from_json(self.encrypted_tally)
-
-    # for all choices of all questions (double list comprehension)
-    decrypted_tally = []
-    decryption_proof = []
-    
-    for question in encrypted_tally:
-      question_tally = []
-      question_proof = []
-      
-      for choice in question:
-        plaintext_and_proof = sk.prove_decryption(algs.EGCiphertext.from_dict(choice))
-        question_tally.append(models.ElectionExponent.get_exp(self, plaintext_and_proof['plaintext']))
-        question_proof.append(plaintext_and_proof['proof'])
-        
-      decrypted_tally.append(question_tally)
-      decryption_proof.append(question_proof)
-    
-    self.set_result(decrypted_tally, decryption_proof)
+    # decrypt
+    sk =  self.get_sk()
+    result, proof = tally.decrypt_and_prove(sk)
+    self.set_result(result, proof)
     self.save()
     
   @classmethod
@@ -324,6 +233,18 @@ class ElectionExponentBase(DBObject):
       
     return cls.selectByKeys({'value': str(value), 'election' : election}).exponent
     
+class ElectionExponentAccessor(object):
+  """
+  A class to faciliate access to election exponent
+  
+  everything is an int, no strings here, and ints are returned
+  """
+  def __init__(self, election):
+    self.election = election
+    
+  def __getitem__(self, value):
+    return int(ElectionExponent.get_exp(self.election, str(value)))
+    
 class VoterBase(DBObject):  
   JSON_FIELDS = ['voter_id','name', 'email']
   
@@ -367,12 +288,12 @@ class VoterBase(DBObject):
     return vote_hash
   
   def get_vote(self):
-    return utils.from_json(self.vote or "null")
+    return electionalgs.EncryptedVote.fromJSONDict(utils.from_json(self.vote or "null"))
     
   def toJSONDict(self, with_vote = False):
     json_dict = super(VoterBase, self).toJSONDict()
     if with_vote:
-      json_dict['vote'] = self.get_vote()
+      json_dict['vote'] = self.get_vote().toJSONDict()
     return json_dict
     
   def verifyProofsAndTally(self, election, running_tally):

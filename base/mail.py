@@ -6,7 +6,7 @@ Ben Adida (ben@adida.net)
 
 # needs a rewrite for GAE
 
-from base import config
+import config
 
 try:
   from google.appengine.api import mail

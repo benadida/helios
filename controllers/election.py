@@ -154,7 +154,7 @@ class ElectionController(REST.Resource):
     Optional parameters check the status of the election.
     """
     user = Controller.user()
-    api_client = Controller.api_client()
+    api_client = do.APIClient.get_by_consumer_key(Controller.api_client())
     if user != election.admin and api_client != election.api_client:
       raise cherrypy.HTTPRedirect('/')
 
@@ -267,6 +267,7 @@ class ElectionController(REST.Resource):
     """
     user = self.user()
     admin_p = user and (user == election.admin)
+    election_obj = election.toElection()
     return self.render('one')
     
   @web
@@ -287,7 +288,7 @@ class ElectionController(REST.Resource):
     if not election.openreg_enabled:
       self.error("Election not open")
     
-    api_client = Controller.api_client()
+    api_client = do.APIClient.get_by_consumer_key(Controller.api_client())
     if not api_client or election.api_client.api_client_id != api_client.api_client_id:
       logging.info(api_client)
       self.error("Bad Authentication")
@@ -507,7 +508,7 @@ Your password: %s
     """
     user, api_client, election = self.check(election, True, True)
 
-    election.tally()
+    election.tally_and_decrypt()
     
     self.redirect('/elections/%s/view' % election.election_id)
     
@@ -557,15 +558,3 @@ Your password: %s
       return "CONTINUE"
     else:
       return "DONE"
-    
-  @web
-  @session.login_protect
-  def decrypt_and_prove(self, election):
-    """
-    Decrypt and prove the tally.
-    """
-    user, api_client, election = self.check(election, True, True)
-
-    election.decrypt()
-
-    self.redirect('/elections/%s/view' % election.election_id)
