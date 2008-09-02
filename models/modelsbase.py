@@ -258,7 +258,7 @@ class ElectionExponentAccessor(object):
     return int(models.ElectionExponent.get_exp(self.election, str(value)))
     
 class VoterBase(DBObject):  
-  JSON_FIELDS = ['voter_id','name', 'email']
+  JSON_FIELDS = ['voter_id','name', 'email','category']
   
   @classmethod
   def selectByEmailOrOpenID(cls, election, email, openid_url):
