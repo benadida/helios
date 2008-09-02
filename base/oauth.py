@@ -99,6 +99,9 @@ class OAuthRequest(object):
     http_method = HTTP_METHOD
     http_url = None
     version = VERSION
+    
+    # added by Ben to filter out extra params from header
+    OAUTH_PARAMS = ['oauth_consumer_key', 'oauth_token', 'oauth_signature_method', 'oauth_signature', 'oauth_timestamp', 'oauth_nonce', 'oauth_version']
 
     def __init__(self, http_method=HTTP_METHOD, http_url=None, parameters=None):
         self.http_method = http_method
@@ -132,6 +135,8 @@ class OAuthRequest(object):
         # add the oauth parameters
         if self.parameters:
             for k, v in self.parameters.iteritems():
+              # only if it's a standard OAUTH param (Ben)
+              if k in self.OAUTH_PARAMS:
                 auth_header += ', %s="%s"' % (k, escape(str(v)))
         return {'Authorization': auth_header}
 
