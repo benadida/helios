@@ -77,8 +77,8 @@ Election Fingerprint<br />
 <br clear="right" />
 #if $result
 <h2>Tally</h2>
-#for $i in range(len($election.get_questions()))
-#set $q = $election.get_questions()[$i]
+#for $i in range(len($election_obj.questions))
+#set $q = $election_obj.questions[$i]
 <b>$q.short_name</b>:
 <ul>
 #for $j in range(len($q.answers))

@@ -321,7 +321,9 @@ class EGCiphertext:
           return self
           
         if self.pk != other.pk:
-            raise Exception('different PKs!')
+          logging.info(self.pk)
+          logging.info(other.pk)
+          raise Exception('different PKs!')
         
         new = EGCiphertext()
         
@@ -421,6 +423,8 @@ class EGCiphertext:
         result.beta = int(d['beta'])
         result.pk = pk
         return result
+        
+    fromJSONDict = from_dict
     
     @classmethod
     def from_string(cls, str):

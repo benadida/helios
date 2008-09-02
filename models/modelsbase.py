@@ -20,7 +20,7 @@ import models
 class ElectionBase(DBObject):
   # when JSON'ified
   JSON_FIELDS = ['election_id', 'name', 'pk', 'questions', 'voters_hash', 'openreg', 'voting_starts_at', 'voting_ends_at']
-      
+  
   def toJSONDict(self):
     self.pk = self.get_pk()
     self.questions = self.get_questions()
@@ -50,7 +50,7 @@ class ElectionBase(DBObject):
     self.update()
     
   def get_questions(self):
-    return utils.from_json(self.questions_json)
+    return utils.from_json(self.questions_json) or []
     
   def set_pk(self, pk):
     self.public_key_json = utils.to_json(pk.toJSONDict())
@@ -100,16 +100,20 @@ class ElectionBase(DBObject):
     return utils.from_json(self.decryption_proof or "null")
   
   def set_running_tally(self, running_tally):
-    self.running_tally = utils.to_json([[c.toJSONDict() for c in q] for q in running_tally])
+    self.running_tally = utils.to_json(running_tally.toJSONDict())
     
   def get_running_tally(self):
-    running_tally = utils.from_json(self.running_tally or "null")
-    if running_tally:
-      return [[algs.EGCiphertext.from_dict(d) for d in q] for q in running_tally]
-    else:
-      return None
+    if not self.running_tally: return None
+    return electionalgs.Tally.fromJSONDict(utils.from_json(self.running_tally), self.toElection())
+
+  def set_encrypted_tally(self, tally):
+    self.encrypted_tally = utils.to_json(tally.toJSONDict())
+    
+  def get_encrypted_tally(self):
+    if not self.encrypted_tally: return None
+    return electionalgs.Tally.fromJSONDict(utils.from_json(self.encrypted_tally), self.toElection())
         
-  def get_first_uncounted_vote(self):
+  def get_first_uncounted_voter(self):
     """
     Return the voter that hasn't been counted yet, in order of cast_id
     """
@@ -133,35 +137,41 @@ class ElectionBase(DBObject):
     """
     Do one chunk of the tally
     """
-    running_tally = self.get_running_tally()
-    first_uncounted_vote = self.get_first_uncounted_vote()
 
     # are we done?
     if self.encrypted_tally != None:
       return None
       
+    running_tally = self.get_running_tally()
+    first_uncounted_voter = self.get_first_uncounted_voter()
+
     # no further uncounted vote
-    if first_uncounted_vote == None:
-      self.encrypted_tally = self.running_tally
-      self.save()
+    if first_uncounted_voter == None:
+      self.set_encrypted_tally(running_tally)
+      
+      # decrypt
+      self.decrypt(ElectionExponentAccessor(self))
       return None
 
-    # load up some important variables
-    pk = self.get_pk()
-    questions = self.get_questions()
-    num_questions = len(questions)
-    election_hash = self.get_hash()
+    first_uncounted_vote = first_uncounted_voter.get_vote()
 
     # no running tally, set it up
+    election_obj = self.toElection()
     if running_tally == None:
-      running_tally = [[1 for a in q['answers']] for q in questions]
+      running_tally = election_obj.init_tally()
+
+    # tally the vote (includes verification)
+    first_uncounted_vote.pk = election_obj.pk
+    running_tally.add_vote(first_uncounted_vote)
     
-    # check the vote and tally it
-    new_running_tally = first_uncounted_vote.verifyProofsAndTally(self, running_tally)
-    self.set_running_tally(new_running_tally)
+    self.set_running_tally(running_tally)
     self.save()
     
-    return new_running_tally
+    # mark vote as tallied
+    first_uncounted_voter.tallied_at = datetime.datetime.utcnow()
+    first_uncounted_voter.save()
+    
+    return running_tally
 
   def tally_and_decrypt(self):
     """
@@ -178,12 +188,14 @@ class ElectionBase(DBObject):
     for vote in votes:
       tally.add_vote(vote)
           
-    self.encrypted_tally = utils.to_json(tally.toJSONDict())
-    self.save()
-    
+    self.set_encrypted_tally(tally)
+    self.decrypt()
+
+  def decrypt(self, discrete_logs = None):
     # decrypt
+    tally = self.get_encrypted_tally()
     sk =  self.get_sk()
-    result, proof = tally.decrypt_and_prove(sk)
+    result, proof = tally.decrypt_and_prove(sk, discrete_logs)
     self.set_result(result, proof)
     self.save()
     
@@ -243,7 +255,7 @@ class ElectionExponentAccessor(object):
     self.election = election
     
   def __getitem__(self, value):
-    return int(ElectionExponent.get_exp(self.election, str(value)))
+    return int(models.ElectionExponent.get_exp(self.election, str(value)))
     
 class VoterBase(DBObject):  
   JSON_FIELDS = ['voter_id','name', 'email']
@@ -295,81 +307,6 @@ class VoterBase(DBObject):
     if with_vote:
       json_dict['vote'] = self.get_vote().toJSONDict()
     return json_dict
-    
-  def verifyProofsAndTally(self, election, running_tally):
-    # copy the tally array
-    new_running_tally = [[a for a in q] for q in running_tally]
-    
-    vote = self.get_vote()
-    
-    # load up some important variables
-    pk = election.get_pk()
-    questions = election.get_questions()
-    num_questions = len(questions)
-    election_hash = election.get_hash()
-    
-    # check election hash
-    if vote['election_hash'] != election_hash:
-      raise Exception('vote for wrong election')
-      
-    ballot = vote['answers']
-
-    # possible plaintexts
-    possible_plaintexts = [algs.EGPlaintext(1, pk), algs.EGPlaintext(pk.g, pk)]
-    
-    # verify the vote
-    for question_num in range(num_questions):
-      question = questions[question_num]
-      num_answers = len(question['answers'])
-
-      # proofs
-      individual_proofs = ballot[question_num]['individual_proofs']
-      overall_proof = ballot[question_num]['overall_proof']
-
-      # correct num of proofs
-      if len(individual_proofs) != num_answers:
-        raise Exception('not the right number of proofs')
-    
-      homomorphic_sum = 1
-    
-      # check the individual proofs for each option of that question
-      for answer_num in range(num_answers):
-        # check the disjunctive proof
-        ciphertext = algs.EGCiphertext.from_dict(ballot[question_num]['choices'][answer_num])
-        ciphertext.pk = pk
-
-        proofs = [algs.EGZKProof.from_dict(p) for p in individual_proofs[answer_num]]
-      
-        if not ciphertext.verify_disjunctive_encryption_proof(possible_plaintexts, proofs, algs.EG_disjunctive_challenge_generator):
-          raise Exception("Question #%s, Answer #%s don't work" % (question_num, answer_num))
-        
-        # compute the homomorphic sum of all the answers
-        homomorphic_sum = ciphertext * homomorphic_sum
-
-      # check the overall proof by homomorphic combination
-      if not homomorphic_sum.verify_disjunctive_encryption_proof(possible_plaintexts, [algs.EGZKProof.from_dict(p) for p in ballot[question_num]['overall_proof']], algs.EG_disjunctive_challenge_generator):
-        raise Exception("Overall proof for Question #%s doesn't work" % question_num)
-      
-    # now that the vote is verified, let's add it to the running tally
-    for question_num in range(num_questions):
-      question = questions[question_num]
-      num_answers = len(question['answers'])
-      
-      for answer_num in range(num_answers):
-        # count it
-        answer_ciphertext = algs.EGCiphertext.from_dict(ballot[question_num]['choices'][answer_num])
-        answer_ciphertext.pk = pk
-        
-        if type(running_tally[question_num][answer_num]) != int:
-          running_tally[question_num][answer_num].pk = pk
-      
-        new_running_tally[question_num][answer_num] = answer_ciphertext * running_tally[question_num][answer_num]
-    
-    self.tallied_at = datetime.datetime.utcnow()
-    self.save()
-    
-    return new_running_tally
-
 
 ##
 ## Machine API

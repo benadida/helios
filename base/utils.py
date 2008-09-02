@@ -262,6 +262,7 @@ def to_json(d):
   return simplejson.dumps(d, sort_keys=True)
   
 def from_json(json_str):
+  if not json_str: return None
   return simplejson.loads(json_str)
   
 def JSONtoDict(json):

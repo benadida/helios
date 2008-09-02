@@ -7,6 +7,7 @@ Ben Adida
 
 import algs
 from base import utils
+import logging
 
 class EncryptedAnswer(object):
   """
@@ -229,8 +230,8 @@ class Tally(object):
     return [[a.toJSONDict() for a in q] for q in self.tally]
     
   @classmethod
-  def fromJSONDict(cls, election):
+  def fromJSONDict(cls, d, election):
     tally = cls(election)
-    tally.tally = [[EGCiphertext.fromJSONDict(a) for a in q] for q in d]
+    tally.tally = [[algs.EGCiphertext.fromJSONDict(a, election.pk) for a in q] for q in d]
     return tally
     

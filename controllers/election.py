@@ -106,6 +106,7 @@ class VoterController(REST.Resource):
     A voter submits her encrypted vote.
     """
     election = self.parent
+    election_obj = election.toElection()
 
     # if election has results already
     if election.encrypted_tally:
@@ -130,12 +131,10 @@ The election fingerprint is:
 %s
 
 -Helios
-""" % (election.name, voter.get_vote_hash(), election.get_hash())
+""" % (election_obj.name, voter.get_vote_hash(), election_obj.hash)
 
     mail.simple_send([voter.name],[voter.email], "Helios", "ben@adida.net", "your vote was recorded", mail_body)
 
-    # logging.info("MAIL SENT: %s " % mail_body)
-    
     return SUCCESS
 
   
