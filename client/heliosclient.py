@@ -51,8 +51,13 @@ class HeliosClient(object):
     """
     encrypted_vote is a JSON string
     """
-    result = self.post("/elections/%s/open_submit" % election_id, {'encrypted_vote' : encrypted_vote, 'email': email,
-                                                                  'openid_url' : openid_url, 'name' : name, 'category' :category})
+    parameters = {'encrypted_vote' : encrypted_vote}
+    if email: parameters['email']= email
+    if openid_url: parameters['openid_url'] = openid_url
+    if name: parameters['name'] = name
+    if category: parameters['category'] = category
+
+    result = self.post("/elections/%s/open_submit" % election_id, parameters)
                                                                   
     return result
     
