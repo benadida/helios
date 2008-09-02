@@ -7,7 +7,7 @@ Ben Adida
 
 import oauthclient
 from base import utils, oauth
-from crypto import algs
+from crypto import algs, electionalgs
 
 class HeliosClient(object):
   def __init__(self, auth_info, host, port):
@@ -32,12 +32,15 @@ class HeliosClient(object):
     election_id = self.post("/elections/new_2", {"name" : name, "public_key" : utils.to_json(public_key.toJSONDict())})
     return election_id
     
+  def election_get(self, election_id):
+    return electionalgs.Election.fromJSONDict(utils.from_json(self.get("/elections/%s" % election_id)))
+    
   def election_set_reg(self, election_id, open_reg=False):
     result = self.post("/elections/%s/set_reg" % election_id, {'open_p' : str(int(open_reg))})
     return result == "SUCCESS"
     
   def election_questions_save(self, election_id, questions):
-    result = self.post("/elections/%s/save" % election_id, {'election_json' : utils.to_json(questions)})
+    result = self.post("/elections/%s/save" % election_id, {'election_json' : utils.to_json({'questions':questions})})
     return result == "SUCCESS"
     
   def election_freeze(self, election_id):

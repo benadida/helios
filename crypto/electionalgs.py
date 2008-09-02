@@ -13,11 +13,11 @@ class EncryptedAnswer(object):
   """
   An encrypted answer to a single election question
   """
-  def __init__(self):
-    self.choices = None
-    self.individual_proofs = None
-    self.overall_proof = None
-    self.randomness = None
+  def __init__(self, choices=None, individual_proofs=None, overall_proof=None, randomness=None):
+    self.choices = choices
+    self.individual_proofs = individual_proofs
+    self.overall_proof = overall_proof
+    self.randomness = randomness
     
   def verify(self, pk):
     possible_plaintexts = [algs.EGPlaintext(1, pk), algs.EGPlaintext(pk.g, pk)]
@@ -58,15 +58,68 @@ class EncryptedAnswer(object):
       ea.answer = d['answer']
       
     return ea
+
+  @classmethod
+  def fromElectionAndAnswer(cls, election, question_num, answer_index):
+    """
+    Given an election, a question number, and an answer to that question in the form of a 0-based index into the answer array,
+    produce an EncryptedAnswer that works.
+    """
+    question = election.questions[question_num]
+    answers = question['answers']
+    pk = election.pk
+    
+    # initialize choices, individual proofs, randomness and overall proof
+    choices = [None for a in range(len(answers))]
+    individual_proofs = [None for a in range(len(answers))]
+    overall_proof = None
+    randomness = [None for a in range(len(answers))]
+    
+    # possible plaintexts [0, 1]
+    plaintexts = [algs.EGPlaintext(1, pk), algs.EGPlaintext(pk.g, pk)]
+    
+    # keep track of number of options selected.
+    num_selected_answers = 0;
+    
+    # homomorphic sum of all
+    homomorphic_sum = 0
+    randomness_sum = 0
+    
+    # go through each possible answer and encrypt either a g^0 or a g^1.
+    for answer_num in range(len(answers)):
+      plaintext_index = 0
+      
+      if answer_num == answer_index:
+        plaintext_index = 1
+        num_selected_answers += 1
+
+      # randomness and encryption
+      randomness[answer_num] = algs.Utils.random_mpz_lt(pk.q)
+      choices[answer_num] = pk.encrypt_with_r(plaintexts[plaintext_index], randomness[answer_num])
+      
+      # generate proof
+      individual_proofs[answer_num] = choices[answer_num].generate_disjunctive_encryption_proof(plaintexts, plaintext_index, 
+                                                randomness[answer_num], algs.EG_disjunctive_challenge_generator)
+                                                
+      # sum things up homomorphically
+      homomorphic_sum = choices[answer_num] * homomorphic_sum
+      randomness_sum = (randomness_sum + randomness[answer_num]) % pk.q
+
+    # prove that the sum is 0 or 1 (can be "blank vote" for this answer)
+    # num_selected_answers is 0 or 1, which is the index into the plaintext that is actually encoded
+    overall_proof = homomorphic_sum.generate_disjunctive_encryption_proof(plaintexts, num_selected_answers, randomness_sum, algs.EG_disjunctive_challenge_generator);
+    
+    return cls(choices, individual_proofs, overall_proof, randomness)
+    
   
 class EncryptedVote(object):
   """
   A complete encrypted ballot
   """
-  def __init__(self):
-    self.encrypted_answers = None
-    self.election_hash = None
-    self.election_id = None
+  def __init__(self, encrypted_answers = None, election_hash = None, election_id = None):
+    self.encrypted_answers = encrypted_answers
+    self.election_hash = election_hash
+    self.election_id = election_id
     
   def verify(self, election):
     # right number of answers
@@ -88,9 +141,12 @@ class EncryptedVote(object):
         
     return True
     
+  def get_hash(self):
+    return utils.hash_b64(utils.to_json(self.toJSONDict()))
+    
   def toJSONDict(self):
     return {
-      'answers': [EncryptedAnswer.toJSONDict(a) for a in self.encrypted_answers],
+      'answers': [a.toJSONDict() for a in self.encrypted_answers],
       'election_hash': self.election_hash,
       'election_id': self.election_id
     }
@@ -104,6 +160,14 @@ class EncryptedVote(object):
     ev.election_id = d['election_id']
 
     return ev
+    
+  @classmethod
+  def fromElectionAndAnswers(cls, election, answers):
+    pk = election.pk
+
+    # each answer is an index into the answer array
+    encrypted_answers = [EncryptedAnswer.fromElectionAndAnswer(election, answer_num, answers[answer_num]) for answer_num in range(len(answers))]
+    return cls(encrypted_answers, election.hash, election.election_id)
     
 class Election(object):
   
@@ -126,22 +190,29 @@ class Election(object):
   hash = property(get_hash)
 
   def toJSONDict(self):
-    return {
+    return_value = {
       'election_id' : self.election_id,
       'name' : self.name,
       'pk' : self.pk.toJSONDict(),
       'questions' : self.questions,
-      'voters_hash' : self.voters_hash,
       'voting_starts_at' : self.voting_starts_at,
       'voting_ends_at' : self.voting_ends_at
     }
+    
+    if self.openreg:
+      return_value['openreg'] = True
+    else:
+      return_value['voters_hash'] = self.voters_hash
+      
+    return return_value
     
   @classmethod
   def fromJSONDict(cls, d):
     el = cls()
     el.election_id = d['election_id']
     el.name = d['name']
-    el.voters_hash = d['voters_hash']
+    if d.has_key('voters_hash'): el.voters_hash = d['voters_hash']
+    if d.has_key('openreg'): el.openreg = d['openreg']
     el.voting_starts_at = d['voting_starts_at']
     el.voting_ends_at = d['voting_ends_at']
     el.questions = d['questions']
@@ -167,6 +238,14 @@ class Tally(object):
     self.discrete_logs[1] = 0
     self.last_dl_result = 1
     
+  def add_vote_batch(self, encrypted_votes):
+    """
+    Add a batch of votes. Eventually, this will be optimized to do an aggregate proof verification
+    rather than a whole proof verif for each vote.
+    """
+    for vote in encrypted_votes:
+      self.add_vote(vote)
+    
   def add_vote(self, encrypted_vote):
     # verify the vote
     encrypted_vote.pk = self.pk
@@ -176,9 +255,10 @@ class Tally(object):
     # for each question
     for question_num in range(len(self.questions)):
       question = self.questions[question_num]
+      answers = question['answers']
       
       # for each possible answer to each question
-      for answer_num in range(len(question['answers'])):
+      for answer_num in range(len(answers)):
         # do the homomorphic addition into the tally
         self.tally[question_num][answer_num] = encrypted_vote.encrypted_answers[question_num].choices[answer_num] * self.tally[question_num][answer_num]
       
@@ -207,10 +287,11 @@ class Tally(object):
     
     for question_num in range(len(self.questions)):
       question = self.questions[question_num]
+      answers = question['answers']
       question_tally = []
       question_proof = []
 
-      for answer_num in range(len(question['answers'])):
+      for answer_num in range(len(answers)):
         # do decryption and proof of it
         plaintext, proof = sk.prove_decryption(self.tally[question_num][answer_num])
 

@@ -234,7 +234,7 @@ class ElectionController(REST.Resource):
     
     # basic election parameters
     election.name = name
-    election.admin, election.api_client = self.user(), self.api_client()
+    election.admin, election.api_client = self.user(), do.APIClient.get_by_consumer_key(Controller.api_client())
     election.voting_starts_at = utils.string_to_datetime(voting_starts_at)
     election.voting_ends_at = utils.string_to_datetime(voting_ends_at)
 
@@ -378,6 +378,7 @@ class ElectionController(REST.Resource):
     """
     user, api_client, election = self.check(election)
 
+    logging.info(election_json)
     election.save_dict(utils.from_json(election_json))
 
     # always a machine API

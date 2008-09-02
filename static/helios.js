@@ -49,14 +49,14 @@ HELIOS.Election = Class.extend({
   toJSONObject: function() {
     // the reason we repeat code here is to make JSON do the right thing
     // in terms of ordering the keys. FIXME: get a JSON library that orders keys properly.
-    if (this.pk) {
+    if (this.openreg) {
       return {
-        election_id : this.election_id, name : this.name, pk: this.pk.toJSONObject(), questions : this.questions,
-        voters_hash : this.voters_hash, voting_ends_at : this.voting_ends_at, voting_starts_at : this.voting_starts_at
+        election_id : this.election_id, name : this.name, openreg: true, pk: this.pk.toJSONObject(), questions : this.questions,
+        voting_ends_at : this.voting_ends_at, voting_starts_at : this.voting_starts_at
       };
     } else {
       return {
-        election_id : this.election_id, name : this.name, questions : this.questions,
+        election_id : this.election_id, name : this.name, pk: this.pk.toJSONObject(), questions : this.questions,
         voters_hash : this.voters_hash, voting_ends_at : this.voting_ends_at, voting_starts_at : this.voting_starts_at
       };      
     }
@@ -78,6 +78,7 @@ HELIOS.Election.fromJSONObject = function(d) {
   el.name = d.name; el.voters_hash = d.voters_hash; el.voting_starts_at = d.voting_starts_at; el.voting_ends_at = d.voting_ends_at;
   el.questions = d.questions;
   el.pk = ElGamal.PublicKey.fromJSONObject(d.pk);
+  el.openreg = d.openreg;
   return el;
 };
 

@@ -8,7 +8,6 @@ ben@adida.net
 """
 
 import math, sha, logging
-from random import randrange
 from base import randpool, number
 
 import numtheory
@@ -166,7 +165,7 @@ class EGPublicKey:
         self.g = None
         self.q = None
 
-    def encrypt_with_r(self, plaintext, r):
+    def encrypt_with_r(self, plaintext, r, encode_message= False):
         """
         expecting plaintext.m to be a big integer
         """
@@ -174,11 +173,14 @@ class EGPublicKey:
         ciphertext.pk = self
 
         # make sure m is in the right subgroup
-        y = plaintext.m + 1
-        if pow(y, self.q, self.p) == 1:
+        if encode_message:
+          y = plaintext.m + 1
+          if pow(y, self.q, self.p) == 1:
             m = y
-        else:
+          else:
             m = -y % self.p
+        else:
+          m = plaintext.m
         
         ciphertext.alpha = pow(self.g, r, self.p)
         ciphertext.beta = (m * pow(self.y, r, self.p)) % self.p
@@ -199,7 +201,7 @@ class EGPublicKey:
         Encrypt a plaintext, obscure the randomness.
         """
         return self.encrypt_return_r(plaintext)[0]
-          
+        
     def to_dict(self):
         """
         Serialize to dictionary.
@@ -368,6 +370,85 @@ class EGCiphertext:
         
       return (self.alpha == other.alpha and self.beta == other.beta)
     
+    def generate_encryption_proof(self, plaintext, randomness, challenge_generator):
+      """
+      Generate the disjunctive encryption proof of encryption
+      """
+      # random W
+      w = Utils.random_mpz_lt(self.pk.q)
+
+      # build the proof
+      proof = EGZKProof()
+
+      # compute A=g^w, B=y^w
+      proof.commitment['A'] = pow(self.pk.g, w, self.pk.p)
+      proof.commitment['B'] = pow(self.pk.y, w, self.pk.p)
+
+      # generate challenge
+      proof.challenge = challenge_generator(proof.commitment);
+
+      # Compute response = w + randomness * challenge
+      proof.response = (w + (randomness * proof.challenge)) % self.pk.q;
+
+      return proof;
+      
+    def simulate_encryption_proof(self, plaintext, challenge=None):
+      # generate a random challenge if not provided
+      if not challenge:
+        challenge = Utils.random_mpz_lt(self.pk.q)
+        
+      proof = EGZKProof()
+      proof.challenge = challenge
+
+      # compute beta/plaintext, the completion of the DH tuple
+      beta_over_plaintext =  (self.beta * Utils.inverse(plaintext.m, self.pk.p)) % self.pk.p
+      
+      # random response, does not even need to depend on the challenge
+      proof.response = Utils.random_mpz_lt(self.pk.q);
+
+      # now we compute A and B
+      proof.commitment['A'] = (Utils.inverse(pow(self.alpha, proof.challenge, self.pk.p), self.pk.p) * pow(self.pk.g, proof.response, self.pk.p)) % self.pk.p
+      proof.commitment['B'] = (Utils.inverse(pow(beta_over_plaintext, proof.challenge, self.pk.p), self.pk.p) * pow(self.pk.y, proof.response, self.pk.p)) % self.pk.p
+
+      return proof
+    
+    def generate_disjunctive_encryption_proof(self, plaintexts, real_index, randomness, challenge_generator):
+      # note how the interface is as such so that the result does not reveal which is the real proof.
+
+      proofs = [None for p in plaintexts]
+
+      # go through all plaintexts and simulate the ones that must be simulated.
+      for p_num in range(len(plaintexts)):
+        if p_num != real_index:
+          proofs[p_num] = self.simulate_encryption_proof(plaintexts[p_num])
+
+      # the function that generates the challenge
+      def real_challenge_generator(commitment):
+        # set up the partial real proof so we're ready to get the hash
+        proofs[real_index] = EGZKProof()
+        proofs[real_index].commitment = commitment
+
+        # get the commitments in a list and generate the whole disjunctive challenge
+        commitments = [p.commitment for p in proofs]
+        disjunctive_challenge = challenge_generator(commitments);
+
+        # now we must subtract all of the other challenges from this challenge.
+        real_challenge = disjunctive_challenge
+        for p_num in range(len(proofs)):
+          if p_num != real_index:
+            real_challenge = real_challenge - proofs[p_num].challenge
+
+        # make sure we mod q, the exponent modulus
+        return real_challenge % self.pk.q
+        
+      # do the real proof
+      real_proof = self.generate_encryption_proof(plaintexts[real_index], randomness, real_challenge_generator)
+
+      # set the real proof
+      proofs[real_index] = real_proof
+
+      return EGZKDisjunctiveProof(proofs)
+      
     def verify_encryption_proof(self, plaintext, proof):
       """
       Checks for the DDH tuple g, y, alpha, beta/plaintext.
@@ -383,6 +464,7 @@ class EGCiphertext:
       beta_over_m = (self.beta * Utils.inverse(plaintext.m, self.pk.p)) % self.pk.p
       second_check = (pow(self.pk.y, proof.response, self.pk.p) == ((pow(beta_over_m, proof.challenge, self.pk.p) * proof.commitment['B']) % self.pk.p))
       
+      # print "1,2: %s %s " % (first_check, second_check)
       return (first_check and second_check)
     
     def verify_disjunctive_encryption_proof(self, plaintexts, proof, challenge_generator):
@@ -394,6 +476,7 @@ class EGCiphertext:
       for i in range(len(plaintexts)):
         # if a proof fails, stop right there
         if not self.verify_encryption_proof(plaintexts[i], proof.proofs[i]):
+          print "bad proof %s, %s, %s" % (i, plaintexts[i], proof.proofs[i])
           return False
           
       logging.info("made it past the two encryption proofs")
