@@ -32,7 +32,6 @@
 	           function(data) {
 	               BUILDER.election = HELIOS.Election.fromJSONObject(data);
 	               BUILDER.pk = BUILDER.election.pk;
-	               BUILDER.election.pk = null;
 
 	               BUILDER.show_election();
 	    });
@@ -69,7 +68,8 @@
 
     // committing is about really adding the question
     BUILDER.save_and_commit_question = function() {
-      BUILDER.save_question();
+      try {
+          BUILDER.save_question();
       var question = BUILDER.get_current_question();
       
       if (BUILDER.is_new(question)) {
@@ -81,6 +81,9 @@
       BUILDER.save();
 
       BUILDER.show_election();
+  } catch (e) {
+      E = e;
+  }
     };
 
     BUILDER.save = function() {
