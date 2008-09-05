@@ -139,11 +139,19 @@ by Ben Adida.
 "voter_id": "agxoZWxpb3N2b3RpbmdyCwsSBVZvdGVyGCcM"}</div>
 
 <p>
+    In elections where voters are placed in categories (e.g. precincts), an additional <tt>category</tt> field is present:
+</p>
+
+<div class="codeblock"><div class="codetitle">&lt;VOTER&gt; (3)</div>
+{"category": "02139", "email": "benadida@gmail.com", "name": "Ben Adida",
+"voter_id": "agxoZWxpb3N2b3RpbmdyCwsSBVZvdGVyGCcM"}</div>
+
+<p>
     Once a voter has cast a ballot, their JSON representation is augmented with their encrypted vote:
 </p>
 
 <div class="codeblock"><div class="codetitle">&lt;VOTER_WITH_VOTE&gt;</div>
-{"name": "Ben Adida", "openid": "http://benadida.myopenid.com",
+{"category": "02139", "name": "Ben Adida", "openid": "http://benadida.myopenid.com",
 "vote" : &lt;VOTE&gt;,
 "voter_id": "agxoZWxpb3N2b3RpbmdyCwsSBVZvdGVyGCcM"}</div>
 
@@ -188,6 +196,21 @@ by Ben Adida.
 <p>
     <b>Note:</b> we strictly follow the JSON specification, so the forward-slash character "/" is escaped as "\/". Not all JSON toolkits do this correctly, given that escaping the forward-slash is not necessary given JavaScript specifications, but for interoperability, we choose the strict interpretation. Python's <tt>simplejson</tt> does the right thing.
 </p>
+
+<h4>Open Registration</h3>
+    
+<p>
+    Helios supports "open registration elections", when the election administrator so desires. In those elections, the voter list is not set ahead of time. In that case, an election data structure does not contain <tt>voters_hash</tt>, but does contain a new field, <tt>openreg</tt>:
+</p>
+
+<div class="codeblock"><div class="codetitle">&lt;ELECTION&gt;</div>
+{"election_id": "agxoZWxpb3N2b3RpbmdyDgsSCEVsZWN0aW9uGAYM", "name": "foo234234",
+"openreg": True,
+"pk": &lt;ELGAMAL_PUBLIC_KEY&gt;,
+"questions": &lt;QUESTION_LIST&gt;,
+"voting_ends_at": null, "voting_starts_at": null}
+</div>
+
 
 <h3>Vote</h3>
 

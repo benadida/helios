@@ -8,6 +8,7 @@ ben@adida.net
 """
 
 import cherrypy
+import logging
 
 try:
   from google.appengine.api import users

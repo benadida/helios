@@ -304,8 +304,12 @@ class VoterBase(DBObject):
     
   def toJSONDict(self, with_vote = False):
     json_dict = super(VoterBase, self).toJSONDict()
+    if not self.email and self.openid_url:
+      json_dict['openid'] = self.openid_url
     if with_vote:
       json_dict['vote'] = self.get_vote().toJSONDict()
+    if not json_dict['category'] or json_dict['category'] == "":
+      del json_dict['category']
     return json_dict
 
 ##

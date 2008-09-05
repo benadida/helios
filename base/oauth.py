@@ -13,6 +13,7 @@ import random
 import urlparse
 import hmac
 import base64
+import logging
 
 VERSION = '1.0' # Hi Blaine!
 HTTP_METHOD = 'GET'
@@ -485,6 +486,8 @@ class OAuthSignatureMethod(object):
 
     def check_signature(self, oauth_request, consumer, token, signature):
         built = self.build_signature(oauth_request, consumer, token)
+        logging.info("built %s" % built)
+        logging.info("signature %s" % signature)
         return built == signature
 
 class OAuthSignatureMethod_HMAC_SHA1(OAuthSignatureMethod):

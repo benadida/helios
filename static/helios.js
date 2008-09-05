@@ -21,15 +21,16 @@ UTILS.array_remove_value = function(arr, val) {
 };
 
 UTILS.select_element_content = function(element) {
+  var range;
   if (window.getSelection) { // FF, Safari, Opera
     var sel = window.getSelection();
-    var range = document.createRange();
+    range = document.createRange();
     range.selectNodeContents(element);
     sel.removeAllRanges();
     sel.addRange(range);
   } else {
     document.selection.empty();
-    var range = document.body.createTextRange();
+    range = document.body.createTextRange();
     range.moveToElementText(el);
     range.select();    
   }
@@ -39,7 +40,7 @@ UTILS.select_element_content = function(element) {
 // Helios Stuff
 //
 
-HELIOS = {}
+HELIOS = {};
 
 // election
 HELIOS.Election = Class.extend({
@@ -126,7 +127,7 @@ UTILS.open_window_with_content = function(content) {
 HELIOS.EncryptedAnswer = Class.extend({
   init: function(question, answer, pk) {    
     // if nothing in the constructor
-    if (question == null)
+    if (question === null)
       return;
 
     // store answer
@@ -161,7 +162,7 @@ HELIOS.EncryptedAnswer = Class.extend({
     
     // go through each possible answer and encrypt either a g^0 or a g^1.
     for (var i=0; i<question.answers.length; i++) {
-      var index;
+      var index, plaintext_index;
       // if this is the answer, swap them so m is encryption 1 (g)
       if (i == answer) {
         plaintext_index = 1;
@@ -205,7 +206,7 @@ HELIOS.EncryptedAnswer = Class.extend({
       'randomness' : randomness,
       'individual_proofs' : individual_proofs,
       'overall_proof' : overall_proof
-    }
+    };
   },
   
   clearPlaintexts: function() {
@@ -251,8 +252,8 @@ HELIOS.EncryptedAnswer = Class.extend({
     };
     
     if (include_plaintext) {
-      return_obj['answer'] = this.answer;
-      return_obj['randomness'] = $(this.randomness).map(function(i, r) {
+      return_obj.answer = this.answer;
+      return_obj.randomness = $(this.randomness).map(function(i, r) {
         return r.toJSONObject();
       });
     }
@@ -287,7 +288,7 @@ HELIOS.EncryptedAnswer.fromJSONObject = function(d, election) {
 HELIOS.EncryptedVote = Class.extend({
   init: function(election, answers) {
     // empty constructor
-    if (election == null)
+    if (election === null)
       return;
       
     var n_questions = election.questions.length;
@@ -378,7 +379,7 @@ HELIOS.EncryptedVote = Class.extend({
 });
 
 HELIOS.EncryptedVote.fromJSONObject = function(d, election) {
-  if (d == null)
+  if (d === null)
     return null;
     
   var ev = new HELIOS.EncryptedVote();

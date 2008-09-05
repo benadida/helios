@@ -28,6 +28,8 @@ class MachineOAuthClient(object):
     if parameters == {}:
       headers['Content-Length'] = 0
       
+    print "headers: " + str(headers)
+      
     connection = httplib.HTTPConnection("%s:%d" % (self.server, self.port))
     connection.request(method, url, headers= headers, body = utils.dictToURLParams(parameters))
     response = connection.getresponse()
