@@ -491,7 +491,7 @@ Your email address: %s
 Your password: %s
 
 -Helios
-""" % ((config.webroot + '/elections/%s/vote')%election.election_id, election.get_hash(), voter.email, voter.password)
+""" % ((config.webroot + '/elections/%s/vote')%election.election_id, election.toElection().get_hash(), voter.email, voter.password)
 
       message = message_header + introductory_message + message_footer
 
