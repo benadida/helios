@@ -44,6 +44,36 @@ ElGamal.PublicKey = Class.extend({
   
   toJSONObject: function() {
     return {g : this.g.toJSONObject(), p : this.p.toJSONObject(), q : this.q.toJSONObject(), y : this.y.toJSONObject()};
+  },
+  
+  verifyKnowledgeOfSecretKey: function(proof, challenge_generator) {
+    // if challenge_generator is present, we have to check that the challenge was properly generated.
+    if (challenge_generator != null) {
+      if (!proof.challenge.equals(challenge_generator(proof.s))) {
+        return false;
+      }
+    }
+    
+    // verify that g^response = s * y^challenge
+    var check = this.g.modPow(proof.response, this.p).equals(this.y.modPow(proof.challenge, this.p).multiply(proof.s).mod(this.p));
+    
+    return check;
+  },
+  
+  multiply: function(other) {
+    // base condition
+    if (other == 0 || other == 1) {
+      return this;
+    }
+    
+    // check params
+    if (!this.p.equals(other.p))
+      throw "mismatched params";
+    if (!this.g.equals(other.g))
+      throw "mismatched params";
+    
+    var new_pk = new ElGamal.PublicKey(this.p, this.q, this.g, this.y.multiply(other.y).mod(this.p));
+    return new_pk;
   }
   
 });
@@ -81,7 +111,7 @@ ElGamal.SecretKey = Class.extend({
     
     var proof = new ElGamal.Proof();
     
-    // compute A=g^w, B=y^w
+    // compute A=g^w, B=\alpha^w
     proof.commitment.A = this.pk.g.modPow(w, this.pk.p);
     proof.commitment.B = ciphertext.alpha.modPow(w, this.pk.p);
     
@@ -95,6 +125,26 @@ ElGamal.SecretKey = Class.extend({
       'plaintext': plaintext,
       'proof': proof
     };
+  },
+  
+  // generate a proof of knowledge of the secret exponent x
+  proveKnowledge: function(challenge_generator) {
+    // generate random w
+    var w = Random.getRandomInteger(this.pk.q);
+
+    // FIXME: build an abstraction for this single PoK of discrete log
+    var proof = {};
+    
+    // compute s = g^w for random w.
+    proof.s = this.pk.g.modPow(w, this.pk.p);
+    
+    // get challenge
+    proof.challenge = challenge_generator(proof.s);
+    
+    // compute response = w +  x * challenge
+    proof.response = w.add(this.x.multiply(proof.challenge).mod(this.pk.q));
+    
+    return proof;
   }
 });
 
@@ -408,4 +458,8 @@ ElGamal.disjunctive_challenge_generator = function(commitments) {
 // a challenge generator for Fiat-Shamir
 ElGamal.fiatshamir_challenge_generator = function(commitment) {
   return ElGamal.disjunctive_challenge_generator([commitment]);
+};
+
+ElGamal.fiatshamir_dlog_challenge_generator = function(commitment) {
+  return new BigInt(hex_sha1(commitment.toJSONObject()), 16);
 };

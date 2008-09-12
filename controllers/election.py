@@ -137,12 +137,77 @@ The election fingerprint is:
 
     return SUCCESS
 
+class TrusteeController(REST.Resource):
+  """
+  A controller for voters within elections.
+  """
+      
+  TEMPLATES_DIR = basic.HeliosController.TEMPLATES_DIR + 'trustee/'
+
+  # REST stuff
+  def REST_instantiate(self, trustee_email):
+    return self.parent.get_keyshare_by_email(trustee_email)
+    
+  def REST_create(self, voter_id):
+    raise NotImplemented
+  ########
+  
+  @web
+  def home(self, keyshare):
+    eg_params_json = utils.to_json(ELGAMAL_PARAMS.toJSONDict())
+    election = self.parent
+    return self.render("home")
+    
+  @web
+  def upload_pk(self, keyshare, password, pk, pok):
+    if keyshare.password != password:
+      return "0"
+      
+    if self.parent.is_frozen():
+      return "0"
+      
+    self.parent.public_key_json = None
+    self.parent.save()
+    
+    keyshare.pk_json = pk
+    keyshare.pok_json = pok
+    keyshare.save()
+    return "1"
+    
+  @web
+  def tally(self, keyshare):
+    return self.render("tally")
+    
+  @web
+  @json
+  def list(self, **kw):
+    """
+    Output a JSON list of trustees for a given election.
+    """
+    election = self.parent
+
+    keyshares = election.get_keyshares()
+    return [k.toJSONDict() for k in keyshares]
+
+  @web
+  def upload_decryption_factor(self, keyshare, password, decryption_factor, decryption_proof):
+    if keyshare.password != password:
+      return "0"
+      
+    if !self.parent.is_frozen():
+      return "0"
+      
+    keyshare.decryption_factor = decryption_factor
+    keyshare.decryption_proof = decryption_proof
+    keyshare.save()
+    return "1"
+
   
 class ElectionController(REST.Resource):
   """
   A Controller for elections.
   """
-  REST_children = {'voters' : VoterController()}
+  REST_children = {'voters' : VoterController(), 'trustees' : TrusteeController()}
   
   TEMPLATES_DIR = basic.HeliosController.TEMPLATES_DIR + 'election/'
   
@@ -218,15 +283,32 @@ class ElectionController(REST.Resource):
     """
     The form for creating a new election.
     """
-    eg_params_json = utils.to_json(ELGAMAL_PARAMS.toJSONDict())
     return self.render('new')
 
   @web
   @session.login_protect
-  def new_2(self, name, public_key, private_key=None, voting_starts_at=None, voting_ends_at=None, **kw):
+  def new_2(self, name, election_type):
+    """
+    Enter additional information about the election type.
+    """
+    user = Controller.user()
+    
+    eg_params_json = utils.to_json(ELGAMAL_PARAMS.toJSONDict())
+    return self.render('new_2')
+    
+  @web
+  @session.login_protect
+  def new_3(self, name, trustee = None, public_key=None, private_key=None, voting_starts_at=None, voting_ends_at=None, **kw):
     """
     Create the new election.
+    
+    trustees is a JSON list
     """
+    
+    # we need a list of admins, or at least a public key
+    if not trustee and not public_key:
+      self.error('Need a list of trustees or a public key')
+    
     election = do.Election()
 
     # hard-wire the type for now, we only have one type of election
@@ -238,26 +320,75 @@ class ElectionController(REST.Resource):
     election.voting_starts_at = utils.string_to_datetime(voting_starts_at)
     election.voting_ends_at = utils.string_to_datetime(voting_ends_at)
 
-    # generate a keypair for this election
-    # now we generate this in JavaScript.
-    # keypair = ELGAMAL_PARAMS.generate_keypair()
-
-    # serialize the keys to JSON and store them
-    pk = algs.EGPublicKey.from_dict(utils.from_json(public_key))
-    election.public_key_json = utils.to_json(pk.to_dict())
+    # serialize the public key to JSON and store it if it was sent
+    if public_key and public_key != "":
+      pk = algs.EGPublicKey.from_dict(utils.from_json(public_key))
+      election.public_key_json = utils.to_json(pk.to_dict())
     
     # the private key can be stored by the server
     if private_key and private_key != "":
       sk = algs.EGSecretKey.from_dict(utils.from_json(private_key))
       election.private_key_json = utils.to_json(sk.to_dict())
     
+    ## FIXME: transaction!
+    
     election.save()
+
+    # go through the trustees
+    if trustee:
+      for t in trustee:
+        if t.strip() == "":
+          continue
+        # create the keyshare
+        keyshare = do.KeyShare()
+        keyshare.parent = election
+        keyshare.election = election
+        keyshare.email = t
+        keyshare.generate_password()
+        keyshare.save()
+        
+        # the message to email
+        message = """
+You have been designated as a trustee of the Helios Election "%s".
+
+Go create your key and manage your contribution at the following URL:
+%s
+
+Your password is:
+%s
+
+--
+The Helios Voting System
+""" % (election.name, config.webroot + ('/elections/%s/trustees/%s/home' % (election.election_id, utils.urlencode(keyshare.email))), keyshare.password)
+        
+        # send out the emails for the shares
+        mail.simple_send([keyshare.email],[keyshare.email],"Helios","ben@adida.net","Trustee Information for %s" % election.name, message)
     
     # user or api_client?
     if election.admin:
       raise cherrypy.HTTPRedirect("./%s/view" % str(election.election_id))
     else:
       return str(election.election_id)
+
+  ##
+  ## MANAGE key shares
+  ##
+  @web
+  @session.login_protect
+  def keyshares_manage(self, election):
+    keyshares = election.get_keyshares()
+    return self.render("keyshares_manage")
+    
+  @web
+  @session.login_protect
+  def set_pk(self, election, pk_json):
+    if election.get_pk():
+      return "0"
+    
+    election.set_pk(algs.EGPublicKey.fromJSONDict(utils.from_json(pk_json)))
+    election.save()
+    
+    return "1"
 
   @web
   def view(self, election):

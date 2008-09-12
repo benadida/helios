@@ -216,7 +216,11 @@ class Election(object):
     el.voting_starts_at = d['voting_starts_at']
     el.voting_ends_at = d['voting_ends_at']
     el.questions = d['questions']
-    el.pk = algs.EGPublicKey.fromJSONDict(d['pk'])
+    
+    if d['pk']:
+      el.pk = algs.EGPublicKey.fromJSONDict(d['pk'])
+    else:
+      el.pk = None
 
     return el
     

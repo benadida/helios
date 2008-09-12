@@ -72,6 +72,12 @@ class ElectionBase(DBObject):
       keys['category'] = category
     
     return models.Voter.selectAllByKeys(keys, order_by= 'voter_id', after=after, limit=limit)
+  
+  def get_keyshares(self):
+    return models.KeyShare.selectAllByKeys({'election' : self}, order_by = 'email')
+    
+  def get_keyshare_by_email(self, email):
+    return models.KeyShare.selectByKeys({'election' : self, 'email' : email})
     
   def get_cast_votes(self, after=None, limit=None):
     return [voter.get_vote() for voter in self.get_voters(after=after, limit = limit) if voter.cast_id != None]
@@ -321,3 +327,28 @@ class APIClient(DBObject):
   def get_by_consumer_key(cls, consumer_key):
     if not consumer_key: return None
     return cls.selectByKey('consumer_key', consumer_key)
+
+
+##
+## Distributed Decryption
+##
+
+class KeyShareBase(DBObject):
+  JSON_FIELDS = ['email','pk','pok', 'decryption_factor', 'decryption_proof']
+  
+  def get_pk(self):
+    if not self.pk_json: return None
+    return algs.EGPublicKey.fromJSONDict(utils.from_json(self.pk_json))
+
+  def get_pok(self):
+    if not self.pok_json: return None
+    return utils.from_json(self.pok_json)
+
+  def generate_password(self):
+    self.password = utils.random_string(16)
+  
+  def toJSONDict(self):
+    self.pk = self.get_pk()
+    self.pok = self.get_pok()
+      
+    return DBObject.toJSONDict(self)

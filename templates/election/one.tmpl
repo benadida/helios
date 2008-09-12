@@ -24,14 +24,24 @@
 #if not $election.is_frozen()
 <li> <a href="build">build this election</a></li>
 <li> <a href="voters_manage">manage voters</a></li><br />
+
+#if $election.get_pk()
 <li> <a href="freeze"><em>freeze</em> election and start voting.</a></li>
 #else
+<li> <a href="keyshares_manage">manage trustees' key shares</a></li>
+#end if
+
+#else
+#if len($election.get_keyshares()) == 0
 #if not $election.encrypted_tally and not $result
 #if $election.get_sk()
 <li> <a href="drive_tally_chunk">compute tally</a></li>
 #else 
 <li> <a href="drive_tally">compute tally</a></li>
 #end if
+#end if
+#else
+<li> <a href="keyshares_tally_manage">manage trustees' tally</a></li>
 #end if
 
 #if $election.encrypted_tally and not $result

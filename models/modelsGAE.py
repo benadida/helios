@@ -122,4 +122,20 @@ class Voter(mbase.VoterBase):
 
     super(Voter, self).save()
       
+##
+## Distributed Decryption
+##
+
+class KeyShare(mbase.KeyShareBase):
+  election = db.ReferenceProperty(Election)
+  pk_json = db.TextProperty()
+  pok_json = db.TextProperty()
+  email = db.StringProperty()
+  password = db.StringProperty()
+  
+  # storing the partial decryption factors
+  decryption_factor = db.TextProperty()
+  decryption_proof = db.TextProperty()  
+
+  keyshare_id = property(DBObject.get_id)
 
