@@ -161,10 +161,10 @@ class TrusteeController(REST.Resource):
   @web
   def upload_pk(self, keyshare, password, pk, pok):
     if keyshare.password != password:
-      return "0"
+      return "failure: bad password"
       
     if self.parent.is_frozen():
-      return "0"
+      return "failure: election not frozen"
       
     self.parent.public_key_json = None
     self.parent.save()
@@ -172,10 +172,13 @@ class TrusteeController(REST.Resource):
     keyshare.pk_json = pk
     keyshare.pok_json = pok
     keyshare.save()
-    return "1"
+    return "success"
     
   @web
   def tally(self, keyshare):
+    election = self.parent
+    election_pk = election.get_pk()
+    election_pk_json = utils.to_json(election_pk.toJSONDict())
     return self.render("tally")
     
   @web
@@ -190,17 +193,17 @@ class TrusteeController(REST.Resource):
     return [k.toJSONDict() for k in keyshares]
 
   @web
-  def upload_decryption_factor(self, keyshare, password, decryption_factor, decryption_proof):
+  def upload_decryption_factor(self, keyshare, password, decryption_factors, decryption_proofs):
     if keyshare.password != password:
-      return "0"
+      return "failure: password doesn't match"
       
-    if !self.parent.is_frozen():
-      return "0"
+    if not self.parent.is_frozen():
+      return "failure: election not frozen"
       
-    keyshare.decryption_factor = decryption_factor
-    keyshare.decryption_proof = decryption_proof
+    keyshare.decryption_factors_json = decryption_factors
+    keyshare.decryption_proofs_json = decryption_proofs
     keyshare.save()
-    return "1"
+    return "success"
 
   
 class ElectionController(REST.Resource):
@@ -378,17 +381,25 @@ The Helios Voting System
   def keyshares_manage(self, election):
     keyshares = election.get_keyshares()
     return self.render("keyshares_manage")
+
+  @web
+  @session.login_protect
+  def keyshares_tally_manage(self, election):
+    election_pk = election.get_pk()
+    election_pk_json = utils.to_json(election_pk.toJSONDict())
+    keyshares = election.get_keyshares()
+    return self.render("keyshares_tally_manage")
     
   @web
   @session.login_protect
   def set_pk(self, election, pk_json):
     if election.get_pk():
-      return "0"
+      return "failure: PK exists already"
     
     election.set_pk(algs.EGPublicKey.fromJSONDict(utils.from_json(pk_json)))
     election.save()
     
-    return "1"
+    return "success"
 
   @web
   def view(self, election):
@@ -503,14 +514,13 @@ The Helios Voting System
 
   @web
   @session.login_protect
-  def save(self, election, election_json):
+  def save_questions(self, election, questions_json):
     """
     Save the election questions.
     """
     user, api_client, election = self.check(election)
 
-    logging.info(election_json)
-    election.save_dict(utils.from_json(election_json))
+    election.save_questions(utils.from_json(questions_json))
 
     # always a machine API
     return "SUCCESS"

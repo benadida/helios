@@ -134,8 +134,8 @@ class KeyShare(mbase.KeyShareBase):
   password = db.StringProperty()
   
   # storing the partial decryption factors
-  decryption_factor = db.TextProperty()
-  decryption_proof = db.TextProperty()  
+  decryption_factors_json = db.TextProperty()
+  decryption_proofs_json = db.TextProperty()  
 
   keyshare_id = property(DBObject.get_id)
 

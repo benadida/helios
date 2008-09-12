@@ -31,7 +31,6 @@
 	    Helios.get_election({'election_id': '$election.election_id'},
 	           function(data) {
 	               BUILDER.election = HELIOS.Election.fromJSONObject(data);
-	               BUILDER.pk = BUILDER.election.pk;
 
 	               BUILDER.show_election();
 	    });
@@ -87,7 +86,7 @@
     };
 
     BUILDER.save = function() {
-      \$.post('/elections/$election.election_id/save', {election_json : $.toJSON(BUILDER.election)}, function(result) {
+      \$.post('/elections/$election.election_id/save_questions', {questions_json : $.toJSON(BUILDER.election.questions)}, function(result) {
         alert('saved!');
       });
     };

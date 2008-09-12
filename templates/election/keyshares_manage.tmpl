@@ -14,7 +14,7 @@ function combine_keys() {
        
        // submit the combined_pk
        \$.post("set_pk", {'pk_json': jQuery.toJSON(combined_key)}, function(result) {
-           if (result == "0")
+           if (result != "success")
              alert('public key not set, probably because it was already set.');
              
            document.location = "./view";

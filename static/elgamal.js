@@ -97,34 +97,43 @@ ElGamal.SecretKey = Class.extend({
     return {pk: this.pk.toJSONObject(), x: this.x.toJSONObject()};
   },
   
-  decrypt: function(ciphertext) {
-    var m = ciphertext.alpha.modPow(this.x, this.pk.p).modInverse(this.pk.p).multiply(ciphertext.beta).mod(this.pk.p);
-    var plaintext = new ElGamal.Plaintext(m, this.pk, false);
-    return plaintext;
+  // a decryption factor is *not yet* mod-inverted, because it needs to be part of the proof.
+  decryptionFactor: function(ciphertext) {
+    var decryption_factor = ciphertext.alpha.modPow(this.x, this.pk.p);
+    return decryption_factor;
+  },
+  
+  decrypt: function(ciphertext, decryption_factor) {
+    if (!decryption_factor)
+      decryption_factor = this.decryptionFactor(ciphertext);
+
+    // use the ciphertext's built-in decryption given a list of decryption factors.
+    return ciphertext.decrypt([decryption_factor]);
   },
   
   decryptAndProve: function(ciphertext, challenge_generator) {
-    var plaintext = this.decrypt(ciphertext);
+    var dec_factor_and_proof = this.decryptionFactorAndProof(ciphertext, challenge_generator);
+    
+    // decrypt, but using the already computed decryption factor
+    var plaintext = this.decrypt(ciphertext, dec_factor_and_proof.decryption_factor);
 
-    // generate random w
-    var w = Random.getRandomInteger(this.pk.q);
-    
-    var proof = new ElGamal.Proof();
-    
-    // compute A=g^w, B=\alpha^w
-    proof.commitment.A = this.pk.g.modPow(w, this.pk.p);
-    proof.commitment.B = ciphertext.alpha.modPow(w, this.pk.p);
-    
-    // Get the challenge from the callback that generates it
-    proof.challenge = challenge_generator(proof.commitment);
-    
-    // Compute response = w + x * challenge
-    proof.response = w.add(this.x.multiply(proof.challenge).mod(this.pk.q));
-    
     return {
       'plaintext': plaintext,
-      'proof': proof
+      'proof': dec_factor_and_proof.decryption_proof
     };
+  },
+  
+  decryptionFactorAndProof: function(ciphertext, challenge_generator) {
+    var decryption_factor = this.decryptionFactor(ciphertext);
+    
+    // the DH tuple we need to prove, given the secret key x, is:
+    // g, alpha, y, beta/m
+    var proof = ElGamal.Proof.generate(this.pk.g, ciphertext.alpha, this.x, this.pk.p, this.pk.q, challenge_generator);
+    
+    return {
+      'decryption_factor' : decryption_factor,
+      'decryption_proof' : proof
+    }
   },
   
   // generate a proof of knowledge of the secret exponent x
@@ -181,78 +190,50 @@ ElGamal.Ciphertext = Class.extend({
                                   this.pk);
   },
   
+  // a decryption method by decryption factors
+  decrypt: function(list_of_dec_factors) {
+    var running_decryption = this.beta;
+    var self = this;
+    $(list_of_dec_factors).each(function(i, dec_factor) {
+      running_decryption = dec_factor.modInverse(self.pk.p).multiply(running_decryption).mod(self.pk.p);    
+    });
+    
+    return new ElGamal.Plaintext(running_decryption, this.pk, false);    
+  },
+  
   generateProof: function(plaintext, randomness, challenge_generator) {
-    // generate random w
-    var w = Random.getRandomInteger(this.pk.q);
-    
-    var proof = new ElGamal.Proof();
-    
-    // compute A=g^w, B=y^w
-    proof.commitment.A = this.pk.g.modPow(w, this.pk.p);
-    proof.commitment.B = this.pk.y.modPow(w, this.pk.p);
-    
-    // Get the challenge from the callback that generates it
-    proof.challenge = challenge_generator(proof.commitment);
-    
-    // Compute response = w + randomness * challenge
-    proof.response = w.add(randomness.multiply(proof.challenge).mod(this.pk.q));
+    // DH tuple to prove is 
+    // g, y, alpha, beta/m
+    // with dlog randomness
+    var proof = ElGamal.Proof.generate(this.pk.g, this.pk.y, randomness, this.pk.p, this.pk.q, challenge_generator);
     
     return proof;
   },
   
   simulateProof: function(plaintext, challenge) {
-    // generate a random challenge if not provided
-    if (challenge == null) {
-      challenge = Random.getRandomInteger(this.pk.q);
-    }
-    
     // compute beta/plaintext, the completion of the DH tuple
-    var beta_over_plaintext = this.beta.multiply(plaintext.m.modInverse(this.pk.p));
+    var beta_over_plaintext = this.beta.multiply(plaintext.m.modInverse(this.pk.p)).mod(this.pk.p);
     
-    // random response, does not even need to depend on the challenge
-    var response = Random.getRandomInteger(this.pk.q);
-
-    // now we compute A and B
-    var A = this.alpha.modPow(challenge, this.pk.p).modInverse(this.pk.p).multiply(this.pk.g.modPow(response, this.pk.p));
-    var B = beta_over_plaintext.modPow(challenge, this.pk.p).modInverse(this.pk.p).multiply(this.pk.y.modPow(response, this.pk.p));
-    
-    return new ElGamal.Proof(A, B, challenge, response);
+    // the DH tuple we are simulating here is
+    // g, y, alpha, beta/m
+    return ElGamal.Proof.simulate(this.pk.g, this.pk.y, this.alpha, beta_over_plaintext, this.pk.p, this.pk.q, challenge);
   },
   
   verifyProof: function(plaintext, proof, challenge_generator) {
-    // check that g^response = A * alpha^challenge
-    var first_check = this.pk.g.modPow(proof.response, this.pk.p).equals(this.alpha.modPow(proof.challenge, this.pk.p).multiply(proof.commitment.A).mod(this.pk.p));
-    
-    // check that y^response = B * (beta/m)^challenge
+    // DH tuple to verify is 
+    // g, y, alpha, beta/m
     var beta_over_m = this.beta.multiply(plaintext.m.modInverse(this.pk.p)).mod(this.pk.p);
-    var second_check = this.pk.y.modPow(proof.response, this.pk.p).equals(beta_over_m.modPow(proof.challenge, this.pk.p).multiply(proof.commitment.B).mod(this.pk.p));
-    
-    var third_check = true;
-    
-    if (challenge_generator) {
-      third_check = proof.challenge.equals(challenge_generator(proof.commitment));
-    }
-    
-    return (first_check && second_check && third_check);
+
+    return proof.verify(this.pk.g, this.pk.y, this.alpha, beta_over_m, this.pk.p, this.pk.q, challenge_generator);
   },
 
   verifyDecryptionProof: function(plaintext, proof, challenge_generator) {
-    // this is different because we're proving the tuple (g, y, alpha, beta/m), rather than (g, alpha, y, beta/m)
-    
-    // check that g^response = A * y^challenge
-    var first_check = this.pk.g.modPow(proof.response, this.pk.p).equals(this.pk.y.modPow(proof.challenge, this.pk.p).multiply(proof.commitment.A).mod(this.pk.p));
-    
-    // check that alpha^response = B * (beta/m)^challenge
+    // DH tuple to verify is 
+    // g, alpha, y, beta/m
+    // since the proven dlog is the secret key x, y=g^x.
     var beta_over_m = this.beta.multiply(plaintext.m.modInverse(this.pk.p)).mod(this.pk.p);
-    var second_check = this.alpha.modPow(proof.response, this.pk.p).equals(beta_over_m.modPow(proof.challenge, this.pk.p).multiply(proof.commitment.B).mod(this.pk.p));
-    
-    var third_check = true;
-    
-    if (challenge_generator) {
-      third_check = proof.challenge.equals(challenge_generator(proof.commitment));
-    }
-    
-    return (first_check && second_check && third_check);
+
+    return proof.verify(this.pk.g, this.alpha, this.pk.y, beta_over_m, this.pk.p, this.pk.q, challenge_generator);
   },
   
   generateDisjunctiveProof: function(list_of_plaintexts, real_index, randomness, challenge_generator) {
@@ -395,6 +376,23 @@ ElGamal.Proof = Class.extend({
       challenge : this.challenge.toJSONObject(),
       response : this.response.toJSONObject()
     }
+  },
+  
+  // verify a DH tuple proof
+  verify: function(little_g, little_h, big_g, big_h, p, q, challenge_generator) {
+    // check that little_g^response = A * big_g^challenge
+    var first_check = little_g.modPow(this.response, p).equals(big_g.modPow(this.challenge, p).multiply(this.commitment.A).mod(p));
+
+    // check that little_h^response = B * big_h^challenge
+    var second_check = little_h.modPow(this.response, p).equals(big_h.modPow(this.challenge, p).multiply(this.commitment.B).mod(p));
+    
+    var third_check = true;
+    
+    if (challenge_generator) {
+      third_check = this.challenge.equals(challenge_generator(this.commitment));
+    }
+    
+    return (first_check && second_check && third_check);
   }
 });
 
@@ -404,6 +402,51 @@ ElGamal.Proof.fromJSONObject = function(d) {
     BigInt.fromJSONObject(d.commitment.B),
     BigInt.fromJSONObject(d.challenge),
     BigInt.fromJSONObject(d.response));
+};
+
+// a generic way to prove that four values are a DH tuple.
+// a DH tuple is g,h,G,H where G = g^x and H=h^x
+// challenge generator takes a commitment, whose subvalues are A and B
+// all modulo p, with group order q, which we provide just in case.
+// as it turns out, G and H are not necessary to generate this proof, given that they're implied by x.
+ElGamal.Proof.generate = function(little_g, little_h, x, p, q, challenge_generator) {
+  // generate random w
+  var w = Random.getRandomInteger(q);
+  
+  // create a proof instance
+  var proof = new ElGamal.Proof();
+  
+  // compute A=little_g^w, B=little_h^w
+  proof.commitment.A = little_g.modPow(w, p);
+  proof.commitment.B = little_h.modPow(w, p);
+  
+  // Get the challenge from the callback that generates it
+  proof.challenge = challenge_generator(proof.commitment);
+  
+  // Compute response = w + x * challenge
+  proof.response = w.add(x.multiply(proof.challenge).mod(q));
+  
+  return proof;
+};
+
+// simulate a a DH-tuple proof, with a potentially assigned challenge (but can be null)
+ElGamal.Proof.simulate = function(little_g, little_h, big_g, big_h, p, q, challenge) {
+  // generate a random challenge if not provided
+  if (challenge == null) {
+    challenge = Random.getRandomInteger(q);
+  }
+  
+  // random response, does not even need to depend on the challenge
+  var response = Random.getRandomInteger(q);
+
+  // now we compute A and B
+  // A = little_g ^ w, and at verification time, g^response = G^challenge * A, so A = (G^challenge)^-1 * g^response
+  var A = big_g.modPow(challenge, p).modInverse(p).multiply(little_g.modPow(response, p)).mod(p);
+
+  // B = little_h ^ w, and at verification time, h^response = H^challenge * B, so B = (H^challenge)^-1 * h^response
+  var B = big_h.modPow(challenge, p).modInverse(p).multiply(little_h.modPow(response, p)).mod(p);
+
+  return new ElGamal.Proof(A, B, challenge, response);  
 };
 
 ElGamal.DisjunctiveProof = Class.extend({

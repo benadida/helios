@@ -34,7 +34,7 @@ function do_upload() {
     \$('#sk_textarea').val("");
     
     \$.post("upload_pk", {'password' : \$('#password').val(), 'pk' : jQuery.toJSON(PUBLIC_KEY), 'pok' : jQuery.toJSON(PROOF)}, function(result) {
-        if (result != "1")
+        if (result != "success")
             alert('public key not uploaded, either because your password is bad or because election is already frozen.');
         
         document.location = './home';
@@ -53,9 +53,20 @@ function do_upload() {
 
 <p>
 #if $keyshare.get_pk()
-Public key uploaded.
+Public key uploaded.<br />
+
+#if $election.get_pk()
 <br /><br />
+#if $keyshare.get_decryption_factors()
+Tally Received
+#else
 <a href="tally">Compute Tally</a>.
+#end if
+#else
+<br />
+Election not running yet. Come back when ready to tally.
+#end if
+
 #else
 You need to upload your public key.
 

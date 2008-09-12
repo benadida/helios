@@ -78,7 +78,10 @@ HELIOS.Election.fromJSONObject = function(d) {
   el.election_id = d.election_id;
   el.name = d.name; el.voters_hash = d.voters_hash; el.voting_starts_at = d.voting_starts_at; el.voting_ends_at = d.voting_ends_at;
   el.questions = d.questions;
-  el.pk = ElGamal.PublicKey.fromJSONObject(d.pk);
+  
+  if (d.pk)
+    el.pk = ElGamal.PublicKey.fromJSONObject(d.pk);
+    
   el.openreg = d.openreg;
   return el;
 };
@@ -127,7 +130,7 @@ UTILS.open_window_with_content = function(content) {
 HELIOS.EncryptedAnswer = Class.extend({
   init: function(question, answer, pk) {    
     // if nothing in the constructor
-    if (question === null)
+    if (question == null)
       return;
 
     // store answer
@@ -288,7 +291,7 @@ HELIOS.EncryptedAnswer.fromJSONObject = function(d, election) {
 HELIOS.EncryptedVote = Class.extend({
   init: function(election, answers) {
     // empty constructor
-    if (election === null)
+    if (election == null)
       return;
       
     var n_questions = election.questions.length;
@@ -379,7 +382,7 @@ HELIOS.EncryptedVote = Class.extend({
 });
 
 HELIOS.EncryptedVote.fromJSONObject = function(d, election) {
-  if (d === null)
+  if (d == null)
     return null;
     
   var ev = new HELIOS.EncryptedVote();

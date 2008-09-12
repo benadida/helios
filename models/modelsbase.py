@@ -35,8 +35,8 @@ class ElectionBase(DBObject):
       
     return DBObject.toJSONDict(self)
 
-  def save_dict(self, d):
-    self.questions_json = utils.to_json(d['questions'])
+  def save_questions(self, d):
+    self.questions_json = utils.to_json(d)
     self.update()
     
   def toElection(self):
@@ -230,6 +230,12 @@ class ElectionExponentBase(DBObject):
     the_max = cls.get_max_by_election(election)
     
     pk = election.get_pk()
+    
+    # no pk yet? Oh well
+    ## FIXME: may want to be careful about this use case, though it should be ok
+    if pk == None:
+      return
+      
     if the_max == None:
       exp = 1
       value = pk.g
@@ -334,7 +340,7 @@ class APIClient(DBObject):
 ##
 
 class KeyShareBase(DBObject):
-  JSON_FIELDS = ['email','pk','pok', 'decryption_factor', 'decryption_proof']
+  JSON_FIELDS = ['email','pk','pok', 'decryption_factors', 'decryption_proofs']
   
   def get_pk(self):
     if not self.pk_json: return None
@@ -343,6 +349,14 @@ class KeyShareBase(DBObject):
   def get_pok(self):
     if not self.pok_json: return None
     return utils.from_json(self.pok_json)
+    
+  def get_decryption_factors(self):
+    if not self.decryption_factors_json: return None
+    return utils.from_json(self.decryption_factors_json)
+
+  def get_decryption_proofs(self):
+    if not self.decryption_proofs_json: return None
+    return utils.from_json(self.decryption_proofs_json)
 
   def generate_password(self):
     self.password = utils.random_string(16)
@@ -350,5 +364,7 @@ class KeyShareBase(DBObject):
   def toJSONDict(self):
     self.pk = self.get_pk()
     self.pok = self.get_pok()
+    self.decryption_factors = self.get_decryption_factors()
+    self.decryption_proofs = self.get_decryption_proofs()
       
     return DBObject.toJSONDict(self)
