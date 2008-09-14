@@ -124,27 +124,91 @@ function verify_ballots_and_tally() {
     
     // get the results
     Helios.get_election_result({'election_id': ELECTION_ID}, function(results) {
-        // get the proof
-        Helios.get_election_result_proof({'election_id': ELECTION_ID}, function(results_proof) {
-            \$(TALLY).each(function(q_num, q) {
-                result_append("Question #" + q_num + ": " + ELECTION.questions[q_num].short_name);
-                \$(q).each(function(a_num, a) {
-                    var plaintext = new ElGamal.Plaintext(ELECTION.pk.g.modPow(BigInt.fromInt(results[q_num][a_num]), ELECTION.pk.p), ELECTION.pk);
-                    var proof = ElGamal.Proof.fromJSONObject(results_proof[q_num][a_num]);
-                    var check = a.verifyDecryptionProof(plaintext, proof);
+        // load the trustees in case there are some
+        Helios.get_election_trustees({'election_id' : ELECTION_ID}, function(trustees) {
+            // if length of trustees is 0, get the single proof
+            if (trustees.length ==0 ) {
+                // get the proof
+                Helios.get_election_result_proof({'election_id': ELECTION_ID}, function(results_proof) {
+                    \$(TALLY).each(function(q_num, q) {
+                        result_append("Question #" + q_num + ": " + ELECTION.questions[q_num].short_name);
+                        \$(q).each(function(a_num, a) {
+                            var plaintext = new ElGamal.Plaintext(ELECTION.pk.g.modPow(BigInt.fromInt(results[q_num][a_num]), ELECTION.pk.p), ELECTION.pk);
+                            var proof = ElGamal.Proof.fromJSONObject(results_proof[q_num][a_num]);
+                            var check = a.verifyDecryptionProof(plaintext, proof);
 
-                    VALID_P = VALID_P && check;
-                    
-                    result_append("- " + ELECTION.questions[q_num].answers[a_num] + " - " + results[q_num][a_num] + " -- " + pretty_result(check));
+                            VALID_P = VALID_P && check;
+
+                            result_append("- " + ELECTION.questions[q_num].answers[a_num] + " - " + results[q_num][a_num] + " -- " + pretty_result(check));
+                        });
+
+                    });
+
+                    if (VALID_P)
+                        result_append("ELECTION VERIFIED!");
+                    else
+                        result_append("ELECTION FAILED!");
+
+                });                
+            } else {
+                result_append("Trustees found.")
+                
+                trustees = \$(trustees).map(function(i, trustee) {return HELIOS.Trustee.fromJSONObject(trustee)});
+
+                var combined_key = 1;
+                
+                // verify the keys
+                \$(trustees).each(function(i, trustee) {
+                   if (trustee.pk.verifyKnowledgeOfSecretKey(trustee.pok, ElGamal.fiatshamir_dlog_challenge_generator)) {
+                       result_append("Trustee PK for " + trustee.email + " VERIFIED.");
+                   } else {
+                       result_append("==== ERROR for PK of trustee " + trustee.email);
+                   }
+                   
+                   combined_key = trustee.pk.multiply(combined_key);
                 });
                 
-            });
+                // verify the combination of the keys into the final public key
+                if (combined_key.equals(ELECTION.pk)) {
+                    result_append("election public key MATCHES");
+                } else {
+                    result_append("==== ERROR, election public key doesn't match");
+                }
+                
+                // verify the individual results.
+                \$(TALLY).each(function(q_num, q) {
+                    result_append("Question #" + q_num + ": " + ELECTION.questions[q_num].short_name);
+                    \$(q).each(function(a_num, a) {
+                        var check = true;
+                        result_append("Answer #" + a_num);
+                        var decryption_factors = [];
+                        // go through the trustees' decryption factors
+                        \$(trustees).each(function(t_num, trustee) {
+                            if (trustee.pk.verifyDecryptionFactor(a, trustee.decryption_factors[q_num][a_num],
+                                            trustee.decryption_proofs[q_num][a_num], ElGamal.fiatshamir_challenge_generator)) {
+                                result_append("-- Trustee " + trustee.email + " decryption factor verifies");
+                            } else {
+                                result_append("==== ERROR: Trustee " + trustee.email + " decryption factor does not verify");
+                                check= false;
+                            }
+                            
+                            decryption_factors.push(trustee.decryption_factors[q_num][a_num]);
+                        });
+                        
+                        // recheck decryption factors
+                        var expected_value = ELECTION.pk.g.modPow(BigInt.fromInt(results[q_num][a_num]), ELECTION.pk.p);                        
+                        var recomputed_value = a.decrypt(decryption_factors).getM();
+                        if (expected_value.equals(recomputed_value)) {
+                            result_append("--- choice VERIFIED");
+                        } else {
+                            result_append("==== ERROR: choice not verified");
+                            check = false;
+                        }
 
-            if (VALID_P)
-                result_append("ELECTION VERIFIED!");
-            else
-                result_append("ELECTION FAILED!");
-            
+                        result_append("- " + ELECTION.questions[q_num].answers[a_num] + " - " + results[q_num][a_num] + " -- " + pretty_result(check));
+                    });
+                });
+            }
         });
     });
 

@@ -17,7 +17,7 @@ indexes:
   - name: exponent
     direction: desc
 
-# Used 110 times in query history.
+# Used 126 times in query history.
 - kind: KeyShare
   properties:
   - name: election
@@ -43,7 +43,7 @@ indexes:
   - name: tallied_at
   - name: cast_id
 
-# Used 199 times in query history.
+# Used 206 times in query history.
 - kind: Voter
   properties:
   - name: election

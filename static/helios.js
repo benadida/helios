@@ -397,3 +397,48 @@ HELIOS.EncryptedVote.fromJSONObject = function(d, election) {
   return ev;
 };
 
+//
+// distributed decryption : Trustees
+//
+
+// a utility function for jsonifying a list of lists of items
+HELIOS.jsonify_list_of_lists = function(lol) {
+  if (!lol)
+    return null;
+    
+  return $(lol).map(function(i, sublist) {return $(sublist).map(function(j, item) {return item.toJSONObject();})});
+};
+
+// a utility function for doing the opposite with an item-level de-jsonifier
+HELIOS.dejsonify_list_of_lists = function(lol, item_dejsonifier) {
+  if (!lol)
+    return null;
+    
+  return $(lol).map(function(i, sublist) {return $(sublist).map(function(j, item) {return item_dejsonifier(item);})});
+}
+
+HELIOS.Trustee = Class.extend({
+  init: function(email, name, pk, pok, decryption_factors, decryption_proofs) {
+    this.email = email;
+    this.name = name;
+    this.pk = pk;
+    this.pok = pok;
+    this.decryption_factors = decryption_factors;
+    this.decryption_proofs = decryption_proofs;
+  },
+  
+  toJSONObject: function() {
+    return {
+      'decryption_factors' : HELIOS.jsonify_list_of_lists(this.decryption_factors),
+      'decryption_proofs' : HELIOS.jsonify_list_of_list(this.decryption_proofs),
+      'email' : this.email, 'name' : this.name, 'pk' : this.pk.toJSONObject(), 'pok' : this.pok.toJSONObject()
+    }
+  }
+});
+
+HELIOS.Trustee.fromJSONObject = function(d) {
+  return new HELIOS.Trustee(d.email, d.name, 
+    ElGamal.PublicKey.fromJSONObject(d.pk), ElGamal.DLogProof.fromJSONObject(d.pok),
+    HELIOS.dejsonify_list_of_lists(d.decryption_factors, BigInt.fromJSONObject),
+    HELIOS.dejsonify_list_of_lists(d.decryption_proofs, ElGamal.Proof.fromJSONObject));
+};

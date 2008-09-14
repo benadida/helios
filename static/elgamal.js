@@ -49,15 +49,20 @@ ElGamal.PublicKey = Class.extend({
   verifyKnowledgeOfSecretKey: function(proof, challenge_generator) {
     // if challenge_generator is present, we have to check that the challenge was properly generated.
     if (challenge_generator != null) {
-      if (!proof.challenge.equals(challenge_generator(proof.s))) {
+      if (!proof.challenge.equals(challenge_generator(proof.commitment))) {
         return false;
       }
     }
     
     // verify that g^response = s * y^challenge
-    var check = this.g.modPow(proof.response, this.p).equals(this.y.modPow(proof.challenge, this.p).multiply(proof.s).mod(this.p));
+    var check = this.g.modPow(proof.response, this.p).equals(this.y.modPow(proof.challenge, this.p).multiply(proof.commitment).mod(this.p));
     
     return check;
+  },
+  
+  // check if the decryption factor is correct for this public key, given the proof
+  verifyDecryptionFactor: function(ciphertext, decryption_factor, decryption_proof, challenge_generator) {
+    return decryption_proof.verify(this.g, ciphertext.alpha, this.y, decryption_factor, this.p, this.q, challenge_generator);
   },
   
   multiply: function(other) {
@@ -74,6 +79,10 @@ ElGamal.PublicKey = Class.extend({
     
     var new_pk = new ElGamal.PublicKey(this.p, this.q, this.g, this.y.multiply(other.y).mod(this.p));
     return new_pk;
+  },
+  
+  equals: function(other) {
+    return (this.p.equals(other.p) && this.q.equals(other.q) && this.g.equals(other.g) && this.y.equals(other.y));
   }
   
 });
@@ -141,19 +150,16 @@ ElGamal.SecretKey = Class.extend({
     // generate random w
     var w = Random.getRandomInteger(this.pk.q);
 
-    // FIXME: build an abstraction for this single PoK of discrete log
-    var proof = {};
-    
     // compute s = g^w for random w.
-    proof.s = this.pk.g.modPow(w, this.pk.p);
+    var s = this.pk.g.modPow(w, this.pk.p);
     
     // get challenge
-    proof.challenge = challenge_generator(proof.s);
+    var challenge = challenge_generator(s);
     
     // compute response = w +  x * challenge
-    proof.response = w.add(this.x.multiply(proof.challenge).mod(this.pk.q));
+    var response = w.add(this.x.multiply(challenge).mod(this.pk.q));
     
-    return proof;
+    return new ElGamal.DLogProof(s, challenge, response);
   }
 });
 
@@ -480,6 +486,25 @@ ElGamal.encrypt = function(pk, plaintext, r) {
   var beta = (pk.y.modPow(r, pk.p)).multiply(plaintext.m).mod(pk.p);
   
   return new ElGamal.Ciphertext(alpha, beta, pk);
+};
+
+//
+// DLog Proof
+//
+ElGamal.DLogProof = Class.extend({
+  init: function(commitment, challenge, response) {
+    this.commitment = commitment;
+    this.challenge = challenge;
+    this.response = response;
+  },
+  
+  toJSONObject: function() {
+    return {'challenge' : this.challenge.toJSONObject(), 'commitment': this.commitment.toJSONObject(), 'response': this.response.toJSONObject()};
+  }
+});
+
+ElGamal.DLogProof.fromJSONObject = function(d) {
+  return new ElGamal.DLogProof(BigInt.fromJSONObject(d.commitment || d.s), BigInt.fromJSONObject(d.challenge), BigInt.fromJSONObject(d.response));
 };
 
 // a challenge generator based on a list of commitments of
