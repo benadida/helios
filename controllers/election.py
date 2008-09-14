@@ -350,22 +350,8 @@ class ElectionController(REST.Resource):
         keyshare.generate_password()
         keyshare.save()
         
-        # the message to email
-        message = """
-You have been designated as a trustee of the Helios Election "%s".
-
-Go create your key and manage your contribution at the following URL:
-%s
-
-Your password is:
-%s
-
---
-The Helios Voting System
-""" % (election.name, config.webroot + ('/elections/%s/trustees/%s/home' % (election.election_id, utils.urlencode(keyshare.email))), keyshare.password)
-        
-        # send out the emails for the shares
-        mail.simple_send([keyshare.email],[keyshare.email],"Helios","ben@adida.net","Trustee Information for %s" % election.name, message)
+    # send out the email
+    self.email_trustees_2(election, 'Trustee Information for %s' % election.name, 'You have been designated as a trustee of the Helios Election "%s".' % election.name)
     
     # user or api_client?
     if election.admin:
@@ -641,6 +627,42 @@ Your password: %s
     # hack for now, no more batching
     return "DONE"
   
+  @web
+  @session.login_protect
+  def email_trustees(self, election):
+    keyshares = election.get_keyshares()
+    return self.render('email_trustees')
+    
+  @web
+  @session.login_protect
+  def email_trustees_2(self, election, body):
+    user, api_client, election = self.check(election, True, True)
+
+    # the message to email
+    message = """
+%s
+
+Your Trustee homepage for election "%s" is:
+%s
+
+Your password is:
+%s
+
+--
+The Helios Voting System
+"""
+
+    subject = "Trustee Information for %s" % election.name
+
+    trustees = election.get_keyshares()
+    for trustee in trustees:
+      full_body = message % (body, election.name, config.webroot + ('/elections/%s/trustees/%s/home' % (election.election_id, utils.urlencode(trustee.email))), trustee.password)
+
+      # send out the emails for the shares
+      mail.simple_send([trustee.email],[trustee.email],"Helios","ben@adida.net", subject, full_body)
+    
+    return "DONE"
+    
   @web
   @session.login_protect
   def compute_tally(self, election):

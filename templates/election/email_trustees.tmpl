@@ -1,0 +1,58 @@
+#include "templates/header.tmpl"
+
+<script>
+function send_email() {
+    var form = document.forms['email_form'];
+    
+    \$.post("email_trustees_2", {'body' : form.body.value}, function(data) {
+       // decide whether or not to keep going
+       if (data != "DONE") {
+           alert('oy unexpected: ' + data);
+       } else {
+         alert('done!');
+         document.location = "./view";
+       }
+    });
+}
+</script>
+
+<h2>$election.name: Email Voters &mdash; Email Trustees</h2>
+
+<p>
+You are about to email the trustees in this election:
+</p>
+
+<ul>
+#for $keyshare in $keyshares
+<li> <tt>$keyshare.email</tt></li>
+#end for
+</ul>
+
+<blockquote>
+<form name="email_form" method="post" onsubmit="try {send_email();} catch(e) {alert(e);} return false;">
+
+<pre>
+Dear [TRUSTEE_NAME],
+</pre>
+
+<textarea name="body" cols="60" rows="10" wrap="soft" class="pretty">
+</textarea>
+<pre>
+Your Trustee homepage for election [ELECTION_NAME] is:
+[TRUSTEE_HOMEPAGE]
+
+Your password is:
+[TRUSTEE_PASSWORD]
+</pre>
+
+</blockquote>
+
+<br />
+<br /><br />
+<input type="submit" value="send now!" class="pretty" />
+</form>
+
+</div>
+					
+			<!-- end #content -->
+#include "templates/footer.tmpl"

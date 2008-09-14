@@ -54,6 +54,10 @@
 <br /><li> <a href="email_voters">email voters</a></li>
 #end if
 
+#if len($election.get_keyshares()) > 0
+<li> <a href="email_trustees">email trustees</a></li>
+#end if
+
 #if not $election.archived_at
 <br /><li> <a href="archive">archive election</a></li>
 #else
