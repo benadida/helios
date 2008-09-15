@@ -350,8 +350,8 @@ class ElectionController(REST.Resource):
         keyshare.generate_password()
         keyshare.save()
         
-    # send out the email
-    self.email_trustees_2(election, 'Trustee Information for %s' % election.name, 'You have been designated as a trustee of the Helios Election "%s".' % election.name)
+      # send out the email
+      self.email_trustees_2(election, 'You have been designated as a trustee of the Helios Election "%s".' % election.name)
     
     # user or api_client?
     if election.admin:
