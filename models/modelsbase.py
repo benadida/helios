@@ -312,16 +312,30 @@ class VoterBase(DBObject):
     return vote_hash
   
   def get_vote(self):
-    return electionalgs.EncryptedVote.fromJSONDict(utils.from_json(self.vote or "null"))
+    vote_dict = utils.from_json(self.vote or "null")
+
+    # null vote
+    if not vote_dict or vote_dict == "":
+      return None
+
+    return electionalgs.EncryptedVote.fromJSONDict(vote_dict)
     
   def toJSONDict(self, with_vote = False):
     json_dict = super(VoterBase, self).toJSONDict()
+
     if not self.email and self.openid_url:
       json_dict['openid'] = self.openid_url
+
     if with_vote:
-      json_dict['vote'] = self.get_vote().toJSONDict()
+      vote = self.get_vote()
+      if vote:
+        json_dict['vote'] = vote.toJSONDict()
+      else:
+        json_dict['vote'] = None
+
     if not json_dict['category'] or json_dict['category'] == "":
       del json_dict['category']
+
     return json_dict
 
 ##
