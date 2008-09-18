@@ -88,6 +88,8 @@ class Session:
 
   def __init__(self, cherrypy_session=None):
     self._user = users.get_current_user()
+    if self._user:
+      self._user.email_address = self._user.email()
     self._admin_p = users.is_current_user_admin()
     #if self.has_key('user_id'):
     #    self._user = do.User.selectById(self["user_id"])

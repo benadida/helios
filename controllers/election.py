@@ -630,7 +630,13 @@ Your password: %s
 
       message = message_header + introductory_message + message_footer
 
-      mail.simple_send([voter.name],[voter.email],"Helios","ben@adida.net","Your Vote in Election %s" % election.name, message)
+      # send as the owner of the election
+      if user:
+        sender_email = user.email_address
+      else:
+        sender_email = "ben@adida.net"
+        
+      mail.simple_send([voter.name], [voter.email], "Helios", sender_email,"Voting in Election %s" % election.name, message)
       
       last_id = voter.voter_id
       
