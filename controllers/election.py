@@ -633,6 +633,10 @@ Your password: %s
       mail.simple_send([voter.name],[voter.email],"Helios","ben@adida.net","Your Vote in Election %s" % election.name, message)
       
       last_id = voter.voter_id
+      
+    # did we get less than the limit? if so, done
+    if limit and len(voters) < limit:
+      last_id = None
 
     # hack for now, no more batching
     return last_id or "DONE"

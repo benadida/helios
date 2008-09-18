@@ -5,7 +5,7 @@ BATCH_SIZE = 10;
 
 function send_email(after) {
     \$('#submit').hide();
-    \$('#processing').show().html("sending a batch of 5 emails");
+    \$('#processing').show().html("sending a batch of 5 emails (starting with " + (after||"the first") + ")");
     
     var form = document.forms['email_form'];
     
