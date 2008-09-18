@@ -31,6 +31,7 @@ class ElectionBase(DBObject):
     if self.openreg_enabled:
       self.openreg = True
     else:
+      ## FIXME: make this more efficient for large number of voters
       self.voters_hash = self.get_voters_hash()
       
     return DBObject.toJSONDict(self)
@@ -85,7 +86,7 @@ class ElectionBase(DBObject):
   def get_voters_hash(self):
     voters = self.get_voters()
     voters_json = utils.to_json([v.toJSONDict() for v in voters])
-    logging.info("json for voters is: " + voters_json)
+    # logging.info("json for voters is: " + voters_json)
     return utils.hash_b64(voters_json)
 
   def freeze(self):

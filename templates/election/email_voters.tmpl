@@ -3,13 +3,24 @@
 <script>
 BATCH_SIZE = 10;
 
-function send_email() {
+function send_email(after) {
+    \$('#submit').hide();
+    \$('#processing').show();
+    
     var form = document.forms['email_form'];
     
-    \$.post("email_voters_2", {'introductory_message' : form.introductory_message.value}, function(data) {
+    params = {'introductory_message' : form.introductory_message.value};
+    
+    if (after) {
+        params.after = after;
+    }
+    
+    params.limit = "5";
+    
+    \$.post("email_voters_2", params, function(data) {
        // decide whether or not to keep going
        if (data != "DONE") {
-           alert('oy unexpected: ' + data);
+           setTimeout("send_email('" + data + "')", 10000);
        } else {
          alert('done!');
          document.location = "./view";
@@ -42,7 +53,10 @@ Your password: [VOTER_PASSWORD]
 
 <br />
 <br /><br />
-<input type="submit" value="send now!" class="pretty" />
+<input type="submit" value="send now!" class="pretty" id="submit" />
+<div id="processing" style="display: none;">
+    Processing Email... this will take approximately 2 seconds per voter, as we have to batch emails and pause between batches.
+</div>
 </form>
 
 </div>

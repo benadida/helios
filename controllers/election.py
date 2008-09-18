@@ -595,15 +595,23 @@ class ElectionController(REST.Resource):
 
   @web
   @session.login_protect
-  def email_voters_2(self, election, introductory_message):
+  def email_voters_2(self, election, introductory_message, after=None, limit=None):
     """
     Send email to voters of an election.
     """
     user, api_client, election = self.check(election, True, True)
 
-    voters = election.get_voters()
+    if after:
+      after = str(after)
+    if limit:
+      limit = int(limit)
+      
+    voters = election.get_voters(after=after, limit=limit)
 
+    last_id = None
+    
     for voter in voters:
+      logging.info("sending email to %s" % voter.email)
       message_header = """
 Dear %s,
 
@@ -622,10 +630,12 @@ Your password: %s
 
       message = message_header + introductory_message + message_footer
 
-      mail.simple_send([voter.name],[voter.email],"Helios","ben@adida.net","An Invitation to Vote in %s" % election.name, message)
+      mail.simple_send([voter.name],[voter.email],"Helios","ben@adida.net","Your Vote in Election %s" % election.name, message)
+      
+      last_id = voter.voter_id
 
     # hack for now, no more batching
-    return "DONE"
+    return last_id or "DONE"
   
   @web
   @session.login_protect
