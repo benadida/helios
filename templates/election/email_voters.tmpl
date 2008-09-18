@@ -5,7 +5,7 @@ BATCH_SIZE = 10;
 
 function send_email(after) {
     \$('#submit').hide();
-    \$('#processing').show();
+    \$('#processing').show().html("sending a batch of 5 emails");
     
     var form = document.forms['email_form'];
     
@@ -20,7 +20,8 @@ function send_email(after) {
     \$.post("email_voters_2", params, function(data) {
        // decide whether or not to keep going
        if (data != "DONE") {
-           setTimeout("send_email('" + data + "')", 10000);
+           setTimeout("send_email('" + data + "')", 65000);
+           \$('#processing').show().html("waiting for one minute for quotas to reset.... don't quit me!");
        } else {
          alert('done!');
          document.location = "./view";
