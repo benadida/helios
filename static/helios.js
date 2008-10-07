@@ -32,7 +32,7 @@ UTILS.select_element_content = function(element) {
     document.selection.empty();
     range = document.body.createTextRange();
     range.moveToElementText(el);
-    range.select();    
+    range.select();
   }
 };
 
@@ -121,6 +121,22 @@ UTILS.open_window_with_content = function(content) {
     }
 };
 
+// generate an array of the first few plaintexts
+UTILS.generate_plaintexts = function(pk, num) {
+  var last_plaintext = BigInt.ONE;
+
+  // an array of plaintexts
+  var plaintexts = []
+  
+  // questions with more than one possible answer, add to the array.
+  for (var i=0; i<=num; i++) {
+    plaintexts[i] = new ElGamal.Plaintext(last_plaintext, pk, false);
+    last_plaintext = last_plaintext.multiply(pk.g).mod(pk.p);
+  }
+  
+  return plaintexts;
+}
+
 
 //
 // crypto
@@ -134,6 +150,7 @@ HELIOS.EncryptedAnswer = Class.extend({
       return;
 
     // store answer
+    // CHANGE 2008-08-06: answer is now an *array* of answers, not just a single integer
     this.answer = answer;
 
     // do the encryption
@@ -150,8 +167,8 @@ HELIOS.EncryptedAnswer = Class.extend({
     var individual_proofs = [];
     var overall_proof = null;
     
-    // possible plaintexts [0, 1]
-    var plaintexts = [new ElGamal.Plaintext(BigInt.ONE, pk, false), new ElGamal.Plaintext(pk.g, pk, false)];
+    // possible plaintexts [0, 1, .. , question.max]
+    var plaintexts = UTILS.generate_plaintexts(pk, question.max);
     
     // keep track of whether we need to generate new randomness
     var generate_new_randomness = false;    
@@ -167,7 +184,7 @@ HELIOS.EncryptedAnswer = Class.extend({
     for (var i=0; i<question.answers.length; i++) {
       var index, plaintext_index;
       // if this is the answer, swap them so m is encryption 1 (g)
-      if (i == answer) {
+      if (answer.indexOf(i) > -1) {
         plaintext_index = 1;
         num_selected_answers += 1;
       } else {
@@ -217,6 +234,7 @@ HELIOS.EncryptedAnswer = Class.extend({
     this.randomness = null;
   },
   
+  // FIXME: should verifyEncryption really generate proofs? Overkill.
   verifyEncryption: function(question, pk) {
     var result = this.doEncryption(question, this.answer, pk, this.randomness);
 
@@ -293,19 +311,22 @@ HELIOS.EncryptedVote = Class.extend({
     // empty constructor
     if (election == null)
       return;
+
+    // keep information about the election around
+    this.election_id = election.election_id;
+    this.election_hash = election.get_hash();
+    this.election = election;
+     
+    if (answers == null)
+      return;
       
     var n_questions = election.questions.length;
     this.encrypted_answers = [];
 
     // loop through questions
     for (var i=0; i<n_questions; i++) {
-      // get answers[i][0] because we assume a single answer
-      this.encrypted_answers[i] = new HELIOS.EncryptedAnswer(election.questions[i], answers[i][0], election.pk);
-    }
-    
-    // keep information about the election around
-    this.election_id = election.election_id;
-    this.election_hash = election.get_hash();
+      this.encrypted_answers[i] = new HELIOS.EncryptedAnswer(election.questions[i], answers[i], election.pk);
+    }    
   },
   
   toString: function() {
@@ -350,11 +371,11 @@ HELIOS.EncryptedVote = Class.extend({
   },
   
   verifyProofs: function(pk, outcome_callback) {
-    // 0 and 1 in exponential el-gamal form.
-    ZERO = new ElGamal.Plaintext(BigInt.fromJSONObject("1"), pk);
-    ONE = new ElGamal.Plaintext(pk.g, pk);
-    
+    var zero_or_one = UTILS.generate_plaintexts(pk, 2);
+
     var VALID_P = true;
+    
+    var self = this;
     
     // for each question and associate encrypted answer
     $(this.encrypted_answers).each(function(ea_num, enc_answer) {
@@ -362,7 +383,7 @@ HELIOS.EncryptedVote = Class.extend({
 
         // go through each individual proof
         $(enc_answer.choices).each(function(choice_num, choice) {
-          var result = choice.verifyDisjunctiveProof([ZERO,ONE], enc_answer.individual_proofs[choice_num], ElGamal.disjunctive_challenge_generator);
+          var result = choice.verifyDisjunctiveProof(zero_or_one, enc_answer.individual_proofs[choice_num], ElGamal.disjunctive_challenge_generator);
           outcome_callback(ea_num, choice_num, result, choice);
           
           VALID_P = VALID_P && result;
@@ -371,8 +392,11 @@ HELIOS.EncryptedVote = Class.extend({
           overall_result = choice.multiply(overall_result);
         });
         
+        // possible plaintexts [0, 1, .. , question.max]
+        var plaintexts = UTILS.generate_plaintexts(pk, self.election.questions[ea_num].max);
+        
         // check the proof on the overall product
-        var overall_check = overall_result.verifyDisjunctiveProof([ZERO,ONE], enc_answer.overall_proof, ElGamal.disjunctive_challenge_generator);
+        var overall_check = overall_result.verifyDisjunctiveProof(plaintexts, enc_answer.overall_proof, ElGamal.disjunctive_challenge_generator);
         outcome_callback(ea_num, null, overall_check, null);
         VALID_P = VALID_P && overall_check;
     });
@@ -385,7 +409,7 @@ HELIOS.EncryptedVote.fromJSONObject = function(d, election) {
   if (d == null)
     return null;
     
-  var ev = new HELIOS.EncryptedVote();
+  var ev = new HELIOS.EncryptedVote(election);
   
   ev.encrypted_answers = $(d.answers).map(function(i, ea) {
     return HELIOS.EncryptedAnswer.fromJSONObject(ea, election);

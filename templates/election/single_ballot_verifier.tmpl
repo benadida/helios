@@ -54,7 +54,10 @@ function verify_single_ballot(audit_trail) {
       // display the ballot as it is claimed to be
       result_append("Ballot Contents:")
       \$(election.questions).each(function(qnum, q) {
-          result_append("Question #" + qnum + " - " + q.short_name + " : " + q.answers[encrypted_vote.encrypted_answers[qnum].answer]);
+          var answer_pretty_list = jQuery.map(encrypted_vote.encrypted_answers[qnum].answer, function(aindex, anum) {
+              return q.answers[aindex];
+          });
+          result_append("Question #" + qnum + " - " + q.short_name + " : " + answer_pretty_list.join(", "));
       });
       
       // verify the encryption
