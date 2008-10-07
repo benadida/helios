@@ -421,6 +421,10 @@ class ElectionController(REST.Resource):
     reader = csv.reader(voters_csv_lines)
     
     for voter in reader:
+      
+      if len(voter) < 2:
+        continue
+        
       # process the CSV and add
       v = do.Voter()
       v.election = election
