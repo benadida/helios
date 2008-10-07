@@ -2,6 +2,7 @@
 
 <script language="javascript">
 \$(document).ready(function() {
+  \$('#bulk_upload').hide();
   \$('#input_name').focus();
 });
 </script>
@@ -22,6 +23,17 @@
 #if len($voters) == 0
 <!--<form method="post" action="./set_reg"><input type="hidden" name="open_p" value="1" /><input class="pretty" type="submit" value="switch to open registration" /></form>-->
 #end if
+
+<p>
+    <a onclick="javascript:\$('#bulk_upload').show();" href="#">bulk upload</a>
+</p>
+
+<form id="bulk_upload" action="voters_bulk_upload">
+Bulk Upload Voters in CSV format, with name, email, and category as the 3 fields in the CSV:<br />
+<textarea name="voters_csv" rows="5" cols="70" wrap="soft" class="pretty">
+</textarea><br />
+<input type="submit" value="bulk upload" />
+</form>
 
 <table class="pretty">
 <tr><th>Name</th><th>Email</th><th>Category</th><th></th></tr>

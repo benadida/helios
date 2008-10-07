@@ -13,6 +13,8 @@ import cherrypy, time, logging
 
 import datetime
 
+import csv
+
 try:
   from django.utils import simplejson
 except:
@@ -408,6 +410,31 @@ class ElectionController(REST.Resource):
     return self.render('voters')
     
   @web
+  @session.login_protect
+  def voters_bulk_upload(self, election, voters_csv):
+    """
+    Process a bulk upload form for voters
+    """
+    user, api_client, election = self.check(election)
+    
+    voters_csv_lines = voters_csv.split("\n")
+    reader = csv.reader(voters_csv_lines)
+    
+    for voter in reader:
+      # process the CSV and add
+      v = do.Voter()
+      v.election = election
+      v.email = voter[1]
+      v.name = voter[0]
+      if len(voter) > 2:
+        v.category = voter[2]
+      v.generate_password()
+      v.insert()
+      
+    return self.redirect("./voters_manage")
+    
+    
+  @web
   def open_submit(self, election, encrypted_vote, email=None, openid_url=None, name=None, category=None):
     """
     Submitting a vote in an open election
@@ -612,12 +639,12 @@ class ElectionController(REST.Resource):
     
     for voter in voters:
       logging.info("sending email to %s" % voter.email)
-      message_header = """
+      message_header = u"""
 Dear %s,
 
 """ % voter.name
 
-      message_footer = """
+      message_footer = u"""
 
 Voting URL: %s
 
@@ -628,7 +655,10 @@ Your password: %s
 -Helios
 """ % ((config.webroot + '/elections/%s/vote')%election.election_id, election.toElection().get_hash(), voter.email, voter.password)
 
-      message = message_header + introductory_message + message_footer
+      message = message_header
+      logging.info(introductory_message)
+      message += unicode(introductory_message)
+      message += message_footer
 
       # send as the owner of the election
       if user:
