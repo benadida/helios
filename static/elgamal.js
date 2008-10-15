@@ -229,7 +229,7 @@ ElGamal.Ciphertext = Class.extend({
     // DH tuple to verify is 
     // g, y, alpha, beta/m
     var beta_over_m = this.beta.multiply(plaintext.m.modInverse(this.pk.p)).mod(this.pk.p);
-
+    
     return proof.verify(this.pk.g, this.pk.y, this.alpha, beta_over_m, this.pk.p, this.pk.q, challenge_generator);
   },
 
@@ -293,7 +293,7 @@ ElGamal.Ciphertext = Class.extend({
     
     // for loop because we want to bail out of the inner loop
     // if we fail one of the verifications.
-    for (var i=0; i < list_of_plaintexts.length; i++) {      
+    for (var i=0; i < list_of_plaintexts.length; i++) {
       if (!this.verifyProof(list_of_plaintexts[i], proofs[i]))
         return false;
     }

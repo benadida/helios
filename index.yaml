@@ -10,14 +10,14 @@ indexes:
 # automatically uploaded to the admin console when you next deploy
 # your application using appcfg.py.
 
-# Used 12 times in query history.
+# Used 4 times in query history.
 - kind: ElectionExponent
   properties:
   - name: election
   - name: exponent
     direction: desc
 
-# Used 43 times in query history.
+# Used 14 times in query history.
 - kind: KeyShare
   properties:
   - name: election
@@ -36,14 +36,14 @@ indexes:
   - name: cast_id
     direction: desc
 
-# Used 15 times in query history.
+# Used 2 times in query history.
 - kind: Voter
   properties:
   - name: election
   - name: tallied_at
   - name: cast_id
 
-# Used 121 times in query history.
+# Used 39 times in query history.
 - kind: Voter
   properties:
   - name: election

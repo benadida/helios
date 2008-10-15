@@ -184,7 +184,7 @@ HELIOS.EncryptedAnswer = Class.extend({
     for (var i=0; i<question.answers.length; i++) {
       var index, plaintext_index;
       // if this is the answer, swap them so m is encryption 1 (g)
-      if (answer.indexOf(i) > -1) {
+      if (jQuery.inArray(i, answer) > -1) {
         plaintext_index = 1;
         num_selected_answers += 1;
       } else {
@@ -371,7 +371,7 @@ HELIOS.EncryptedVote = Class.extend({
   },
   
   verifyProofs: function(pk, outcome_callback) {
-    var zero_or_one = UTILS.generate_plaintexts(pk, 2);
+    var zero_or_one = UTILS.generate_plaintexts(pk, 1);
 
     var VALID_P = true;
     
