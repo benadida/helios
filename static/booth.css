@@ -6,17 +6,21 @@ body {
   margin: 0px;
 }
 
-#content {
+#wrapper {
   position: absolute;
-  padding: 20px 30px 20px 30px;
+  padding: 0px;
+  background: #ffc;
+  border-left: 1px solid #666;
+  border-right: 1px solid #666;
   bottom: 0px;
   top: 0px;
   margin-left: 100px;
   margin-top: 0px;
   width: 860px;
-  background: #ffc;
-  border-left: 1px solid #666;
-  border-right: 1px solid #666;
+}
+
+#content {
+  padding: 20px 30px 20px 30px;
 }
 
 #header {
@@ -26,7 +30,7 @@ body {
 }
 
 #header h1 {
-  font-size: 36pt;
+  font-size: 28pt;
   padding: 0px;
   margin: 0px;
   line-height: 120%;
@@ -38,6 +42,15 @@ body {
   margin: 0px;
   line-height: 100%;
   font-weight: none;
+}
+
+#banner {
+  width: 100%;
+  text-align: center;
+  padding: 2px 0px 2px 0px;
+  background: #fc9;
+  font-size: 18pt;
+  border-bottom: 1px solid #666;
 }
 
 #footer {
@@ -61,7 +74,7 @@ body {
 
 #page h2 {
   background: #fc9;
-  border-bottom: 1px solid #666;
+  border-bottom: 1px solid #f90;
   padding: 5px 0px 2px 5px;
 }
 

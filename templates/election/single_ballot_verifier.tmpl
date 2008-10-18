@@ -3,7 +3,7 @@
 <head>
   <META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=UTF-8" /> 
   <title>Helios Voting System -- Single-Ballot Verifier</title>
-  <link rel="stylesheet" type="text/css" href="/static/main.css" />
+  <link rel="stylesheet" type="text/css" href="/static/booth.css" />
   <link rel="stylesheet" type="text/css" href="/static/forms.css" />      
   <script language="javascript" src="/static/jquery-1.2.2.min.js"></script>
   <script language="javascript" src="/static/jquery-jtemplates.js"></script>
@@ -80,11 +80,11 @@ function verify_single_ballot(audit_trail) {
 </script>
 </head>
 <body>
-<div id="content">
-<div id="header">
-<h1>Helios Single-Ballot Verifier</h1>
+<div id="wrapper">
+<div id="banner">
+    Helios Single-Ballot Verifier
 </div>
-
+<div id="content">
 <did id="page">
 <p style="font-size: 16pt;">
     This single-ballot verifier lets you enter an audited ballot<br />and verify that it was prepared correctly.
@@ -102,6 +102,7 @@ Your Ballot:
 
 <br /><br />
 <div id="results">
+</div>
 </div>
 </div>
 <applet codebase="/static" mayscript name="bigint" code="bigint.class" width=1 height=1></applet>
