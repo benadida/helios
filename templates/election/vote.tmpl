@@ -162,6 +162,9 @@ BOOTH.cast_ballot = function() {
 };
 
 BOOTH.send_ballot = function() {
+    // display waiting screen
+    BOOTH.show(\$('#processing_div'));
+    
     var send_form = document.forms['send_ballot_form'];
     var data = {
       email : send_form.email.value,
@@ -194,12 +197,16 @@ BOOTH.send_ballot = function() {
                     },
                     error: function(xhr, status, error) {
                         alert('Your vote was not recorded properly.\n\nYour email and password may be incorrect.\n\nAlternatively, the election may be already tabulated.');
+                        BOOTH.show(\$("#login_div"));
                     }
                 });
+            } else {
+                BOOTH.show(\$("#login_div"));
             }
         },
         error: function(xhr, status, error) {
             alert('No such voter! Try again.');
+            BOOTH.show(\$("#login_div"));
         }
     });
 };
