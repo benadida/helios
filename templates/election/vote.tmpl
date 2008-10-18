@@ -115,7 +115,11 @@ BOOTH.click_checkbox = function(question_num, answer_num, checked_p) {
   }
 };
 
-BOOTH.save_ballot_answer = function(question_num) {
+BOOTH.show_processing_before = function(str_to_execute) {
+    BOOTH.show(\$('#processing_div'));
+    
+    // add a timeout so browsers like Safari actually display the processing message
+    setTimeout(str_to_execute, 100);    
 };
 
 BOOTH.load_and_setup_election = function() {
@@ -138,17 +142,14 @@ BOOTH.show_confirm = function() {
     BOOTH.show(\$('#confirm_div')).processTemplate({'questions' : BOOTH.election.questions, 'choices' : choices});
 };
 
-BOOTH.prepare_encrypted_ballot_and_display = function() {
+BOOTH.seal_ballot_raw = function() {
     BOOTH.encrypted_ballot = new HELIOS.EncryptedVote(BOOTH.election, BOOTH.ballot.answers);    
     \$('#seal_div').processTemplate({'encrypted_vote_hash' : BOOTH.encrypted_ballot.get_hash()});
     BOOTH.show(\$('#seal_div'));
 };
 
 BOOTH.seal_ballot = function() {
-    BOOTH.show(\$('#processing_div'));
-    
-    // add a timeout so browsers like Safari actually display the processing message
-    setTimeout("BOOTH.prepare_encrypted_ballot_and_display()", 100);
+    BOOTH.show_processing_before("BOOTH.seal_ballot_raw()");
 };
 
 BOOTH.audit_ballot = function() {
@@ -165,10 +166,7 @@ BOOTH.cast_ballot = function() {
     BOOTH.show(\$('#login_div')).processTemplate({'encrypted_vote_hash' : BOOTH.encrypted_ballot.get_hash()});
 };
 
-BOOTH.send_ballot = function() {
-    // display waiting screen
-    BOOTH.show(\$('#processing_div'));
-    
+BOOTH.send_ballot_raw = function() {
     var send_form = document.forms['send_ballot_form'];
     var data = {
       email : send_form.email.value,
@@ -213,6 +211,10 @@ BOOTH.send_ballot = function() {
             BOOTH.show(\$("#login_div"));
         }
     });
+};
+
+BOOTH.send_ballot = function() {
+    BOOTH.show_processing_before("BOOTH.send_ballot_raw()");
 };
 
 BOOTH.show_receipt = function() {
