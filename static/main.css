@@ -7,12 +7,16 @@ body {
 }
 
 #content {
-  padding: 30px 30px 20px 30px;
-  margin: auto;
-  margin-top: 20px;
+  position: absolute;
+  padding: 20px 30px 20px 30px;
+  bottom: 0px;
+  top: 0px;
+  margin-left: 100px;
+  margin-top: 0px;
   width: 860px;
   background: #ffc;
-  border: 1px solid black;
+  border-left: 1px solid #666;
+  border-right: 1px solid #666;
 }
 
 #header {
@@ -37,6 +41,9 @@ body {
 }
 
 #footer {
+  border-top: 1px solid #666;
+  position: absolute;
+  bottom: 0px;
   margin: auto;
   width: 860px;
   text-align: center;

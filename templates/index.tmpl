@@ -1,5 +1,4 @@
 #include "templates/header.tmpl"
-#from base import session
 
 <div style="float:right;">
     <img style="width: 400px; border:3px solid black; margin-left: 20px;" src="/static/transparentballotbox.jpg" />
@@ -23,16 +22,5 @@ The Helios Voting System implements advanced cryptographic techniques to maintai
 <a href="/elections/new">Create an Open-Audit Election</a>
 </div>
 
-<p style="font-size: 10pt; text-align: center;">
-    <a href="/learn">Learn</a> &nbsp;
-#set $user = session.get_session().get_user()
-#if $user
-    <a href="/user/">User Home</a>
-#else
-    <a href="/user/">Login/Register</a>
-#end if
-&nbsp;
-<a href="http://blog.heliosvoting.org/">Blog/Updates</a>
-</p>
 
 #include "templates/footer.tmpl"

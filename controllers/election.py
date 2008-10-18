@@ -495,7 +495,7 @@ class ElectionController(REST.Resource):
     """
     archive an election
     """
-    user, api_client, election = self.check(election)
+    user, api_client, election = self.check(election, allow_frozen=True)
     if bool(int(archive_p)):
       election.archived_at = datetime.datetime.utcnow()
     else:
