@@ -138,13 +138,17 @@ BOOTH.show_confirm = function() {
     BOOTH.show(\$('#confirm_div')).processTemplate({'questions' : BOOTH.election.questions, 'choices' : choices});
 };
 
+BOOTH.prepare_encrypted_ballot_and_display = function() {
+    BOOTH.encrypted_ballot = new HELIOS.EncryptedVote(BOOTH.election, BOOTH.ballot.answers);    
+    \$('#seal_div').processTemplate({'encrypted_vote_hash' : BOOTH.encrypted_ballot.get_hash()});
+    BOOTH.show(\$('#seal_div'));
+};
+
 BOOTH.seal_ballot = function() {
     BOOTH.show(\$('#processing_div'));
     
-    BOOTH.encrypted_ballot = new HELIOS.EncryptedVote(BOOTH.election, BOOTH.ballot.answers);
-    
-    \$('#seal_div').processTemplate({'encrypted_vote_hash' : BOOTH.encrypted_ballot.get_hash()});
-    BOOTH.show(\$('#seal_div'));
+    // add a timeout so browsers like Safari actually display the processing message
+    setTimeout("BOOTH.prepare_encrypted_ballot_and_display()", 100);
 };
 
 BOOTH.audit_ballot = function() {
