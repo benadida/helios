@@ -111,7 +111,7 @@ class VoterController(REST.Resource):
     election_obj = election.toElection()
 
     # if election has results already
-    if election.encrypted_tally:
+    if election.result_json:
       raise cherrypy.HTTPError(500, "Tally Already Computed")
     
     # password check

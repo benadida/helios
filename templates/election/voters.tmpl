@@ -55,10 +55,12 @@ Bulk Upload Voters in CSV format, with name, email, and category as the 3 fields
 </form>
 </td>
 <td>
+#if $election.is_frozen()
 <form method="get" action="email_voters">
 <input type="hidden" name="voter_id" value="$voter.voter_id" />
 <input type="submit" value="email" class="prettysmall" />
 </form>
+#end if
 </td>
 </tr>
 #end for
