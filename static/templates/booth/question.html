@@ -10,7 +10,15 @@
 
 
 {#foreach $T.question.answers as answer}
-<div id="answer_label_{$T.question_num}_{$T.answer$index}"><input type="checkbox" class="ballot_answer" id="answer_{$T.question_num}_{$T.answer$index}" name="answer_{$T.question_num}_{$T.answer$index}" value="yes" onclick="BOOTH.click_checkbox({$T.question_num}, {$T.answer$index}, this.checked);" /> {$T.answer}</div>
+<div id="answer_label_{$T.question_num}_{$T.answer$index}"><input type="checkbox" class="ballot_answer" id="answer_{$T.question_num}_{$T.answer$index}" name="answer_{$T.question_num}_{$T.answer$index}" value="yes" onclick="BOOTH.click_checkbox({$T.question_num}, {$T.answer$index}, this.checked);" /> {$T.answer}
+
+{#if $T.question.answer_urls && $T.question.answer_urls[$T.answer$index] != ""}
+&nbsp;&nbsp;
+<span style="font-size: 12pt;">
+[<a target="_blank" href="{$T.question.answer_urls[$T.answer$index]}">more info</a>]
+</span>
+{#/if}
+</div>
 {#/for}
 
 <div style="float: right;">

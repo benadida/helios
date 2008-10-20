@@ -62,6 +62,7 @@
       
       \$(question.answers).each(function(i, answer) {
         question.answers[i] = form["answer_" + i].value;
+        question.answer_urls[i] = form["answer_url_" + i].value;
       });
     };
 
@@ -103,8 +104,8 @@
       var question;
 
       if (question_num === null || question_num === "") {
-         BUILDER.stored_new_question = BUILDER.stored_new_question || {answers:[]};
-	 question = BUILDER.stored_new_question;
+         BUILDER.stored_new_question = BUILDER.stored_new_question || {answers:[], answer_urls:[]};
+	     question = BUILDER.stored_new_question;
       } else {
          question = BUILDER.election.questions[question_num];
       }

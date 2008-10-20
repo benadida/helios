@@ -26,6 +26,7 @@
 [<a href="javascript:BUILDER.delete_answer({$T.answer$index});">X</a>]
 {#if $T.answer$index >= 1}[<a href="javascript:BUILDER.moveup_answer({$T.answer$index});">^</a>]{#/if}
 <br />
+<span style="font-size: 0.8em;">URL for more information: <input style="font-size:12pt;" type="text" id ="answer_url_{$T.answer$index}" name="answer_url_{$T.answer$index}" value="{$T.question.answer_urls[$T.answer$index]}" /></span><br />
 {#else}
 <em>none</em><br />
 {#/for}
