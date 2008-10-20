@@ -115,7 +115,13 @@ BOOTH.click_checkbox = function(question_num, answer_num, checked_p) {
   }
 };
 
-BOOTH.show_processing_before = function(str_to_execute) {
+BOOTH.show_processing_before = function(str_to_execute, long_p) {
+    /*if (long_p) {
+        \$('#processing_div').html("<h3 align='center'>This operation may take up to 45 seconds to complete. Please be patient!<br />You may get a JavaScript warning that this operation is taking a while. You should click 'continue' until your vote is fully encrypted.</h3>");
+    } else {
+        \$('#processing_div').html("<h3 align='center'>Processing, this will take just a few seconds.</h3>");
+    }*/
+    
     BOOTH.show(\$('#processing_div'));
     
     // add a timeout so browsers like Safari actually display the processing message
@@ -142,14 +148,21 @@ BOOTH.show_confirm = function() {
     BOOTH.show(\$('#confirm_div')).processTemplate({'questions' : BOOTH.election.questions, 'choices' : choices});
 };
 
+BOOTH.check_encryption_status = function() {
+    \$('#processing_div').html("<h3 align='center'>Progress: " + BOOTH.progress.progress() + "%</h3>");
+};
+
 BOOTH.seal_ballot_raw = function() {
-    BOOTH.encrypted_ballot = new HELIOS.EncryptedVote(BOOTH.election, BOOTH.ballot.answers);    
+    BOOTH.progress = new UTILS.PROGRESS();
+    var progress_interval = setInterval("BOOTH.check_encryption_status()", 1000);
+    BOOTH.encrypted_ballot = new HELIOS.EncryptedVote(BOOTH.election, BOOTH.ballot.answers, BOOTH.progress);
+    clearInterval(progress_interval);
     \$('#seal_div').processTemplate({'encrypted_vote_hash' : BOOTH.encrypted_ballot.get_hash()});
     BOOTH.show(\$('#seal_div'));
 };
 
 BOOTH.seal_ballot = function() {
-    BOOTH.show_processing_before("BOOTH.seal_ballot_raw()");
+    BOOTH.show_processing_before("BOOTH.seal_ballot_raw()", true);
 };
 
 BOOTH.audit_ballot = function() {

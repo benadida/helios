@@ -36,6 +36,26 @@ UTILS.select_element_content = function(element) {
   }
 };
 
+// a progress tracker
+UTILS.PROGRESS = Class.extend({
+  init: function() {
+    this.n_ticks = 0.0;
+    this.current_tick = 0.0;
+  },
+  
+  addTicks: function(n_ticks) {
+    this.n_ticks += n_ticks;
+  },
+  
+  tick: function() {
+    this.current_tick += 1.0;
+  },
+  
+  progress: function() {
+    return Math.round((this.current_tick / this.n_ticks) * 100);
+  }
+});
+
 //
 // Helios Stuff
 //
@@ -144,7 +164,7 @@ UTILS.generate_plaintexts = function(pk, num) {
 
 
 HELIOS.EncryptedAnswer = Class.extend({
-  init: function(question, answer, pk) {    
+  init: function(question, answer, pk, progress) {    
     // if nothing in the constructor
     if (question == null)
       return;
@@ -154,7 +174,7 @@ HELIOS.EncryptedAnswer = Class.extend({
     this.answer = answer;
 
     // do the encryption
-    var enc_result = this.doEncryption(question, answer, pk);
+    var enc_result = this.doEncryption(question, answer, pk, null, progress);
 
     this.choices = enc_result.choices;
     this.randomness = enc_result.randomness;
@@ -162,7 +182,7 @@ HELIOS.EncryptedAnswer = Class.extend({
     this.overall_proof = enc_result.overall_proof;    
   },
   
-  doEncryption: function(question, answer, pk, randomness) {
+  doEncryption: function(question, answer, pk, randomness, progress) {
     var choices = [];
     var individual_proofs = [];
     var overall_proof = null;
@@ -203,6 +223,9 @@ HELIOS.EncryptedAnswer = Class.extend({
         // generate proof that this ciphertext is a 0 or a 1
         individual_proofs[i] = choices[i].generateDisjunctiveProof(plaintexts, plaintext_index, randomness[i], ElGamal.disjunctive_challenge_generator);        
       }
+      
+      if (progress)
+        progress.tick();
     }
 
     if (generate_new_randomness) {
@@ -219,6 +242,8 @@ HELIOS.EncryptedAnswer = Class.extend({
       // prove that the sum is 0 or 1 (can be "blank vote" for this answer)
       // num_selected_answers is 0 or 1, which is the index into the plaintext that is actually encoded
       overall_proof = hom_sum.generateDisjunctiveProof(plaintexts, num_selected_answers, rand_sum, ElGamal.disjunctive_challenge_generator);
+      if (progress)
+        progress.tick();
     }
     
     return {
@@ -307,7 +332,7 @@ HELIOS.EncryptedAnswer.fromJSONObject = function(d, election) {
 };
 
 HELIOS.EncryptedVote = Class.extend({
-  init: function(election, answers) {
+  init: function(election, answers, progress) {
     // empty constructor
     if (election == null)
       return;
@@ -323,9 +348,18 @@ HELIOS.EncryptedVote = Class.extend({
     var n_questions = election.questions.length;
     this.encrypted_answers = [];
 
+    if (progress) {
+      // set up the number of ticks
+      $(election.questions).each(function(q_num, q) {
+        // + 1 for the overall proof
+        progress.addTicks(q.answers.length + 1);
+      });
+    }
+      progress.addTicks(0, n_questions);
+      
     // loop through questions
     for (var i=0; i<n_questions; i++) {
-      this.encrypted_answers[i] = new HELIOS.EncryptedAnswer(election.questions[i], answers[i], election.pk);
+      this.encrypted_answers[i] = new HELIOS.EncryptedAnswer(election.questions[i], answers[i], election.pk, progress);
     }    
   },
   
