@@ -32,6 +32,11 @@
 #end if
 
 #else
+
+#if $election.openreg_enabled and not $election.result_json
+<li> <a href="voters_manage">manage voters</a><br />(open registration)</li><br />
+#end if
+
 #if len($election.get_keyshares()) == 0
 #if not $election.encrypted_tally and not $result
 #if $election.get_sk()
@@ -103,7 +108,7 @@ Election Fingerprint<br />
 #end for
 
 <a style="font-size: 14pt;" target="_blank" href="../verifier">Audit the Election Tally</a><br />
-
+<br /><br />
 #end if
 
 

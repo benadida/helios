@@ -11,22 +11,31 @@
 
 #if $election.openreg_enabled
 <p>
-    You have opted for <b>open voter registration</b>, which means anyone can vote. To enable some amount of verification, voters are still asked to authenticate upon casting their vote, either using OpenID or email address verification.
+    This election is currently configured with <b>open voter registration</b>, which means the list of voters is not fixed at the time that the election begins. You can add voters at any time.
 </p>
 
-<br /><br />
-
-<form method="post" action="./set_reg"><input type="hidden" name="open_p" value="0" /><input class="pretty" type="submit" value="switch to closed registration" /></form>
-
+#if $election.is_frozen()
+<p>
+    The election is frozen, so you cannot switch it back to closed registration anymore.
+</p>
 #else
-
-#if len($voters) == 0
-<!--<form method="post" action="./set_reg"><input type="hidden" name="open_p" value="1" /><input class="pretty" type="submit" value="switch to open registration" /></form>-->
+<form method="post" action="./set_reg"><input type="hidden" name="open_p" value="0" /><input class="pretty" type="submit" value="switch to closed registration" /></form>
 #end if
 
+#else
+<p>
+    This election is currently configured with <b>closed voter registration</b>, which means that all voters must be listed before the election is frozen, and thus before the election begins.
+</p>
+
+<form method="post" action="./set_reg"><input type="hidden" name="open_p" value="1" /><input class="pretty" type="submit" value="switch to open registration" /></form>
+#end if
+
+
+#if not $election.result_json
 <p>
     <a onclick="javascript:\$('#bulk_upload').show();" href="#">bulk upload</a>
 </p>
+#end if
 
 <form id="bulk_upload" action="voters_bulk_upload" method="post">
 Bulk Upload Voters in CSV format, with name, email, and category as the 3 fields in the CSV:<br />
@@ -36,7 +45,7 @@ Bulk Upload Voters in CSV format, with name, email, and category as the 3 fields
 </form>
 
 <table class="pretty">
-<tr><th>Name</th><th>Email</th><th>Category</th><th></th></tr>
+<tr><th>Name</th><th>Email</th><th>Category</th><th colspan="2"></th></tr>
 #for $voter in $voters
 <tr><td>$voter.name</td><td>$voter.email</td><td>$voter.category</td>
 <td>
@@ -45,18 +54,23 @@ Bulk Upload Voters in CSV format, with name, email, and category as the 3 fields
 <input type="submit" value="delete" class="prettysmall" />
 </form>
 </td>
+<td>
+<form method="get" action="email_voters">
+<input type="hidden" name="voter_id" value="$voter.voter_id" />
+<input type="submit" value="email" class="prettysmall" />
+</form>
+</td>
 </tr>
 #end for
+
 <form method="post" action="voters/">
 <tr>
 <td><input type="text" name="name" size="20" class="prettysmall" id="input_name" /></td>
 <td><input type="text" name="email" size="20" class="prettysmall" /></td>
 <td><input type="text" name="category" size="10" class="prettysmall" /></td>
-<td><input type="submit" value="add" class="prettysmall" /></td>
+<td colspan="2" align="center"><input type="submit" value="add" class="prettysmall" /></td>
 </tr>
 </form>
 </table>
 
-#end if
-			<!-- end #content -->
 #include "templates/footer.tmpl"

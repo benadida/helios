@@ -90,7 +90,7 @@ class VoterController(REST.Resource):
     """
     Add a new voter to an election.
     """
-    user, api_client, election = ElectionController.check(self.parent)
+    user, api_client, election = ElectionController.check(self.parent, allow_frozen = (self.parent.openreg_enabled and not self.parent.result_json))
 
     v = do.Voter()
     v.election = election
@@ -405,7 +405,8 @@ class ElectionController(REST.Resource):
     """
     Manage voters for the given election.
     """
-    user, api_client, election = self.check(election)
+    # allow open registration only if registration is open and results aren't already comptued
+    user, api_client, election = self.check(election, allow_frozen = (election.openreg_enabled and not election.result_json))
     voters = election.get_voters()
     return self.render('voters')
     
@@ -415,7 +416,7 @@ class ElectionController(REST.Resource):
     """
     Process a bulk upload form for voters
     """
-    user, api_client, election = self.check(election)
+    user, api_client, election = self.check(election, allow_frozen = (election.openreg_enabled and not election.result_json))
     
     voters_csv_lines = voters_csv.split("\n")
     reader = csv.reader(voters_csv_lines)
@@ -616,17 +617,25 @@ class ElectionController(REST.Resource):
 
   @web
   @session.login_protect
-  def email_voters(self, election_id):
+  def email_voters(self, election_id, voter_id=None):
     """
     Form for emailing voters.
+    if voter_id is provided this emails a single voter
     """
     user, api_client, election = self.check(election_id, True, True)
+    
+    if voter_id:
+      voter = do.Voter.selectById(voter_id)
+      if election.election_id != voter.election.election_id:
+        self.error('bad voter')
+    else:
+      voter = None
 
     return self.render('email_voters')
 
   @web
   @session.login_protect
-  def email_voters_2(self, election, introductory_message, after=None, limit=None):
+  def email_voters_2(self, election, introductory_message, voter_id=None, after=None, limit=None):
     """
     Send email to voters of an election.
     """
@@ -636,8 +645,17 @@ class ElectionController(REST.Resource):
       after = str(after)
     if limit:
       limit = int(limit)
+    
+    if voter_id:
+      one_voter = do.Voter.selectById(voter_id)
       
-    voters = election.get_voters(after=after, limit=limit)
+      # check that it's for the right election
+      if one_voter.election.election_id != election.election_id:
+        self.error("bad voter")
+        
+      voters = [one_voter]
+    else: 
+      voters = election.get_voters(after=after, limit=limit)
 
     last_id = None
     

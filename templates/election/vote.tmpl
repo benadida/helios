@@ -115,13 +115,8 @@ BOOTH.click_checkbox = function(question_num, answer_num, checked_p) {
   }
 };
 
-BOOTH.show_processing_before = function(str_to_execute, long_p) {
-    /*if (long_p) {
-        \$('#processing_div').html("<h3 align='center'>This operation may take up to 45 seconds to complete. Please be patient!<br />You may get a JavaScript warning that this operation is taking a while. You should click 'continue' until your vote is fully encrypted.</h3>");
-    } else {
-        \$('#processing_div').html("<h3 align='center'>Processing, this will take just a few seconds.</h3>");
-    }*/
-    
+BOOTH.show_processing_before = function(str_to_execute) {
+    \$('#processing_div').html("<h3 align='center'>Processing...</h3>");
     BOOTH.show(\$('#processing_div'));
     
     // add a timeout so browsers like Safari actually display the processing message

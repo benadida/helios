@@ -5,11 +5,19 @@ BATCH_SIZE = 10;
 
 function send_email(after) {
     \$('#submit').hide();
+#if $voter
+    \$('#processing').show().html("sending single email to $voter.name");
+#else
     \$('#processing').show().html("sending a batch of 5 emails (starting with " + (after||"the first") + ")");
+#end if
     
     var form = document.forms['email_form'];
     
     params = {'introductory_message' : form.introductory_message.value};
+    
+#if $voter
+    params['voter_id'] = '$voter.voter_id';
+#end if
     
     if (after) {
         params.after = after;
@@ -32,15 +40,25 @@ function send_email(after) {
 
 <h2>$election.name: Email Voters</h2>
 
+#if $voter
+<p>
+    You are about to email <b>$voter.name</b>. You can fill in the middle part of the email:
+</p>
+#else
 <p>
 You are about to email all voters in this election. You can fill in the middle part of the email:
 </p>
+#end if
 
 <blockquote>
 <form name="email_form" method="post" onsubmit="send_email(); return false;">
 
 <pre>
+#if $voter
+Dear $voter.name,
+#else
 Dear [VOTER_NAME],
+#end if
 </pre>
 
 <textarea name="introductory_message" cols="60" rows="10" wrap="soft" class="pretty">
@@ -59,8 +77,5 @@ Your password: [VOTER_PASSWORD]
     Processing Email... this will take approximately 2 seconds per voter, as we have to batch emails and pause between batches.
 </div>
 </form>
-
-</div>
-					
-			<!-- end #content -->
+<br /><br />
 #include "templates/footer.tmpl"
