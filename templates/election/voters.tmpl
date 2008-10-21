@@ -66,7 +66,10 @@ function email_voters() {
         return false;
     }
         
-    document.location = "./voters_email?voter_ids=" + encodeURIComponent(voters);
+    // add to the form
+    \$('#voters_email_voter_ids').val(voters);
+    \$('#voters_email_form').submit();
+    // document.location = "./voters_email?voter_ids=" + encodeURIComponent(voters);
 }
 </script>
 
@@ -144,6 +147,9 @@ Act on those voters you have selected above:<br />
 <button onclick="delete_voters();">delete</button> &nbsp;&nbsp;&nbsp;
 #end if
 <button onclick="email_voters();">email</button>
+<form method="post" action="voters_email" id="voters_email_form">
+<input type="hidden" name="voter_ids" id="voters_email_voter_ids" />
+</form>
 </p>
 
 #include "templates/footer.tmpl"
