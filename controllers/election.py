@@ -123,17 +123,18 @@ class VoterController(REST.Resource):
     
     # send a confirmation email
     mail_body = """
+Dear %s,
 
-Your vote in the election %s was recorded.
+Your vote in election "%s" was recorded.
 
-The encryption fingerprint for your vote is:
+For your verification, we include below the fingerprint of your encrypted vote:
 %s
 
-The election fingerprint is:
+And, as a reminder, the fingerprint of the election itself is:
 %s
 
--Helios
-""" % (election_obj.name, voter.get_vote_hash(), election_obj.hash)
+-The Helios Voting System
+""" % (voter.name, election_obj.name, voter.get_vote_hash(), election_obj.hash)
 
     mail.simple_send([voter.name],[voter.email], "Helios", "ben@adida.net", "your vote was recorded", mail_body)
 
@@ -680,6 +681,12 @@ class ElectionController(REST.Resource):
 
     last_id = None
     
+    # send as the owner of the election
+    if user:
+      sender_email = user.email_address
+    else:
+      sender_email = "ben@adida.net"
+
     for voter in voters:
       logging.info("sending email to %s" % voter.email)
       message_header = u"""
@@ -689,26 +696,23 @@ Dear %s,
 
       message_footer = u"""
 
-Voting URL: %s
-
+Election URL: %s
+Direct Voting URL: %s
 Election Fingerprint: %s
+
 Your email address: %s
 Your password: %s
 
--Helios
-""" % ((config.webroot + '/elections/%s/vote')%election.election_id, election.toElection().get_hash(), voter.email, voter.password)
+-%s
+via the Helios Voting System.
+www.heliosvoting.org
+""" % ((config.webroot + '/elections/%s/view')%election.election_id, (config.webroot + '/elections/%s/vote')%election.election_id, election.toElection().get_hash(), voter.email, voter.password, sender_email)
 
       message = message_header
       logging.info(introductory_message)
       message += unicode(introductory_message)
       message += message_footer
 
-      # send as the owner of the election
-      if user:
-        sender_email = user.email_address
-      else:
-        sender_email = "ben@adida.net"
-        
       mail.simple_send([voter.name], [voter.email], "Helios", sender_email,"Voting in Election %s" % election.name, message)
       
       last_id = voter.voter_id
