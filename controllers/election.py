@@ -133,7 +133,8 @@ For your verification, we include below the fingerprint of your encrypted vote:
 And, as a reminder, the fingerprint of the election itself is:
 %s
 
--The Helios Voting System
+--
+The Helios Voting System
 """ % (voter.name, election_obj.name, voter.get_vote_hash(), election_obj.hash)
 
     mail.simple_send([voter.name],[voter.email], "Helios", "ben@adida.net", "your vote was recorded", mail_body)
@@ -703,8 +704,9 @@ Election Fingerprint: %s
 Your email address: %s
 Your password: %s
 
--%s
-via the Helios Voting System.
+--
+%s
+via the Helios Voting System
 www.heliosvoting.org
 """ % ((config.webroot + '/elections/%s/view')%election.election_id, (config.webroot + '/elections/%s/vote')%election.election_id, election.toElection().get_hash(), voter.email, voter.password, sender_email)
 
