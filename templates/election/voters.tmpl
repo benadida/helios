@@ -5,6 +5,69 @@
   \$('#bulk_upload').hide();
   \$('#input_name').focus();
 });
+
+var VOTERS = $voters_json;
+
+function select_all() {
+    \$(VOTERS).each(function(v_num, v) {
+        \$('#checkbox_voter_' + v.voter_id).attr('checked', true);
+    });
+}
+
+function deselect_all() {
+    \$(VOTERS).each(function(v_num, v) {
+        \$('#checkbox_voter_' + v.voter_id).attr('checked', false);
+    });    
+}
+
+function select_all_voted() {
+    \$(VOTERS).each(function(v_num, v) {
+        \$('#checkbox_voter_' + v.voter_id).attr('checked', v.voter_hash != null);
+    });    
+}
+
+function select_all_not_voted() {
+    \$(VOTERS).each(function(v_num, v) {
+        \$('#checkbox_voter_' + v.voter_id).attr('checked', v.voter_hash == null);
+    });        
+}
+
+function get_selected_list() {
+    var list_of_voters = []
+    \$(VOTERS).each(function(v_num, v) {
+        if (\$('#checkbox_voter_' + v.voter_id).attr('checked')) {
+            list_of_voters.push(v.voter_id);
+        }
+    });
+
+    return list_of_voters;
+}
+
+function delete_voters() {
+    var voters = get_selected_list().join(",");
+    if (voters == "") {
+        alert ('no voters selected!');
+        return false;
+    }
+
+    if (!confirm('Are you sure you want to delete these voters?'))
+        return;
+    
+    \$.post('voters_delete', {'voter_ids': voters}, function(result) {
+        alert('done!');
+        document.location = "./view";
+    });
+}
+
+function email_voters() {
+    var voters = get_selected_list().join(",");
+    if (voters == "") {
+        alert ('no voters selected!');
+        return false;
+    }
+        
+    document.location = "./voters_email?voter_ids=" + encodeURIComponent(voters);
+}
 </script>
 
 <h2 class="title">$election.name &mdash; Voters <span style="font-size:0.7em;">[<a href="./view">done</a>]</span></h2>
@@ -44,23 +107,19 @@ Bulk Upload Voters in CSV format, with name, email, and category as the 3 fields
 <input type="submit" value="bulk upload" />
 </form>
 
+<p align="center">
+<button onclick="select_all()">all</button>
+<button onclick="deselect_all()">none</button>
+<button onclick="select_all_voted()">voted</button>
+<button onclick="select_all_not_voted()">not voted</button>
+</p>
+
 <table class="pretty">
-<tr><th>Name</th><th>Email</th><th>Category</th><th colspan="2"></th></tr>
+<tr><th>Name</th><th>Email</th><th>Category</th><th>&nbsp;</th></tr>
 #for $voter in $voters
-<tr><td>$voter.name</td><td>$voter.email</td><td>$voter.category</td>
+<tr><td>$voter.name</td><td>$voter.email</td><td>$voter.category&nbsp;</td>
 <td>
-<form method="post" action="voters/$voter.voter_id/delete" onsubmit="return confirm('You\'re about to delete $voter.email...');">
-<input type="hidden" name="email" value="$voter.email" />
-<input type="submit" value="delete" class="prettysmall" />
-</form>
-</td>
-<td>
-#if $election.is_frozen()
-<form method="get" action="email_voters">
-<input type="hidden" name="voter_id" value="$voter.voter_id" />
-<input type="submit" value="email" class="prettysmall" />
-</form>
-#end if
+<input type="checkbox" id="checkbox_voter_$voter.voter_id" name="voter_id" value="$voter.voter_id">
 </td>
 </tr>
 #end for
@@ -70,9 +129,15 @@ Bulk Upload Voters in CSV format, with name, email, and category as the 3 fields
 <td><input type="text" name="name" size="20" class="prettysmall" id="input_name" /></td>
 <td><input type="text" name="email" size="20" class="prettysmall" /></td>
 <td><input type="text" name="category" size="10" class="prettysmall" /></td>
-<td colspan="2" align="center"><input type="submit" value="add" class="prettysmall" /></td>
+<td align="center"><input type="submit" value="add" class="prettysmall" /></td>
 </tr>
 </form>
 </table>
+
+<p align="center">
+Act on those voters you have selected above:<br />
+<button onclick="delete_voters();">delete</button> &nbsp;&nbsp;&nbsp;
+<button onclick="email_voters();">email</button>
+</p>
 
 #include "templates/footer.tmpl"

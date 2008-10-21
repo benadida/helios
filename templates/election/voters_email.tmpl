@@ -5,18 +5,14 @@ BATCH_SIZE = 10;
 
 function send_email(after) {
     \$('#submit').hide();
-#if $voter
-    \$('#processing').show().html("sending single email to $voter.name");
-#else
-    \$('#processing').show().html("sending a batch of 5 emails (starting with " + (after||"the first") + ")");
-#end if
+    \$('#processing').show().html("sending a batch of up to 5 emails (starting with " + (after||"the first") + ")");
     
     var form = document.forms['email_form'];
     
     params = {'introductory_message' : form.introductory_message.value};
     
-#if $voter
-    params['voter_id'] = '$voter.voter_id';
+#if $voter_ids
+    params['voter_ids'] = '$voter_ids';
 #end if
     
     if (after) {
@@ -25,7 +21,7 @@ function send_email(after) {
     
     params.limit = "5";
     
-    \$.post("email_voters_2", params, function(data) {
+    \$.post("voters_email_2", params, function(data) {
        // decide whether or not to keep going
        if (data != "DONE") {
            setTimeout("send_email('" + data + "')", 65000);
@@ -42,7 +38,12 @@ function send_email(after) {
 
 #if $voter
 <p>
-    You are about to email <b>$voter.name</b>. You can fill in the middle part of the email:
+    You are about to email <b>the following voters</b>:
+#for $v in $voters
+$v.name, 
+#end for
+<br />
+    You can fill in the middle part of the email:
 </p>
 #else
 <p>
@@ -54,11 +55,7 @@ You are about to email all voters in this election. You can fill in the middle p
 <form name="email_form" method="post" onsubmit="send_email(); return false;">
 
 <pre>
-#if $voter
-Dear $voter.name,
-#else
 Dear [VOTER_NAME],
-#end if
 </pre>
 
 <textarea name="introductory_message" cols="60" rows="10" wrap="soft" class="pretty">
