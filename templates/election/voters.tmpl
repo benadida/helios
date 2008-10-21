@@ -22,13 +22,13 @@ function deselect_all() {
 
 function select_all_voted() {
     \$(VOTERS).each(function(v_num, v) {
-        \$('#checkbox_voter_' + v.voter_id).attr('checked', v.voter_hash != null);
+        \$('#checkbox_voter_' + v.voter_id).attr('checked', v.vote_hash != null);
     });    
 }
 
 function select_all_not_voted() {
     \$(VOTERS).each(function(v_num, v) {
-        \$('#checkbox_voter_' + v.voter_id).attr('checked', v.voter_hash == null);
+        \$('#checkbox_voter_' + v.voter_id).attr('checked', v.vote_hash == null);
     });        
 }
 
@@ -74,7 +74,7 @@ function email_voters() {
 
 #if $election.openreg_enabled
 <p>
-    This election is currently configured with <b>open voter registration</b>, which means the list of voters is not fixed at the time that the election begins. You can add voters at any time.
+    This election is configured with <b>open voter registration</b>, which means the list of voters is not fixed at the time that the election begins. You can add voters at any time.
 </p>
 
 #if $election.is_frozen()
@@ -87,14 +87,16 @@ function email_voters() {
 
 #else
 <p>
-    This election is currently configured with <b>closed voter registration</b>, which means that all voters must be listed before the election is frozen, and thus before the election begins.
+    This election is configured with <b>closed voter registration</b>, which means that all voters must be listed before the election is frozen, and thus before the election begins.
 </p>
 
+#if not $election.is_frozen()
 <form method="post" action="./set_reg"><input type="hidden" name="open_p" value="1" /><input class="pretty" type="submit" value="switch to open registration" /></form>
+#end if
 #end if
 
 
-#if not $election.result_json
+#if (not $election.is_frozen() or $election.openreg_enabled) and not $election.result_json
 <p>
     <a onclick="javascript:\$('#bulk_upload').show();" href="#">bulk upload</a>
 </p>
@@ -124,6 +126,7 @@ Bulk Upload Voters in CSV format, with name, email, and category as the 3 fields
 </tr>
 #end for
 
+#if $election.openreg_enabled or not $election.is_frozen()
 <form method="post" action="voters/">
 <tr>
 <td><input type="text" name="name" size="20" class="prettysmall" id="input_name" /></td>
@@ -132,11 +135,14 @@ Bulk Upload Voters in CSV format, with name, email, and category as the 3 fields
 <td align="center"><input type="submit" value="add" class="prettysmall" /></td>
 </tr>
 </form>
+#end if
 </table>
 
 <p align="center">
 Act on those voters you have selected above:<br />
+#if $election.openreg_enabled or not $election.is_frozen()
 <button onclick="delete_voters();">delete</button> &nbsp;&nbsp;&nbsp;
+#end if
 <button onclick="email_voters();">email</button>
 </p>
 

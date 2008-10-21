@@ -407,8 +407,8 @@ class ElectionController(REST.Resource):
     """
     Manage voters for the given election.
     """
-    # allow open registration only if registration is open and results aren't already comptued
-    user, api_client, election = self.check(election, allow_frozen = (election.openreg_enabled and not election.result_json))
+    # allow managing of voters no matter what, since this is where you can email them
+    user, api_client, election = self.check(election, allow_frozen=True)
     voters = election.get_voters()
     voters_json = utils.to_json([v.toJSONDict() for v in voters])
     return self.render('voters')
@@ -672,7 +672,27 @@ class ElectionController(REST.Resource):
       limit = int(limit)
     
     if voter_ids:
-      voter_id_list = voter_ids.split(",")
+      raw_voter_id_list = voter_ids.split(",")
+
+      voter_id_list = []
+      
+      if after:
+        # adjust the list given the value of "after"
+        copy_p = False
+      else:
+        copy_p = True
+
+      # mimicking after and limit
+      for v_id in raw_voter_id_list:
+        if copy_p:
+          voter_id_list.append(v_id)
+        
+        if (not copy_p) and (v_id == after):
+          copy_p = True
+          
+        if len(voter_id_list) >= limit:
+          break
+      
       voters = [do.Voter.selectById(voter_id) for voter_id in voter_id_list]
       for voter in voters:
         if election.election_id != voter.election.election_id:
