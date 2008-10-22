@@ -1,7 +1,9 @@
 
+<h3 style="border-bottom: 1px solid black;">Submit Your Encrypted Ballot</h3>
+
 <p>
-Your ballot has now been <b><em>cast</em></b>.<br />
-All plaintext information has been removed from memory: all that remains is the encrypted vote.
+Your encrypted ballot is ready for submission.<br />
+All plaintext information has been removed from memory: all that remains is the encrypted vote.<br />
 </p>
 
 <p>
@@ -16,9 +18,9 @@ To submit your encrypted vote, enter your login information below.<br />
 
 <form onsubmit="BOOTH.send_ballot(); return false;" action="#" id="send_ballot_form" class="prettyform">
 <label for="email">Email:</label>
-<input type="text" name="email" size="40" /><br />
+<input type="text" name="email" size="30" /><br />
 <label for="password">Password:</label>
-<input type="password" name="password" size="40" /><br/>
+<input type="password" name="password" size="30" /><br/>
 <label for="submit">&nbsp;</label>
 <input type="submit" value="send" class="pretty" />
 </form>

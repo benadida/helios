@@ -1,21 +1,21 @@
 
 <div style="float: right; background:#eee; margin-left: 20px; padding: 10px; border: 1px solid #ddd; width:300px;">
 <p>
-You can choose to audit your vote, which will show you how your options were encrypted. You will then have to re-seal your ballot if you wish to cast it.<br /><br />
-<input type="button" value="audit" onclick="BOOTH.audit_ballot();" class="pretty" />
+You can choose to audit your ballot, which will show you how your options were encrypted. You will then have to re-seal your ballot if you wish to cast it.<br /><br />
+<input type="button" value="Audit Ballot" onclick="BOOTH.audit_ballot();" class="pretty" />
 </p>
 </div>
 
 <p>
-Your vote has now been encrypted. Your ballot fingerprint is:<br /><br />
+Your ballot has now been encrypted. Your ballot fingerprint is:<br /><br />
 
 <b><tt style="font-size: 16pt;">{$T.encrypted_vote_hash}</tt></b> [<a onclick="BOOTH.show_receipt(); return false;" href="#">Your Receipt</a>]
 <br />
 </p>
 
 <p>
-If you choose to cast the ballot, all plaintext information will be deleted from your browser's memory.
+If you choose to submit this ballot, all plaintext information will be deleted from your browser's memory.
 </p>
 
-<button onclick="BOOTH.cast_ballot();">Cast Ballot</button>
+<button onclick="BOOTH.cast_ballot();">Submit Encrypted Ballot</button>
 

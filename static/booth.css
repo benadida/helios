@@ -26,7 +26,7 @@ body {
 #header {
   padding-top: 0px;
   text-align: center;
-  padding-bottom: 20px;
+  padding-bottom: 5px;
 }
 
 #header h1 {
@@ -51,6 +51,30 @@ body {
   background: #fc9;
   font-size: 18pt;
   border-bottom: 1px solid #666;
+}
+
+#progress_div {
+  width: 100%;
+  font-size: 18pt;
+}
+
+#progress_div table {
+  border-collapse: collapse;
+  text-align: center;
+  border: 0px;
+}
+
+#progress_div td.unselected {
+  background: #ccc;
+  color: #888;
+  border: 1px solid #333;
+}
+
+#progress_div td.selected {
+  background: #fc9;
+  color: black;
+  font-weight: bold;
+  border: 1px solid black;
 }
 
 #footer {

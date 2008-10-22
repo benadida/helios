@@ -69,6 +69,7 @@ BOOTH.show_election = function() {
 };
 
 BOOTH.show_question = function(question_num) {
+  BOOTH.show_progress('1');
   BOOTH.show(\$('#question_div')).processTemplate({'question_num' : question_num, 
                       'last_question_num' : BOOTH.election.questions.length - 1,
                       'question' : BOOTH.election.questions[question_num]
@@ -131,12 +132,30 @@ BOOTH.load_and_setup_election = function() {
     });    
 };
 
+BOOTH.hide_progress = function() {
+  \$('#progress_div').hide();
+};
+
+BOOTH.show_progress = function(step_num) {
+    \$('#progress_div').show();
+    \$(['1','2','3','4']).each(function(n, step) {
+        if (step == step_num)
+            \$('#progress_' + step).attr('class', 'selected');
+        else 
+            \$('#progress_' + step).attr('class', 'unselected');
+    });
+};
+
 \$(document).ready(function () {
     BOOTH.setup_templates();
     BOOTH.load_and_setup_election();
+    
+    BOOTH.hide_progress();
 });  
 
 BOOTH.show_confirm = function() {
+    BOOTH.show_progress('1');
+    
     // process the answers
     var choices = BALLOT.pretty_choices(BOOTH.election, BOOTH.ballot);
 
@@ -157,6 +176,7 @@ BOOTH.seal_ballot_raw = function() {
 };
 
 BOOTH.seal_ballot = function() {
+    BOOTH.show_progress('2');    
     BOOTH.show_processing_before("BOOTH.seal_ballot_raw()", true);
 };
 
@@ -165,6 +185,7 @@ BOOTH.audit_ballot = function() {
 };
 
 BOOTH.cast_ballot = function() {
+    BOOTH.show_progress('3');
     // at this point, we delete the plaintexts by resetting the ballot
     BOOTH.setup_ballot(BOOTH.election);
 
@@ -202,6 +223,7 @@ BOOTH.send_ballot_raw = function() {
                     url: "/elections/$election.election_id/voters/" + voter.voter_id + "/submit",
                     data: data,
                     success: function(result) {
+                        BOOTH.show_progress('4');
                         BOOTH.show(\$("#done_div")).processTemplate();
                         BOOTH.done_p = true;
                     },
@@ -235,6 +257,11 @@ BOOTH.show_receipt = function() {
 
 </script>
 <div id="page">
+  <div id="progress_div">
+      <table width="100%">
+          <tr><td id="progress_1">(1) Select</td><td id="progress_2">(2) Encrypt</td><td id="progress_3">(3) Submit</td><td id="progress_4">(4) Done</td></tr>
+      </table>
+  </div>
   <div id="election_div" class="panel">
     Loading Election Booth...
   </div>
