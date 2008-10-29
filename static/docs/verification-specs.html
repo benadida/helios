@@ -549,4 +549,126 @@ return {
 }
 </div>
 
+<h2>Election with Multiple Trustees</h2>
+
+<p>
+    A Helios election can be configured to have multiple trustees, each of which holds a share of the election secret key.
+</p>
+
+<p>
+    Before the trustees have submitted their public key shares, the election's public key is null, e.g.:
+</p>
+
+<div class="codeblock"><div class="codetitle">Election with Trustees, before shares</div>
+{"election_id": "agxoZWxpb3N2b3RpbmdyDgsSCEVsZWN0aW9uGAUM", "name": "test-trustees",
+"pk": null, "questions": [], "voters_hash": "l9Fw4VUO7kr8CvBlt4zaMCqXZ0w",
+"voting_ends_at": null, "voting_starts_at": null}
+</div>
+
+<p>
+    The list of trustees for an election can be obtained at
+</p>
+
+<pre>
+    http://www.heliosvoting.org/elections/&lt;ELECTION_ID&gt;/trustees
+</pre>
+
+<p>
+    which returns the <tt>&lt;TRUSTEE_LIST&gt;</tt> data structure as follows:
+</p>
+
+<div class="codeblock"><div class="codetitle">&lt;TRUSTEE_LIST&gt;</div>
+[&lt;TRUSTEE&gt;, &lt;TRUSTEE&gt;, ..., &lt;TRUSTEE&gt;]
+</div>
+
+<p>
+    where a single <tt>&lt;TRUSTEE&gt;</tt> data structure is:
+</p>
+
+<div class="codeblock"><div class="codetitle">&lt;TRUSTEE&gt;</div>
+{"decryption_factors": &lt;DECRYPTION_FACTORS&gt;, "decryption_proofs": &lt;DECRYPTION_PROOFS&gt;,
+"email": "trustee@election.com", "pk": &lt;ELGAMAL_PUBLIC_KEY&gt;, "pok": &lt;ELGAMAL_KEY_POK&gt;}
+</div>
+
+<h3>Key Share and Proof of Knowledge of Secret</h3>
+
+<p>
+    The <tt>&lt;ELGAMAL_PUBLIC_KEY&gt;</tt> field is a normal ElGamal public key, as before. The &lt;ELGAMAL_KEY_POK&gt; is a non-interactive proof of knowledge of the secret key corresponding to the given public key. Helios uses the simple Schnorr proof of knowledge of discrete log, which is a simple three-round protocol proof as follows:
+</p>
+
+<ul>
+    <li> Prover generates <tt>w</tt>, a random integer modulo <tt>q</tt>, and computes <tt>commitment = g^w mod p</tt>.</li>
+    <li> Verifier provides <tt>challenge</tt> modulo <tt>q</tt>.</li>
+    <li> Prover computes <tt>response = w + x*challenge mod q</tt>, where <tt>x</tt> is the secret key.</li>
+</ul>
+
+<p>
+    Then, the verifier checks that <tt>g^response = commitment * y^challenge</tt>, where <tt>y</tt> is the public key. In the non-interactive setting, the challenge is generated as the decimal representation of the SHA1 of the commitment.
+</p>
+
+<p>
+    The format for the resulting proof is as follows.
+</p>
+
+<div class="codeblock"><div class="codetitle">&lt;ELGAMAL_KEY_POK&gt;</div>
+{"challenge": "2342342",
+"commitment": "124235235",
+"response": "970234234"}
+</div>
+
+<h3>Freezing a Trustee Election</h3>
+
+<p>
+Once all trustees have submitted their public key shares, 
+</p>
+
+<h3>Decryption Shares</h3>
+
+<p>
+   In Helios, the trustees are all required to show up for decryption. Threshold decryption is <em>not implemented at this time</em>. Thus, come decryption time, each trustee provides a decryption factor and a proof that this decryption factor was correctly generated given the trustee's public key. 
+</p>
+
+<p>
+    Thus, <tt>&lt;DECRYPTION_FACTORS&gt;</tt> is structured the same way as <tt>&lt;RESULT&gt;</tt>, an array of arrays, to provide one decryption factor for each choice of each question.
+</p>
+
+<div class="codeblock"><div class="codetitle">&lt;DECRYPTION_FACTORS&gt;</div>
+[[&lt;Q1_CANDIDATE_1_DEC_FACTOR&gt;, &lt;Q1_CANDIDATE_2_DEC_FACTOR&gt;, &lt;Q1_CANDIDATE_3_DEC_FACTOR&gt;],
+ [&lt;Q2_CANDIDATE_1_DEC_FACTOR&gt;, &lt;Q2_CANDIDATE_2_DEC_FACTOR&gt;]]
+</div>
+
+<p>
+    Then, <tt>&lt;DECRYPTION_PROOFS&gt;</tt> is a similarly structured array of arrays, where each element is a proof of the corresponding decryption factor, much like <tt>&lt;RESULT_PROOF&gt;</tt> is an element-wise decryption proof of <tt>&lt;RESULT&gt;</tt>.
+</p>
+
+<div class="codeblock"><div class="codetitle">&lt;DECRYPTION_PROOFS&gt;</div>
+[[&lt;Q1_CANDIDATE_1_PROOF&gt;, &lt;Q1_CANDIDATE_2_PROOF&gt;, &lt;Q1_CANDIDATE_3_PROOF&gt;],
+ [&lt;Q2_CANDIDATE_1_PROOF&gt;, &lt;Q2_CANDIDATE_2_PROOF&gt;]]
+</div>
+
+<p>
+    Each of these proofs is a DH-tuple proof, just like the original result decryption proof, with the fourth element of the DH tuple the corresponding decryption factor. So, for example, <tt>&lt;Q1_CANDIDATE_1_PROOF&gt;</tt> is a transcript of the proof that <tt>g, Q1_C1_TALLY.alpha, y, &lt;Q1_CANDIDATE_1_DEC_FACTOR&gt;</tt> is a proper DH tuple. The homomorphic tally, prior to decryption, is computed exactly as it was without trustees.
+</p>
+
+<h3>Putting it All Together</h3>
+
+<p>
+   At verification time, the steps for a trustee election are only slightly different: 
+</p>
+
+<ul>
+    <li> Each trustee's public-key share is verified against the corresponding proof of knowledge.</li>
+    <li> The election's single public key is indeed the product of the key shares.</li>
+    <li> Each individual ballot is verified <em>just as before</em>.</li>
+    <li> The encrypted tally for each candidate to each question is homomorphically computed, <em>just as before</em>.</li>
+    <li> Each partial decryption for each candidate to each question is verified.</li>
+    <li> The final tally for a given candidate is obtained by multiplying the partial decryption factors, and dividing it out of the corresponding encrypted tally's <tt>beta</tt>.</li>
+</ul>
+
+<p>
+    &nbsp;
+</p>
+
+<hr />
+<address>ben@adida.net</address>
 </body>

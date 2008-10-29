@@ -755,7 +755,7 @@ www.heliosvoting.org
   @web
   @session.login_protect
   def email_trustees_2(self, election, body):
-    user, api_client, election = self.check(election, True, True)
+    user, api_client, election = self.check(election, True)
 
     # the message to email
     message = """
