@@ -28,12 +28,12 @@
 </div>
 
 {#if $T.question_num != 0}
-<input type="button" onclick="BOOTH.save_ballot_answer({$T.question_num}); BOOTH.show_question({$T.question_num -1});" value="Previous" />
+<input type="button" onclick="BOOTH.show_question({$T.question_num -1});" value="Previous" />
 &nbsp;
 {#/if}
 
 {#if $T.question_num < $T.last_question_num}
-<input type="button" onclick="BOOTH.save_ballot_answer({$T.question_num}); BOOTH.show_question({$T.question_num +1});" value="Next" />
+<input type="button" onclick="BOOTH.show_question({$T.question_num +1});" value="Next" />
 &nbsp;
 {#/if}
 

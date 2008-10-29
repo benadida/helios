@@ -69,12 +69,12 @@ by Ben Adida.
 </p>
 
 <pre>
-    agxoZWxpb3N2b3RpbmdyDgsSCEVsZWN0aW9uGCYM
+    agxoZWxpb3N2b3RpbmdyDwsSCEVsZWN0aW9uGOAQDA
 </pre>
 
 <p>
     which means that its election information is at<br />
-    <a href="http://www.heliosvoting.org/elections/agxoZWxpb3N2b3RpbmdyDgsSCEVsZWN0aW9uGCYM">http://www.heliosvoting.org/elections/agxoZWxpb3N2b3RpbmdyDgsSCEVsZWN0aW9uGCYM</a>.
+    <a href="http://www.heliosvoting.org/elections/agxoZWxpb3N2b3RpbmdyDwsSCEVsZWN0aW9uGOAQDA">http://www.heliosvoting.org/elections/agxoZWxpb3N2b3RpbmdyDwsSCEVsZWN0aW9uGOAQDA</a>.
 </p>
 
 <p>
@@ -82,7 +82,7 @@ by Ben Adida.
 </p>
 
 <p>
-    If one wants to check the audit trail of a ballot, a new ballot audit trail can be generated at any time <a target="_blank" href="http://www.heliosvoting.org/elections/agxoZWxpb3N2b3RpbmdyDgsSCEVsZWN0aW9uGCYM/vote">using the voting booth interface for this election</a>. For convenience, one such ballot audit trail is available <a href="verification-specs-ballot-audit-trail.txt">here</a>, with choices <tt>[1,2]</tt> (the second choice for the first question, and the third choice for the second question.) The ballot fingerprint is <tt>93y/3rF9rSxRU2i7EG1Jn0Xk6x0</tt>.
+    If one wants to check the audit trail of a ballot, a new ballot audit trail can be generated at any time <a target="_blank" href="http://www.heliosvoting.org/elections/agxoZWxpb3N2b3RpbmdyDwsSCEVsZWN0aW9uGOAQDA/vote">using the voting booth interface for this election</a>. For convenience, one such ballot audit trail is available <a href="verification-specs-ballot-audit-trail.txt">here</a>, with choices 2 (Drummond) and 3 (Axel). The ballot fingerprint is <tt>6PkosgVAYO11FbVvqHGBeRo1SNs</tt>.
 </p>
 
 <h2>Data Formats</h2>
@@ -91,14 +91,14 @@ by Ben Adida.
     We begin with a description of the data types and their representations. All data made available by Helios is in <a href="http://json.org">JavaScript Object Notation (JSON)</a> format, with keys in <u>alphabetical order</u> and <u>no extraneous whitespace</u> other than that specified by JSON. These two conditions are particularly important, as hashing data structures will only yield the same hash if the conditions are respected. An example of a JSON data structure with these two conditions is:
 </p>
 
-<div class="codeblock"><div class="codetitle">Example</div>
+<div class="codeblock"><div class="codetitle">Example (not an actual Helios data structure)</div>
 {"email": ["ben@adida.net", "ben@mit.edu"], "first_name": "Ben", "last_name": "Adida"}
 </div>
 
 <h3>Basic Cryptographic Datatypes</h3>
 
 <p>
-    All large integers are represented in decimal form as strings, rather than integers. (The reason is that some languages do not support big integers natively, and thus cannot properly parse large integers in JSON integer form.) An El-Gamal public-key is then a dictionary including the prime <tt>p</tt>, the primer-order <tt>q</tt> of its intended subgroup, the generator <tt>g</tt>, and the public-key value <tt>y</tt> (but of course with keys in alphabetical order):
+    All large integers are represented in decimal form as strings, rather than integers. The reason is that some languages do not support big integers natively, and thus cannot properly parse large integers in JSON integer form. An El-Gamal public-key is then a dictionary including the prime <tt>p</tt>, the primer-order <tt>q</tt> of its intended subgroup, the generator <tt>g</tt>, and the public-key value <tt>y</tt> (with keys in alphabetical order):
 </p>
 
 <div class="codeblock"><div class="codetitle">&lt;ELGAMAL_PUBLIC_KEY&gt;</div>
@@ -183,9 +183,10 @@ by Ben Adida.
 </p>
 
 <div class="codeblock"><div class="codetitle">&lt;QUESTION&gt;</div>
-{"answers": ["alice", "bob"], "max": 1, "question": "Who Should be President?", "short_name": "President"}</div>
+{"answer_urls": ["http://example.com/alice", null], "answers": ["alice", "bob"], "max": 1,
+"question": "Who Should be President?", "short_name": "President"}</div>
 
-<p>which, in this case, contains two possible answers (alice and bob), the text of the question, and a short name for the question. The parameter <tt>max</tt> indicates the maximum number of options that a voter can select, most often 1. Note how, given that this <tt>max</tt> value should be a small integer, it is in fact serialized as an integer, not as a string.</p>
+<p>which, in this case, contains two possible answers (alice and bob), URLs that describe these answers in greater detail, the text of the question, and a short name for the question. The parameter <tt>max</tt> indicates the maximum number of options that a voter can select, most often 1. Note how, given that this <tt>max</tt> value should be a small integer, it is in fact serialized as an integer, not as a string.</p>
 
 <p><tt>voters_hash</tt> is the base64 encoding of the SHA1 hash of the list of voters for the election. The list of voters is a JSON array, where each voter is represented <em>without</em> a cast ballot, of course. For example, a list of voters might be:
     
@@ -225,8 +226,12 @@ by Ben Adida.
 
 <div class="codeblock"><div class="codetitle">&lt;ENCRYPTED_ANSWER&gt;</div>
 {"choices": [&lt;ELGAMAL_CIPHERTEXT&gt;, &lt;ELGAMAL_CIPHERTEXT&gt;, ...],
-"individual_proofs": [&lt;ZK_PROOF_0_or_1&gt;, &lt;ZK_PROOF_0_or_1&gt;, ...],
-"overall_proof": &lt;ZK_PROOF_0_or_1&gt;}</div>
+"individual_proofs": [&lt;ZK_PROOF_0..1&gt;, &lt;ZK_PROOF_0..1&gt;, ...],
+"overall_proof": &lt;ZK_PROOF_0..max&gt;}</div>
+
+<p>
+    The value of <tt>max</tt> in <tt>overall_proof</tt> matches the value of <tt>max</tt> in the election's question definition.
+</p>
 
 <p>
     When a voter generates a ballot, Helios provides the ballot fingerprint, which is the base64-encoding of the SHA1 hash of the <tt>&lt;VOTE&gt;</tt> data structure defined above.
@@ -235,15 +240,15 @@ by Ben Adida.
 <h3>Proofs</h3>
 
 <p>
-    A zero-knowledge proof, denoted <tt>&lt;ZK_PROOF_0_or_1&gt;</tt>, is a transcript of a non-interactive proof that the corresponding ciphertext encodes either the value 0 or the value 1. For the overall proof, the ciphertext whose value is being proven to be 0 or 1 is the homomorphic sum (element-wise product) of the <tt>choices</tt> ciphertexts.
+    A zero-knowledge proof, denoted <tt>&lt;ZK_PROOF_0..max&gt;</tt>, is a transcript of a non-interactive proof that the corresponding ciphertext encodes an integer value between 0 and <tt>max</tt>. For the overall proof, the ciphertext whose value is being proven to be between 0 and <tt>max</tt> is the homomorphic sum (element-wise product) of the <tt>choices</tt> ciphertexts.
 </p>
 
 <p>
-    In Helios, all 0-or-1 proofs are disjunctive proofs (CDS &amp; CP), meaning that the transcript includes <em>two</em> proofs, one which proves that the plaintext is a 0, and the other that the plaintext is a 1. The two individual challenges must sum up to the single actual protocol challenge, which ensures that one of the proofs is real (while the other is simulated.)
+    In Helios, all <tt>0..max</tt> proofs are disjunctive proofs (CDS &amp; CP), meaning that the transcript includes <tt>max+1</tt> proofs, one for each possible value of the plaintext, 0 through <tt>max</tt>. The <tt>max+1</tt> individual challenges must sum up to the single actual protocol challenge, which ensures that one of the proofs is real (while the others are simulated.)
 </p>
 
-<div class="codeblock"><div class="codetitle">&lt;ZK_PROOF_0_or_1&gt;</div>
-[&lt;ZK_PROOF(0)&gt;, &lt;ZK_PROOF(1)&gt;]
+<div class="codeblock"><div class="codetitle">&lt;ZK_PROOF_0..max&gt;</div>
+[&lt;ZK_PROOF(0)&gt;, &lt;ZK_PROOF(1)&gt;, ..., &lt;ZK_PROOF(max)&gt;]
 </div>
 
 <p>
@@ -274,8 +279,8 @@ by Ben Adida.
 <div class="codeblock"><div class="codetitle">&lt;ENCRYPTED_ANSWER_WITH_PLAINTEXT&gt;</div>
 {"answer": 1,
 "choices": [&lt;ELGAMAL_CIPHERTEXT&gt;, &lt;ELGAMAL_CIPHERTEXT&gt;, ...],
-"individual_proofs": [&lt;ZK_PROOF_0_or_1&gt;, &lt;ZK_PROOF_0_or_1&gt;, ...],
-"overall_proof": &lt;ZK_PROOF_0_or_1&gt;,
+"individual_proofs": [&lt;ZK_PROOF_0..1&gt;, &lt;ZK_PROOF_0..1&gt;, ...],
+"overall_proof": &lt;ZK_PROOF_0..max&gt;,
 "randomness": [&lt;BIGINT&gt;, &lt;BIGINT&gt;, &lt;BIGINT&gt;]}</div>
 
 <h3>Result</h3>
