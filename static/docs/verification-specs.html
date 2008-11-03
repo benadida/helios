@@ -351,7 +351,7 @@ for i in range(max+1):
     return False
 
 # the overall challenge
-computed_challenge = sum([proof.challenge for proof in disjunctive_proof]) % public_key.p
+computed_challenge = sum([proof.challenge for proof in disjunctive_proof]) % public_key.q
 
 # concatenate the arrays of A,B values
 list_of_values_to_hash = sum([[p.commitment.A, p.commitment.B] for p in disjunctive_proof], [])

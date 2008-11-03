@@ -29,7 +29,7 @@ class HeliosClient(object):
     return algs.ElGamal.fromJSONDict(utils.from_json(params_json))
     
   def election_new(self, name, public_key):
-    election_id = self.post("/elections/new_2", {"name" : name, "public_key" : utils.to_json(public_key.toJSONDict())})
+    election_id = self.post("/elections/new_3", {"name" : name, "public_key" : utils.to_json(public_key.toJSONDict())})
     return election_id
     
   def election_get(self, election_id):
@@ -40,7 +40,7 @@ class HeliosClient(object):
     return result == "SUCCESS"
     
   def election_questions_save(self, election_id, questions):
-    result = self.post("/elections/%s/save" % election_id, {'election_json' : utils.to_json({'questions':questions})})
+    result = self.post("/elections/%s/save_questions" % election_id, {'questions_json' : utils.to_json(questions)})
     return result == "SUCCESS"
     
   def election_freeze(self, election_id):

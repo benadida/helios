@@ -60,9 +60,10 @@ class EncryptedAnswer(object):
     return ea
 
   @classmethod
-  def fromElectionAndAnswer(cls, election, question_num, answer_index):
+  def fromElectionAndAnswer(cls, election, question_num, answer_indexes):
     """
-    Given an election, a question number, and an answer to that question in the form of a 0-based index into the answer array,
+    Given an election, a question number, and a list of answers to that question
+    in the form of an array of 0-based indexes into the answer array,
     produce an EncryptedAnswer that works.
     """
     question = election.questions[question_num]
@@ -89,7 +90,8 @@ class EncryptedAnswer(object):
     for answer_num in range(len(answers)):
       plaintext_index = 0
       
-      if answer_num == answer_index:
+      # assuming a list of answers
+      if answer_num in answer_indexes:
         plaintext_index = 1
         num_selected_answers += 1
 
