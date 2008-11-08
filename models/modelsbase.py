@@ -85,7 +85,7 @@ class ElectionBase(DBObject):
 
   def get_voters_hash(self):
     voters = self.get_voters()
-    voters_json = utils.to_json([v.toJSONDict() for v in voters])
+    voters_json = utils.to_json([v.toJSONDict(with_vote=False, with_vote_hash=False) for v in voters])
     # logging.info("json for voters is: " + voters_json)
     return utils.hash_b64(voters_json)
 
@@ -270,7 +270,7 @@ class ElectionExponentAccessor(object):
   def __getitem__(self, value):
     return int(models.ElectionExponent.get_exp(self.election, str(value)))
     
-class VoterBase(DBObject):  
+class VoterBase(DBObject):
   JSON_FIELDS = ['voter_id','name', 'email','category','vote_hash']
   
   @classmethod
@@ -321,8 +321,11 @@ class VoterBase(DBObject):
 
     return electionalgs.EncryptedVote.fromJSONDict(vote_dict)
     
-  def toJSONDict(self, with_vote = False):
+  def toJSONDict(self, with_vote = False, with_vote_hash = True):
     json_dict = super(VoterBase, self).toJSONDict()
+    
+    if not with_vote_hash:
+      del json_dict['vote_hash']
 
     if not self.email and self.openid_url:
       json_dict['openid'] = self.openid_url
