@@ -124,10 +124,10 @@ by Ben Adida.
 
 <div class="codeblock"><div class="codetitle">&lt;VOTER&gt;</div>
 {"email": "benadida@gmail.com", "name": "Ben Adida",
-"voter_id": "agxoZWxpb3N2b3RpbmdyCwsSBVZvdGVyGCcM"}</div>
+"vote_hash": null, "voter_id": "agxoZWxpb3N2b3RpbmdyCwsSBVZvdGVyGCcM"}</div>
 
 <p>
-    The <tt>voter_id</tt> is unique across all elections hosted at this particular Helios server.
+    The <tt>voter_id</tt> is unique across all elections hosted at this particular Helios server. The <tt>vote_hash</tt> is the SHA1 hash of the voter's encrypted ballot. Until the voter casts a ballot, <tt>vote_hash</tt> is null.
 </p>
 
 <p>
@@ -136,7 +136,7 @@ by Ben Adida.
 
 <div class="codeblock"><div class="codetitle">&lt;VOTER&gt; (2)</div>
 {"name": "Ben Adida", "openid": "http://benadida.myopenid.com",
-"voter_id": "agxoZWxpb3N2b3RpbmdyCwsSBVZvdGVyGCcM"}</div>
+"vote_hash": null, "voter_id": "agxoZWxpb3N2b3RpbmdyCwsSBVZvdGVyGCcM"}</div>
 
 <p>
     In elections where voters are placed in categories (e.g. precincts), an additional <tt>category</tt> field is present:
@@ -144,7 +144,7 @@ by Ben Adida.
 
 <div class="codeblock"><div class="codetitle">&lt;VOTER&gt; (3)</div>
 {"category": "02139", "email": "benadida@gmail.com", "name": "Ben Adida",
-"voter_id": "agxoZWxpb3N2b3RpbmdyCwsSBVZvdGVyGCcM"}</div>
+"vote_hash": null, "voter_id": "agxoZWxpb3N2b3RpbmdyCwsSBVZvdGVyGCcM"}</div>
 
 <p>
     Once a voter has cast a ballot, their JSON representation is augmented with their encrypted vote:
@@ -152,10 +152,16 @@ by Ben Adida.
 
 <div class="codeblock"><div class="codetitle">&lt;VOTER_WITH_VOTE&gt;</div>
 {"category": "02139", "name": "Ben Adida", "openid": "http://benadida.myopenid.com",
-"vote" : &lt;VOTE&gt;,
+"vote" : &lt;VOTE&gt;, "vote_hash": "f1d2d2f924e986ac86fdf7b36c94bcdf32beec15",
 "voter_id": "agxoZWxpb3N2b3RpbmdyCwsSBVZvdGVyGCcM"}</div>
 
-<p>We describe the details of the <tt>&lt;VOTE&gt;</tt> data structure later in this document, once we have described all of the required components.</p>
+<p>
+    We describe the details of the <tt>&lt;VOTE&gt;</tt> data structure later in this document, once we have described all of the required components.
+    </p>
+    
+<p>
+    It may be confusing to note that <tt>vote_hash</tt> and <tt>vote</tt> are both present within the data structure, when the hash is clearly derived from the vote. The reason for the presence of both is that, when voters are listed in a <tt>&lt;VOTER_LIST&gt;</tt>, only the <tt>vote_hash</tt> is listed, not the complete <tt>vote</tt>, for efficiency purposes.
+</p>
 
 <h3>Election</h3>
 
@@ -188,7 +194,7 @@ by Ben Adida.
 
 <p>which, in this case, contains two possible answers (alice and bob), URLs that describe these answers in greater detail, the text of the question, and a short name for the question. The parameter <tt>max</tt> indicates the maximum number of options that a voter can select, most often 1. Note how, given that this <tt>max</tt> value should be a small integer, it is in fact serialized as an integer, not as a string.</p>
 
-<p><tt>voters_hash</tt> is the base64 encoding of the SHA1 hash of the list of voters for the election. The list of voters is a JSON array, where each voter is represented <em>without</em> a cast ballot, of course. For example, a list of voters might be:
+<p><tt>voters_hash</tt> is the base64 encoding of the SHA1 hash of the list of voters for the election. The list of voters is a JSON array, where each voter is represented <em>without</em> a cast ballot and <em>without</em> the <tt>vote_hash</tt>, of course (otherwise <tt>voters_hash</tt> changes as voters cast their ballot). For example, a list of voters might be:
     
 <div class="codeblock"><div class="codetitle">&lt;VOTER_LIST&gt; (example)</div>
 [{"email": "ben@adida.net", "name": "Ben Adida", "voter_id": "453"},
@@ -212,10 +218,19 @@ by Ben Adida.
 "voting_ends_at": null, "voting_starts_at": null}
 </div>
 
+<h3>Election Fingerprint</h3>
+
+<p>
+    Once an election is ready to be used for voting, the administrator <em>freezes</em> the election, at which point Helios prevents changing any of the question parameters and voter registration settings: an open election remains an open election, and a closed election remains closed with a fixed voter list.
+</p>
+
+<p>
+    Such a frozen election can be designated by its <b>Helios Election Fingerprint</b>, which is the base-64-string-encoded SHA1 of the election data structure serialized as JSON (with properly alphabetized field names). Note how this fingerprint depends on the list of voters if the election registration status is closed, but not if it is open. In any case, this fingerprint does <em>not</em> depend on any cast vote or cast-vote hash.
+</p>
 
 <h3>Vote</h3>
 
-<p>A vote contains a list of encrypted answers, and a reference to the election, both by ID (for convenience) and by hash (for integrity.)</p>
+<p>A vote contains a list of encrypted answers, and a reference to the election, both by ID (for convenience) and by hash (for integrity.) The hash is the election fingerprint just described.</p>
 
 <div class="codeblock"><div class="codetitle">&lt;VOTE&gt;</div>
 {"answers": [&lt;ENCRYPTED_ANSWER&gt;, &lt;ENCRYPTED_ANSWER&gt;, ...],
@@ -302,6 +317,16 @@ by Ben Adida.
 [[&lt;QUESTION_1_CANDIDATE_1_PROOF&gt;, &lt;QUESTION_1_CANDIDATE_2_PROOF&gt;, &lt;QUESTION_1_CANDIDATE_3_PROOF&gt;],
  [&lt;QUESTION_2_CANDIDATE_1_PROOF&gt;, &lt;QUESTION_2_CANDIDATE_2_PROOF&gt;]]
 </div>
+
+<h2>A Note on the Source Code in this Specification</h2>
+
+<p>
+   In the rest of this document, we show how to verify various aspects of a Helios election using Python code for concreteness and legibility. We assume that certain data structures have been defined: <tt>election</tt>, <tt>vote</tt>, <tt>proof</tt>, <tt>disjunctive_proof</tt>, and a few others, all of which correspond to collections of fields that directly map to the JSON data structures described above. However, we note that a verification program need not necessarily parse these JSON strings into custom Python objects. It is perfectly acceptable to extract individual fields when necessary.
+</p>
+
+<p>
+    In particular, in a number of cases, our sample code will call <tt>election.toJSON()</tt>, or <tt>vote.toJSON()</tt> in order to re-convert the data structure to JSON so that it can be hashed and checked for integrity. A verification program that handles JSON strings directly without de-serializing them to Python objects would obviously not need to re-serialize to JSON, either. The original JSON provided by the Helios server hashes appropriately to the intended values.
+</p>
 
 <h2>Verifying a Single Ballot</h2>
 
