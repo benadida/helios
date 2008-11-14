@@ -27,6 +27,10 @@ class HeliosController(Controller):
   @web
   def learn(self):
     return self.render('learn')
+    
+  @web
+  def faq(self):
+    return self.render('faq')
                     
 
 class AboutController(Controller):

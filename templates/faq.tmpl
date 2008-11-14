@@ -1,0 +1,26 @@
+#include "templates/header.tmpl"
+	<h2 class="title">Frequently Asked Questions</h2>
+
+<dl class="faq">
+    
+    <dt>Q. Why am I being asked to log in with my Google Account?</dt>
+    <dd>For scalability, Helios is currently hosted at <a href="http://code.google.com/appengine">Google App Engine</a>, and we use Google Accounts for logging in so you don't need to remember yet another password. You do <em>not</em> need to have or use a Google Account to be a voter, only to be an election administrator.</dd>
+    <br />
+    <dt>Q. So Google and Helios know who I voted for?</dt>
+    <dd>As long as you manage the election yourself or along with trustees, your vote is encrypted with the election public key before it leaves your browser, and neither Helios nor Google App Engine can decrypt it. If you select "Helios manages my election", then it is technically possible for Helios to decrypt your vote, since Helios holds the decryption key.</dd>
+    <br />
+    <dt>Q. But Google and Helios can change the election result and I wouldn't know the difference.</dt>
+    <dd>Definitely not. The point of an open-audit election is that you don't trust the election administrators. The election result comes with a mathematical proof of the tally, and even Google with its very powerful computers cannot fake this proof without being caught. Even if you choose to let Helios manage your election, Helios cannot fake the proof.</dd>
+    <br />
+    <dt>Q. Still, I do not trust Google.</dt>
+    <dd>Remember that you are <em>not</em> asked to trust Google here: the administrator cannot corrupt the election result. But fair enough. We're working on a version of Helios that does not require Google App Engine. </dd>
+    <br />
+    <dt>Q. How do you expect the average voter to understand this complex math?</dt>
+    <dd>Most people don't know how cars or MRI machines work, but they know to ask a disinterested expert whether those work well. The same goes for Helios and open-audit voting: anyone has access to all of the details needed to understand the underlying proofs, but if someone doesn't have the time, they can ask a friend who does.</dd>
+</dl>
+
+<p>
+    More questions? Email <a href="mailto:ben@adida.net">Ben</a>.
+</p>
+
+#include "templates/footer.tmpl"

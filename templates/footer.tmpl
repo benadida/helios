@@ -5,14 +5,14 @@
 <div id="footer" xmlns:cc="http://creativecommons.org/ns#">
     <p style="font-size: 10pt; text-align: center;">
         [<a href="/">Home</a>]&nbsp;
+        #set $user = session.get_session().get_user()
+        #if $user
+            [<a href="/user/">My Elections</a>]
+        #else
+            [<a href="/user/">Login/Register</a>]
+        #end if
+        &nbsp;
         [<a href="/learn">Learn</a>] &nbsp;
-    #set $user = session.get_session().get_user()
-    #if $user
-        [<a href="/user/">My Elections</a>]
-    #else
-        [<a href="/user/">Login/Register</a>]
-    #end if
-    &nbsp;
     [<a href="http://blog.heliosvoting.org/">Blog/Updates</a>]
     </p>
 
