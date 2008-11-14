@@ -606,16 +606,28 @@ class ElectionController(REST.Resource):
     return self.render('vote')
     
   @web
-  def bboard(self, election):
+  def bboard(self, election, voter_email=None, voter_openid=None, after=None, offset=0, limit=20):
     """
     Display a list of encrypted votes
     """
+    offset = int(offset)
+    limit = int(limit)
     if not election.is_frozen():
       self.redirect("./view")
       
-    # load all voters
-    voters = election.get_voters()
-    
+    # if there's a specific voter
+    if voter_email or voter_openid:
+      voters = [do.Voter.selectByEmailOrOpenID(election, email=voter_email, openid_url=voter_openid)]
+    else:
+      # load a bunch of voters
+      voters = election.get_voters(after=after, limit=limit+1)
+      
+    more_p = len(voters) > limit
+    if more_p:
+      voters = voters[0:limit]
+      next_after = voters[limit-1].voter_id
+      next_offset = offset + limit
+
     return self.render('bboard')
 
   @web

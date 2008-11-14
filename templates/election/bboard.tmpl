@@ -1,6 +1,23 @@
 #include "templates/header.tmpl"
   <h2 class="title">$election.name &mdash; Bulletin Board <span style="font-size:0.7em;">[<a href="./view">done</a>]</span></h2>
 
+<h3>Search</h3>
+<form method="get" action="">
+    Voter Email: <input type="text" name="voter_email" size="40" value="$voter_email" />
+    <input type="submit" value="search" />
+</form>
+<br /><br />
+#if $voter_email or $voter_openid
+<b>currently viewing voter ${voter_email or voter_openid}</b>. [<a href="./bboard">Show All</a>]
+<br /><br />
+#end if
+Voters ${offset+1} - ${offset+$limit} &nbsp;&nbsp;
+#if $after
+<a href="./bboard">back to start</a> &nbsp;&nbsp;
+#end if
+#if $more_p
+<a href="./bboard?after=$next_after&offset=$next_offset">next $limit</a>
+#end if
 <table class="pretty">
 <tr><th>Name</th><th>Ballot Fingerprint</th></tr>
 #for $voter in $voters
