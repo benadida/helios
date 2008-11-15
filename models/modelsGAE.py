@@ -123,6 +123,17 @@ class Voter(mbase.VoterBase):
     super(Voter, self).save()
       
 ##
+## Vote
+##
+class Vote(mbase.VoteBase):
+  voter = db.ReferenceProperty(Voter)
+  cast_at = db.DateTimeProperty(auto_now_add=True)
+  vote = db.TextProperty()
+  vote_hash = db.StringProperty()
+
+  JSON_FIELDS = mbase.VoteBase.JSON_FIELDS
+  
+##
 ## Distributed Decryption
 ##
 

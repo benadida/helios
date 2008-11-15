@@ -303,6 +303,15 @@ class VoterBase(DBObject):
     self.vote = votes_json_string
     self.vote_hash = self.compute_vote_hash()
     self.cast_id = str(datetime.datetime.utcnow()) + str(self.voter_id)
+    
+    # store the vote
+    v = models.Vote()
+    v.cast_at = datetime.datetime.utcnow()
+    v.vote = votes_json_string
+    v.vote_hash = self.vote_hash
+    v.voter = self
+    v.insert()
+    
     self.save()
 
   def get_vote_hash(self):
@@ -341,6 +350,12 @@ class VoterBase(DBObject):
       del json_dict['category']
 
     return json_dict
+    
+##
+## Keep track of all cast votes
+##
+class VoteBase(DBObject):
+  JSON_FIELDS = ['vote_id', 'cast_at', 'vote']
 
 ##
 ## Machine API
