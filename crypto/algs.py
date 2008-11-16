@@ -479,7 +479,7 @@ class EGCiphertext:
           print "bad proof %s, %s, %s" % (i, plaintexts[i], proof.proofs[i])
           return False
           
-      logging.info("made it past the two encryption proofs")
+      # logging.info("made it past the two encryption proofs")
           
       # check the overall challenge
       return (challenge_generator([p.commitment for p in proof.proofs]) == (sum([p.challenge for p in proof.proofs]) % self.pk.q))

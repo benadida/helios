@@ -300,6 +300,17 @@ class VoterBase(DBObject):
     self.password = utils.random_string(10)
 
   def set_encrypted_vote(self, votes_json_string):
+    # Check the proof on the vote
+    pk = self.election.get_pk()
+    election_obj = self.election.toElection()
+    vote_dict = utils.from_json(votes_json_string)
+    enc_vote = electionalgs.EncryptedVote.fromJSONDict(vote_dict, pk)
+    
+    # verify
+    if not enc_vote.verify(election_obj):
+      raise Exception("Vote does not verify")
+      
+    # store this current vote in the voter structure
     self.vote = votes_json_string
     self.vote_hash = self.compute_vote_hash()
     self.cast_id = str(datetime.datetime.utcnow()) + str(self.voter_id)
