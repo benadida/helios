@@ -207,10 +207,10 @@ def _valueForName(obj, name, executeCallables=False):
     nameChunks=name.split('.')
     for i in range(len(nameChunks)):
         key = nameChunks[i]
-        if hasattr(obj, 'has_key') and obj.has_key(key):
-            nextObj = obj[key]
-        elif hasattr(obj, key):
+        if hasattr(obj, key):
             nextObj = getattr(obj, key)
+        elif hasattr(obj, 'has_key') and obj.has_key(key):
+            nextObj = obj[key]
         else:
             _raiseNotFoundException(key, obj)
         
