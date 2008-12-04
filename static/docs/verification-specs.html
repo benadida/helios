@@ -55,19 +55,21 @@ by Ben Adida.
 <pre>
     http://www.heliosvoting.org/elections/&lt;ELECTION_ID&gt;/voters?with_vote=1</pre>
 
-    <p>
-        It is recommended that lists of voters with their votes be downloaded in batches of no more than 50, which can be done with an additional URL argument:
-    </p>
+<p>
+    It is recommended that lists of voters with their votes be downloaded in batches of no more than 50, which can be done with an additional URL argument:
+</p>
 
-    <pre> http://www.heliosvoting.org/elections/&lt;ELECTION_ID&gt;/voters?with_vote=1&amp;limit=50</pre>
+<pre>
+    http://www.heliosvoting.org/elections/&lt;ELECTION_ID&gt;/voters?with_vote=1&amp;limit=50
+</pre>
 
-        <p>
-            And the next batch can be requested using the <tt>after</tt> parameter:
-        </p>
+<p>
+    And the next batch can be requested using the <tt>after</tt> parameter:
+</p>
 
-        <pre>
-http://www.heliosvoting.org/elections/&lt;ELECTION_ID&gt;/voters?with_vote=1&amp;after=&lt;PREVIOUS_BATCH_LAST_VOTER_ID&gt;&amp;limit=50</pre>
-
+<pre>
+    http://www.heliosvoting.org/elections/&lt;ELECTION_ID&gt;/voters?with_vote=1&amp;after=&lt;PREVIOUS_BATCH_LAST_VOTER_ID&gt;&amp;limit=50
+</pre>
 
 <p>
     The result of an election is available at:

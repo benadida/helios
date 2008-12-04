@@ -307,8 +307,9 @@ class VoterBase(DBObject):
     enc_vote = electionalgs.EncryptedVote.fromJSONDict(vote_dict, pk)
     
     # verify
-    if not enc_vote.verify(election_obj):
-      raise Exception("Vote does not verify")
+    # turned off for now (Ben- 2008-11-28)
+    #if not enc_vote.verify(election_obj):
+    #  raise Exception("Vote does not verify")
       
     # store this current vote in the voter structure
     self.vote = votes_json_string
