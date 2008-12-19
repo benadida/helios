@@ -8,7 +8,7 @@ ben@adida.net
 """
 
 import math, sha, logging
-from base import randpool, number
+import randpool, number
 
 import numtheory
 

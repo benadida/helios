@@ -6,7 +6,6 @@ Ben Adida
 """
 
 import algs
-from base import utils
 import logging
 
 class EncryptedAnswer(object):
