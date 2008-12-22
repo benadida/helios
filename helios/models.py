@@ -25,35 +25,35 @@ class Election(models.Model, JSONObject):
   admin = models.ForeignKey(auth_models.User)
   
   # if machine-able API
-  api_client = models.ForeignKey('APIClient')
+  api_client = models.ForeignKey('APIClient', null=True)
   
   name = models.CharField(max_length=500)
-  public_key = JSONField()
-  private_key = JSONField()
-  questions = JSONField()
+  public_key = JSONField(null=True)
+  private_key = JSONField(null=True)
+  questions = JSONField(null=True)
   
   # voter list fixed or open
   openreg_enabled = models.BooleanField(default=False)
 
   # dates at which things happen for the election
-  frozen_at = models.DateTimeField(auto_now_add=False)
-  voting_starts_at = models.DateTimeField(auto_now_add=False)
-  voting_ends_at = models.DateTimeField(auto_now_add=False)
-  archived_at = models.DateTimeField(auto_now_add=False, default=None)
+  frozen_at = models.DateTimeField(auto_now_add=False, null=True)
+  voting_starts_at = models.DateTimeField(auto_now_add=False, null=True)
+  voting_ends_at = models.DateTimeField(auto_now_add=False, null=True)
+  archived_at = models.DateTimeField(auto_now_add=False, default=None, null=True)
 
   # encrypted tally, each a JSON string
   # used only for homomorphic tallies
-  encrypted_tally = JSONField()
+  encrypted_tally = JSONField(null = True)
 
   # results of the election
-  running_tally = JSONField()
-  result_json = JSONField()
+  running_tally = JSONField(null=True)
+  result_json = JSONField(null=True)
 
   # decryption proof, a JSON object
-  decryption_proof = JSONField()
+  decryption_proof = JSONField(null=True)
 
   # type of election (homomorphic, mixnet, possibly with more detail)
-  election_type = models.CharField(max_length=300)
+  election_type = models.CharField(max_length=300, default='homomorphic')
 
   def toJSONDict(self):
     # JSON fields, no need!
@@ -275,32 +275,29 @@ class Voter(models.Model):
   
   voter_id = models.AutoField(primary_key=True)
   election = models.ForeignKey(Election)
-  email = models.EmailField()
-  openid_url = models.URLField()
-  name = models.CharField(max_length=300)
-  password = models.CharField(max_length=20)
+  email = models.EmailField(null=True)
+  openid_url = models.URLField(null=True)
+  name = models.CharField(max_length=300,null=True)
+  password = models.CharField(max_length=20, null=True)
 
   # an identifier of when the vote was cast
   # in an open registration election, the cast_id isn't set
   # until the verification happens.
-  cast_id = models.CharField(max_length=100)
-  tallied_at = models.DateTimeField(auto_now_add=False, default=None)
+  cast_id = models.CharField(max_length=100, null=True)
+  tallied_at = models.DateTimeField(auto_now_add=False, default=None, null=True)
   
   # each answer to a question is a JSON string
-  vote = JSONField()
-  vote_hash = models.CharField(max_length=40)
+  vote = JSONField(null=True)
+  vote_hash = models.CharField(max_length=40, null=True)
   
   # categorize voters
-  category = models.CharField(max_length=100)
-  
-  ###
-  ### WORK HERE!
-  ###
+  category = models.CharField(max_length=100, null=True)
   
   @classmethod
   def selectByEmailOrOpenID(cls, election, email, openid_url):
     email_voter = openid_voter = None
     
+    ## FIXME
     if email:
       email_voter = cls.selectByKeys({'election': election, 'email': email})
     
@@ -367,7 +364,7 @@ class Voter(models.Model):
     return electionalgs.EncryptedVote.fromJSONDict(vote_dict)
     
   def toJSONDict(self, with_vote = False, with_vote_hash = True):
-    json_dict = super(VoterBase, self).toJSONDict()
+    json_dict = super(Voter, self).toJSONDict()
     
     if not with_vote_hash:
       del json_dict['vote_hash']
@@ -390,50 +387,55 @@ class Voter(models.Model):
 ##
 ## Keep track of all cast votes
 ##
-class VoteBase(DBObject):
+class Vote(models.Model):
   JSON_FIELDS = ['vote_id', 'cast_at', 'vote']
+  
+  vote_id = models.AutoField(primary_key=True)
+  voter = models.ForeignKey(Voter, related_name = 'all_votes')
+  cast_at = models.DateTimeField(auto_now_add=True)
+  vote = JSONField()
+  vote_hash = models.CharField(max_length=100)
 
 ##
 ## Machine API
 ##
 
-class APIClient(DBObject):
+class APIClient(models.Model):
+  api_client_id = models.AutoField(primary_key=True)
+  consumer_key = models.CharField(max_length=100)
+  consumer_secret = models.CharField(max_length=100)
+  access_token = models.CharField(max_length=100)
+  access_token_secret = models.CharField(max_length=100)
+
   @classmethod
   def get_by_consumer_key(cls, consumer_key):
     if not consumer_key: return None
-    return cls.selectByKey('consumer_key', consumer_key)
+    return cls.objects.get(consumer_key = consumer_key)
 
 
 ##
 ## Distributed Decryption
 ##
 
-class KeyShareBase(DBObject):
+class KeyShare(models.Model):
   JSON_FIELDS = ['email','pk','pok', 'decryption_factors', 'decryption_proofs']
   
+  keyshare_id = models.AutoField(primary_key = True)
+  
+  election = models.ForeignKey(Election)
+  pk = JSONField(null=True)
+  pok = JSONField(null=True)
+  email = models.EmailField()
+  password = models.CharField(max_length=50, null=True)
+  
+  # storing the partial decryption factors
+  decryption_factors = JSONField(null=True)
+  decryption_proofs = JSONField(null=True)  
+
+  
   def get_pk(self):
-    if not self.pk_json: return None
-    return algs.EGPublicKey.fromJSONDict(utils.from_json(self.pk_json))
-
-  def get_pok(self):
-    if not self.pok_json: return None
-    return utils.from_json(self.pok_json)
-    
-  def get_decryption_factors(self):
-    if not self.decryption_factors_json: return None
-    return utils.from_json(self.decryption_factors_json)
-
-  def get_decryption_proofs(self):
-    if not self.decryption_proofs_json: return None
-    return utils.from_json(self.decryption_proofs_json)
+    if not self.pk: return None
+    return algs.EGPublicKey.fromJSONDict(self.pk)
 
   def generate_password(self):
     self.password = utils.random_string(16)
-  
-  def toJSONDict(self):
-    self.pk = self.get_pk()
-    self.pok = self.get_pok()
-    self.decryption_factors = self.get_decryption_factors()
-    self.decryption_proofs = self.get_decryption_proofs()
-      
-    return DBObject.toJSONDict(self)
