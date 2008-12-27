@@ -22,7 +22,6 @@ urlpatterns = patterns('',
 
     # user stuff
     (r'^user/$', user_home),
-    (r'^user/login$', user_login),
     (r'^user/logout$', user_logout),
     
     # election
@@ -35,5 +34,14 @@ urlpatterns = patterns('',
     (r'^elections/new_3$', election_new_3),
     
     (r'^elections/(?P<election_id>[^/]+)/', include('helios.election_urls')),
+    
+    # static hack -- DO DIFFERENTLY FOR PRODUCTION
+    # static
+    (r'^static/(?P<path>.*)$', 'django.views.static.serve',
+            {'document_root': '/web/dev-helios/static'}),
+
+    # accounts
+    (r'^accounts/login/$', 'django.contrib.auth.views.login', {'template_name': 'login.html'}),
+
     
 )

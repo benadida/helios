@@ -194,7 +194,7 @@ class Election(object):
     return_value = {
       'election_id' : self.election_id,
       'name' : self.name,
-      'pk' : self.pk.toJSONDict(),
+      'public_key' : self.pk.toJSONDict(),
       'questions' : self.questions,
       'voting_starts_at' : self.voting_starts_at,
       'voting_ends_at' : self.voting_ends_at
@@ -218,8 +218,8 @@ class Election(object):
     el.voting_ends_at = d['voting_ends_at']
     el.questions = d['questions']
     
-    if d['pk']:
-      el.pk = algs.EGPublicKey.fromJSONDict(d['pk'])
+    if d['public_key']:
+      el.pk = algs.EGPublicKey.fromJSONDict(d['public_key'])
     else:
       el.pk = None
 

@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+{% block content %}
+<script language="javascript">
+$(document).ready(function() {
+  $('#bulk_upload').hide();
+  $('#input_name').focus();
+});
+
+var VOTERS = {{voters_json|safe}};
+
+function select_all() {
+    $(VOTERS).each(function(v_num, v) {
+        $('#checkbox_voter_' + v.voter_id).attr('checked', true);
+    });
+}
+
+function deselect_all() {
+    $(VOTERS).each(function(v_num, v) {
+        $('#checkbox_voter_' + v.voter_id).attr('checked', false);
+    });    
+}
+
+function select_all_voted() {
+    $(VOTERS).each(function(v_num, v) {
+        $('#checkbox_voter_' + v.voter_id).attr('checked', v.vote_hash != null);
+    });    
+}
+
+function select_all_not_voted() {
+    $(VOTERS).each(function(v_num, v) {
+        $('#checkbox_voter_' + v.voter_id).attr('checked', v.vote_hash == null);
+    });        
+}
+
+function get_selected_list() {
+    var list_of_voters = []
+    $(VOTERS).each(function(v_num, v) {
+        if ($('#checkbox_voter_' + v.voter_id).attr('checked')) {
+            list_of_voters.push(v.voter_id);
+        }
+    });
+
+    return list_of_voters;
+}
+
+function delete_voters() {
+    var voters = get_selected_list().join(",");
+    if (voters == "") {
+        alert ('no voters selected!');
+        return false;
+    }
+
+    if (!confirm('Are you sure you want to delete these voters?'))
+        return;
+    
+    $.post('voters_delete', {'voter_ids': voters}, function(result) {
+        alert('done!');
+        document.location = "./view";
+    });
+}
+
+function email_voters() {
+    var voters = get_selected_list().join(",");
+    if (voters == "") {
+        alert ('no voters selected!');
+        return false;
+    }
+        
+    // add to the form
+    $('#voters_email_voter_ids').val(voters);
+    $('#voters_email_form').submit();
+    // document.location = "./voters_email?voter_ids=" + encodeURIComponent(voters);
+}
+</script>
+
+<h2 class="title">{{election.name}} &mdash; Voters <span style="font-size:0.7em;">[<a href="./view">done</a>]</span></h2>
+
+{% if election.openreg_enabled %}
+<p>
+    This election is configured with <b>open voter registration</b>, which means the list of voters is not fixed at the time that the election begins. You can add voters at any time.
+</p>
+
+{% if election.is_frozen %}
+<p>
+    The election is frozen, so you cannot switch it back to closed registration anymore.
+</p>
+{% else %}
+<form method="post" action="./set_reg"><input type="hidden" name="open_p" value="0" /><input class="pretty" type="submit" value="switch to closed registration" /></form>
+{% endif %}
+
+{% else %}
+<p>
+    This election is configured with <b>closed voter registration</b>, which means that all voters must be listed before the election is frozen, and thus before the election begins.
+</p>
+
+{% if election.is_frozen %}
+{% else %}
+<form method="post" action="./set_reg"><input type="hidden" name="open_p" value="1" /><input class="pretty" type="submit" value="switch to open registration" /></form>
+{% endif %}
+{% endif %}
+
+{% if election.can_add_voters %}
+<p>
+    <a onclick="javascript:$('#bulk_upload').show();" href="#">bulk upload</a>
+</p>
+{% endif %}
+
+<form id="bulk_upload" action="voters_bulk_upload" method="post">
+Bulk Upload Voters in CSV format, with name, email, and category as the 3 fields in the CSV:<br />
+<textarea name="voters_csv" rows="5" cols="70" wrap="soft" class="pretty">
+</textarea><br />
+<input type="submit" value="bulk upload" />
+</form>
+
+<p align="center">
+<button onclick="select_all()">all</button>
+<button onclick="deselect_all()">none</button>
+<button onclick="select_all_voted()">voted</button>
+<button onclick="select_all_not_voted()">not voted</button>
+</p>
+
+<table class="pretty">
+<tr><th>Name</th><th>Email</th><th>Category</th><th>&nbsp;</th></tr>
+{% for voter in voters %}
+<tr><td>{{voter.name}}</td><td>{{voter.email}}</td><td>{{voter.category}}&nbsp;</td>
+<td>
+<input type="checkbox" id="checkbox_voter_{{voter.voter_id}}" name="voter_id" value="{{voter.voter_id}}">
+</td>
+</tr>
+{% endfor %}
+
+{% if election.can_add_voters %}
+<form method="post" action="voters/add">
+<tr>
+<td><input type="text" name="name" size="20" class="prettysmall" id="input_name" /></td>
+<td><input type="text" name="email" size="20" class="prettysmall" /></td>
+<td><input type="text" name="category" size="10" class="prettysmall" /></td>
+<td align="center"><input type="submit" value="add" class="prettysmall" /></td>
+</tr>
+</form>
+{% endif %}
+</table>
+
+<p align="center">
+Act on those voters you have selected above:<br />
+{% if election.can_add_voters %}
+<button onclick="delete_voters();">delete</button> &nbsp;&nbsp;&nbsp;
+{% endif %}
+<button onclick="email_voters();">email</button>
+<form method="post" action="voters_email" id="voters_email_form">
+<input type="hidden" name="voter_ids" id="voters_email_voter_ids" />
+</form>
+</p>
+
+{% endblock %}

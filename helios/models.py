@@ -17,7 +17,7 @@ from json import JSONField, JSONObject, dumps, loads
 
 class Election(models.Model, JSONObject):
   # when JSON'ified
-  JSON_FIELDS = ['election_id', 'name', 'pk', 'questions', 'voters_hash', 'openreg', 'voting_starts_at', 'voting_ends_at']
+  JSON_FIELDS = ['election_id', 'name', 'public_key', 'questions', 'voters_hash', 'openreg', 'voting_starts_at', 'voting_ends_at']
   
   election_id = models.AutoField(primary_key=True)
   
@@ -28,8 +28,8 @@ class Election(models.Model, JSONObject):
   api_client = models.ForeignKey('APIClient', null=True)
   
   name = models.CharField(max_length=500)
-  public_key = JSONField(null=True)
-  private_key = JSONField(null=True)
+  public_key = JSONField(json_obj_class = algs.EGPublicKey, null=True)
+  private_key = JSONField(json_obj_class = algs.EGSecretKey, null=True)
   questions = JSONField(null=True)
   
   # voter list fixed or open
@@ -82,8 +82,7 @@ class Election(models.Model, JSONObject):
     if category:
       keys['category'] = category
     
-    keys['voter_id__gte'] = after
-    query = Voter.objects.filter(*keys).order_by('voter_id')
+    query = Voter.objects.filter(**keys).order_by('voter_id')
     if limit:
       return query[:limit]
     else:
@@ -110,6 +109,15 @@ class Election(models.Model, JSONObject):
 
   def is_frozen(self):
     return self.frozen_at != None
+    
+  def in_progress_p(self):
+    return (not self.tally) and (not self.result)
+    
+  def has_keyshares(self):
+    return len(self.get_keyshares()) > 0
+    
+  def can_add_voters(self):
+    return (not self.is_frozen() or self.openreg_enabled) and not self.result_json
 
   def set_result(self, tally_d, proof_d):
     self.result = tally_d
@@ -133,7 +141,7 @@ class Election(models.Model, JSONObject):
     
     for v in self.get_voters():
       v.tallied_at = None
-      v.save()    
+      v.save()
     
   def tally_chunk(self):
     """
@@ -163,7 +171,7 @@ class Election(models.Model, JSONObject):
       running_tally = election_obj.init_tally()
 
     # tally the vote (includes verification)
-    first_uncounted_vote.pk = election_obj.pk
+    first_uncounted_vote.public_key = election_obj.public_key
     running_tally.add_vote(first_uncounted_vote)
     
     self.running_tally = running_tally
@@ -219,7 +227,7 @@ class ElectionExponent(models.Model):
   
   @classmethod
   def get_max_by_election(cls, election):
-    all_exps = cls.objects.filter(election = election).order_by('exponent desc')
+    all_exps = cls.objects.filter(election = election).order_by('-exponent')
     if len(all_exps) == 0:
       return None
     else:
@@ -229,7 +237,7 @@ class ElectionExponent(models.Model):
   def add_exp_to_election(cls, election):
     the_max = cls.get_max_by_election(election)
     
-    pk = election.pk
+    pk = election.public_key
     
     # no pk yet? Oh well
     ## FIXME: may want to be careful about this use case, though it should be ok
@@ -270,7 +278,7 @@ class ElectionExponentAccessor(object):
     return int(ElectionExponent.get_exp(self.election, str(value)))
     
     
-class Voter(models.Model):
+class Voter(models.Model, JSONObject):
   JSON_FIELDS = ['voter_id','name', 'email','category','vote_hash']
   
   voter_id = models.AutoField(primary_key=True)
@@ -310,12 +318,16 @@ class Voter(models.Model):
             
     return email_voter or openid_voter
     
-  def save(self):
+  def is_saved(self):
+    # FIXME
+    return False
+    
+  def save(self, *args, **kwargs):
     if not self.is_saved():
       # add an election exponent
-      models.ElectionExponent.add_exp_to_election(self.election)
+      ElectionExponent.add_exp_to_election(self.election)
     
-    super(VoterBase, self).save()
+    super(Voter, self).save(*args, **kwargs)
       
   def generate_password(self):
     self.password = utils.random_string(10)
@@ -387,7 +399,7 @@ class Voter(models.Model):
 ##
 ## Keep track of all cast votes
 ##
-class Vote(models.Model):
+class Vote(models.Model, JSONObject):
   JSON_FIELDS = ['vote_id', 'cast_at', 'vote']
   
   vote_id = models.AutoField(primary_key=True)

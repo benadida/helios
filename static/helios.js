@@ -99,6 +99,10 @@ HELIOS.Election.fromJSONObject = function(d) {
   el.name = d.name; el.voters_hash = d.voters_hash; el.voting_starts_at = d.voting_starts_at; el.voting_ends_at = d.voting_ends_at;
   el.questions = d.questions;
   
+  // empty questions
+  if (!el.questions)
+    el.questions = [];
+  
   if (d.pk)
     el.pk = ElGamal.PublicKey.fromJSONObject(d.pk);
     

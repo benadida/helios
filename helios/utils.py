@@ -9,6 +9,8 @@ import urllib, re, sys, datetime, urlparse, string
 import threading
 
 from django.utils import simplejson
+
+from django.conf import settings
   
 import random
 import sha, hmac, base64
@@ -156,6 +158,9 @@ def random_string(length=20):
         r_string += random.choice(ALPHABET)
 
     return r_string
+
+def get_host():
+  return settings.SERVER_HOST
 
 ##
 ## Datetime utilities

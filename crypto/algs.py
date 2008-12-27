@@ -278,7 +278,7 @@ class EGSecretKey:
           }
 
     def to_dict(self):
-        return {'x' : str(self.x), 'pk' : self.pk.to_dict()}
+        return {'x' : str(self.x), 'public_key' : self.pk.to_dict()}
         
     toJSONDict = to_dict
 
@@ -289,7 +289,10 @@ class EGSecretKey:
           
         sk = cls()
         sk.x = int(d['x'])
-        sk.pk = EGPublicKey.from_dict(d['pk'])
+        if d.has_key('public_key'):
+          sk.pk = EGPublicKey.from_dict(d['public_key'])
+        else:
+          sk.pk = None
         return sk
         
     fromJSONDict = from_dict
