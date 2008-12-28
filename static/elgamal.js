@@ -165,7 +165,7 @@ ElGamal.SecretKey = Class.extend({
 
 ElGamal.SecretKey.fromJSONObject = function(d) {
   var sk = new ElGamal.SecretKey();
-  sk.pk = ElGamal.PublicKey.fromJSONObject(d.pk);
+  sk.pk = ElGamal.PublicKey.fromJSONObject(d.public_key);
   sk.x = BigInt.fromJSONObject(d.x);
   return sk;
 }

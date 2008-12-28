@@ -8,6 +8,8 @@ Ben Adida
 import algs
 import logging
 
+from helios import utils
+
 class EncryptedAnswer(object):
   """
   An encrypted answer to a single election question

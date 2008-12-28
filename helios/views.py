@@ -122,7 +122,7 @@ def election_new_3(request):
   
   # we need a list of admins, or at least a public key
   if not trustee and not public_key:
-    raise Http500('Need a list of trustees or a public key')
+    raise HttpResponseServerError('Need a list of trustees or a public key')
   
   # create an election
   # FIXME: api client needs to be added here
@@ -199,8 +199,9 @@ def one_election_result_proof(request, election):
   return HttpResponse("election result proof %s" % election.election_id)
 
 @election_view
+@json
 def one_election_get_voter_by_email(request, election):
-  return HttpResponse("election get voter by email %s" % election.election_id)
+  return Voter.objects.get(election = election, email = request.GET['email']).toJSONDict()
 
 @election_view
 def one_election_get_voter_by_openid(request, election):
@@ -211,14 +212,38 @@ def one_election_vote(request, election):
   """
   UI to vote in an election
   """
-  return HttpResponse("election vote UI %s" % election.election_id)
+  return render_template(request, "vote", {'election': election})
 
 @election_view
 def one_election_bboard(request, election):
   """
   UI to show election bboard
   """
-  return HttpResponse("election bboard %s" % election.election_id)
+  offset = int(request.GET.get('offset', 0))
+  limit = int(request.GET.get('limit', 20))
+
+  if not election.is_frozen():
+    return HttpResponseRedirect("./view")
+    
+  # if there's a specific voter
+  if request.GET.has_key('voter_email') or request.GET.has_key('voter_openid'):
+    voters = [Voter.selectByEmailOrOpenID(election, email= request.GET.get('voter_email', None), openid_url= request.GET.get('voter_openid', None))]
+  else:
+    # load a bunch of voters
+    voters = election.get_voters(after=request.GET.get('after', None), limit=limit+1)
+    
+  more_p = len(voters) > limit
+  if more_p:
+    voters = voters[0:limit]
+    next_after = voters[limit-1].voter_id
+    next_offset = offset + limit
+  else:
+    next_after = None
+    next_offset = None
+    
+  return render_template(request, 'election_bboard', {'election': election, 'voters': voters, 'next_after': next_after,
+                'next_offset': next_offset, 'voter_email': request.GET.get('voter_email', ''),
+                'offset_plus_one': offset+1, 'offset_plus_limit': offset+limit})
   
 @election_admin
 def one_election_set_pk(request, election):
@@ -241,7 +266,97 @@ def one_election_voters_delete(request, election):
 
 @election_admin
 def one_election_voters_email(request, election):
-  return HttpResponse("election voters email %s" % election.election_id)
+  if request.POST.has_key('voter_ids'):
+    voter_id_list = request.POST['voter_ids'].split(",")
+    voters = [Voter.objects.get(voter_id = voter_id) for voter_id in voter_id_list]
+    for voter in voters:
+      if election.election_id != voter.election_id:
+        return HttpResponseServerError("Bad Voter")
+  else:
+    voters = None
+  
+  return render_template(request, 'voters_email', {'voter_ids' : request.POST['voter_ids'], 'voters': voters, 'election': election})
+
+@election_admin
+def one_election_voters_email_2(request, election):
+  after = request.POST.get('after', None)
+  limit = request.POST.get('limit', None)
+    
+  if request.POST.has_key('voter_ids'):
+    raw_voter_id_list = request.POST['voter_ids'].split(",")
+
+    voter_id_list = []
+      
+    if after:
+      # adjust the list given the value of "after"
+      copy_p = False
+    else:
+      copy_p = True
+
+    # mimicking after and limit
+    for v_id in raw_voter_id_list:
+      if copy_p:
+        voter_id_list.append(v_id)
+        
+      if (not copy_p) and (v_id == after):
+        copy_p = True
+          
+      if len(voter_id_list) >= limit:
+        break
+      
+    voters = [Voter.objects.get(voter_id = voter_id) for voter_id in voter_id_list]
+    for voter in voters:
+      if election.election_id != voter.election.election_id:
+        return HttpResponseServerError('bad voter')
+  else: 
+    voters = election.get_voters(after=after, limit=limit)
+
+  last_id = None
+    
+  # send as the owner of the election
+  if request.user.is_authenticated():
+    sender_email = request.user.email
+  else:
+    sender_email = "system@heliosvoting.org"
+
+  for voter in voters:
+    logging.info("sending email to %s" % voter.email)
+    message_header = u"""
+Dear %s,
+
+""" % voter.name
+
+    message_footer = u"""
+
+Election URL: %s
+Direct Voting URL: %s
+Election Fingerprint: %s
+
+Your email address: %s
+Your password: %s
+
+--
+%s
+via the Helios Voting System
+www.heliosvoting.org
+""" % ((settings.SERVER_HOST + '/elections/%s/view')%election.election_id, (settings.SERVER_HOST + '/elections/%s/vote')%election.election_id, election.toElection().get_hash(), voter.email, voter.password, sender_email)
+
+    message = message_header
+    message += unicode(request.POST['introductory_message'])
+    message += message_footer
+
+    # FIXME: do actual mail sending
+    # mail.simple_send([voter.name], [voter.email], "Helios", sender_email,"Voting in Election %s" % election.name, message)
+    logging.error("would be sending mail right now to " + voter.email)
+    
+    last_id = voter.voter_id
+      
+    # did we get less than the limit? if so, done
+    if limit and len(voters) < limit:
+      last_id = None
+
+  # hack for now, no more batching
+  return HttpResponse(last_id or "DONE")
 
 @election_admin
 def one_election_set_reg(request, election):
@@ -257,7 +372,6 @@ def one_election_build(request, election):
 
 @election_admin
 def one_election_save_questions(request, election):
-  import pdb; pdb.set_trace()
   election.questions = utils.from_json(request.POST['questions_json']);
   election.save()
 
@@ -266,7 +380,15 @@ def one_election_save_questions(request, election):
 
 @election_admin
 def one_election_freeze(request, election):
-  return HttpResponse("election freeze %s" % election.election_id)
+  if request.method == "GET":
+    return render_template(request, 'election_freeze', {'election': election})
+  else:
+    election.freeze()
+
+    if request.user.is_authenticated():
+      return HttpResponseRedirect("/elections/%s/view" % election.election_id)
+    else:
+      return SUCCESS    
 
 @election_admin
 def one_election_email_trustees(request, election):
@@ -316,8 +438,44 @@ def one_voter_delete(request, election, voter_id):
 
 @election_view
 def one_voter_submit(request, election, voter_id):
-  return HttpResponse("voter submit for election %s" % election.election_id)
+  election_obj = election.toElection()
   
+  # this will raise an exception if the voter is bad
+  voter = Voter.objects.get(voter_id = voter_id, election = election)
+
+  # if election is not in progress
+  if not election.in_progress_p():
+    return HttpResponseServerError("Election is not/no longer in progress")
+    
+  # password check
+  if voter.password != request.POST['password']:
+    return HttpResponseServerError("Bad Password")
+
+  # set in DB
+  voter.set_encrypted_vote(request.POST['encrypted_vote'])
+    
+  # send a confirmation email
+  mail_body = """
+Dear %s,
+
+Your vote in election "%s" was recorded.
+
+For your verification, we include below the fingerprint of your encrypted vote:
+%s
+
+And, as a reminder, the fingerprint of the election itself is:
+%s
+
+--
+The Helios Voting System
+""" % (voter.name, election_obj.name, voter.get_vote_hash(), election_obj.hash)
+
+  # FIXME: send mail
+  # mail.simple_send([voter.name],[voter.email], "Helios", "system@heliosvoting.org", "your vote was recorded", mail_body)
+  logging.error("would send mail to confirm voter " + voter.email)
+
+  return SUCCESS  
+
 # Trustees
 @election_view
 def trustees_list(request, election):

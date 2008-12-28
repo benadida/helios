@@ -35,7 +35,9 @@
 
 {% else %}
 
-{% if election.get_keyshares %}
+{% if election.has_keyshares %}
+<li> <a href="keyshares_tally_manage">manage trustees' tally</a></li>
+{% else %}
 {% if election.in_progress_p %}
 {% if election.get_sk %}
 <li> <a href="drive_tally_chunk">compute tally</a></li>
@@ -43,8 +45,6 @@
 <li> <a href="drive_tally">compute tally</a></li>
 {% endif %}
 {% endif %}
-{% else %}
-<li> <a href="keyshares_tally_manage">manage trustees' tally</a></li>
 {% endif %}
 
 {% if election.encrypted_tally %}

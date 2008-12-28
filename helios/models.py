@@ -47,7 +47,7 @@ class Election(models.Model, JSONObject):
 
   # results of the election
   running_tally = JSONField(null=True)
-  result_json = JSONField(null=True)
+  result = JSONField(null=True)
 
   # decryption proof, a JSON object
   decryption_proof = JSONField(null=True)
@@ -105,19 +105,19 @@ class Election(models.Model, JSONObject):
 
   def freeze(self):
     self.frozen_at = datetime.datetime.utcnow()
-    self.update()
+    self.save()
 
   def is_frozen(self):
     return self.frozen_at != None
     
   def in_progress_p(self):
-    return (not self.tally) and (not self.result)
+    return ((not self.encrypted_tally) and (not self.result))
     
   def has_keyshares(self):
     return len(self.get_keyshares()) > 0
     
   def can_add_voters(self):
-    return (not self.is_frozen() or self.openreg_enabled) and not self.result_json
+    return (not self.is_frozen() or self.openreg_enabled) and not self.result
 
   def set_result(self, tally_d, proof_d):
     self.result = tally_d
@@ -334,7 +334,7 @@ class Voter(models.Model, JSONObject):
 
   def set_encrypted_vote(self, votes_json_string):
     # Check the proof on the vote
-    pk = self.election.get_pk()
+    pk = self.election.public_key
     election_obj = self.election.toElection()
     vote_dict = utils.from_json(votes_json_string)
     enc_vote = electionalgs.EncryptedVote.fromJSONDict(vote_dict, pk)
@@ -345,25 +345,19 @@ class Voter(models.Model, JSONObject):
     #  raise Exception("Vote does not verify")
       
     # store this current vote in the voter structure
-    self.vote = votes_json_string
+    self.vote = vote_dict
     self.vote_hash = self.compute_vote_hash()
     self.cast_id = str(datetime.datetime.utcnow()) + str(self.voter_id)
     
     # store the vote
-    v = models.Vote()
-    v.cast_at = datetime.datetime.utcnow()
-    v.vote = votes_json_string
-    v.vote_hash = self.vote_hash
-    v.voter = self
-    v.insert()
-    
+    v = Vote.objects.create(cast_at = datetime.datetime.utcnow(), vote = vote_dict, vote_hash = self.vote_hash, voter= self)    
     self.save()
 
   def get_vote_hash(self):
     return self.vote_hash
     
   def compute_vote_hash(self):
-    vote_hash = utils.hash_b64(self.vote)
+    vote_hash = utils.hash_b64(utils.to_json(self.vote))
     return vote_hash
   
   def get_vote(self):
