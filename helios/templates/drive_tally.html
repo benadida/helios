@@ -6,7 +6,7 @@ Helios.setup();
 ELECTION_PK = ElGamal.PublicKey.fromJSONObject({{election_pk_json|safe}});
 var ELECTION_SK = null;
 
-{% if election_sk %}
+{% if election_sk_json %}
 ELECTION_SK = ElGamal.SecretKey.fromJSONObject({{election_sk_json|safe}});
 {% endif %}
 
