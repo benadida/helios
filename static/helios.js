@@ -146,15 +146,19 @@ UTILS.open_window_with_content = function(content) {
 };
 
 // generate an array of the first few plaintexts
-UTILS.generate_plaintexts = function(pk, num) {
+UTILS.generate_plaintexts = function(pk, min, max) {
   var last_plaintext = BigInt.ONE;
 
   // an array of plaintexts
-  var plaintexts = []
+  var plaintexts = [];
+  
+  if (min == null)
+    min = 0;
   
   // questions with more than one possible answer, add to the array.
-  for (var i=0; i<=num; i++) {
-    plaintexts[i] = new ElGamal.Plaintext(last_plaintext, pk, false);
+  for (var i=0; i<=max; i++) {
+    if (i >= min)
+      plaintexts.push(new ElGamal.Plaintext(last_plaintext, pk, false));
     last_plaintext = last_plaintext.multiply(pk.g).mod(pk.p);
   }
   
@@ -191,8 +195,9 @@ HELIOS.EncryptedAnswer = Class.extend({
     var individual_proofs = [];
     var overall_proof = null;
     
-    // possible plaintexts [0, 1, .. , question.max]
-    var plaintexts = UTILS.generate_plaintexts(pk, question.max);
+    // possible plaintexts [question.min .. , question.max]
+    var plaintexts = UTILS.generate_plaintexts(pk, question.min, question.max);
+    var zero_one_plaintexts = UTILS.generate_plaintexts(pk, 0, 1);
     
     // keep track of whether we need to generate new randomness
     var generate_new_randomness = false;    
@@ -220,12 +225,12 @@ HELIOS.EncryptedAnswer = Class.extend({
         randomness[i] = Random.getRandomInteger(pk.q);        
       }
 
-      choices[i] = ElGamal.encrypt(pk, plaintexts[plaintext_index], randomness[i]);
+      choices[i] = ElGamal.encrypt(pk, zero_one_plaintexts[plaintext_index], randomness[i]);
       
       // generate proof
       if (generate_new_randomness) {
         // generate proof that this ciphertext is a 0 or a 1
-        individual_proofs[i] = choices[i].generateDisjunctiveProof(plaintexts, plaintext_index, randomness[i], ElGamal.disjunctive_challenge_generator);        
+        individual_proofs[i] = choices[i].generateDisjunctiveProof(zero_one_plaintexts, plaintext_index, randomness[i], ElGamal.disjunctive_challenge_generator);        
       }
       
       if (progress)
@@ -245,7 +250,14 @@ HELIOS.EncryptedAnswer = Class.extend({
     
       // prove that the sum is 0 or 1 (can be "blank vote" for this answer)
       // num_selected_answers is 0 or 1, which is the index into the plaintext that is actually encoded
-      overall_proof = hom_sum.generateDisjunctiveProof(plaintexts, num_selected_answers, rand_sum, ElGamal.disjunctive_challenge_generator);
+      //
+      // now that "plaintexts" only contains the array of plaintexts that are possible starting with min
+      // and going to max, the num_selected_answers needs to be reduced by min to be the proper index
+      var overall_plaintext_index = num_selected_answers;
+      if (question.min)
+        overall_plaintext_index -= question.min;
+        
+      overall_proof = hom_sum.generateDisjunctiveProof(plaintexts, overall_plaintext_index, rand_sum, ElGamal.disjunctive_challenge_generator);
       if (progress)
         progress.tick();
     }
@@ -409,7 +421,7 @@ HELIOS.EncryptedVote = Class.extend({
   },
   
   verifyProofs: function(pk, outcome_callback) {
-    var zero_or_one = UTILS.generate_plaintexts(pk, 1);
+    var zero_or_one = UTILS.generate_plaintexts(pk, 0, 1);
 
     var VALID_P = true;
     
@@ -431,7 +443,7 @@ HELIOS.EncryptedVote = Class.extend({
         });
         
         // possible plaintexts [0, 1, .. , question.max]
-        var plaintexts = UTILS.generate_plaintexts(pk, self.election.questions[ea_num].max);
+        var plaintexts = UTILS.generate_plaintexts(pk, self.election.questions[ea_num].min, self.election.questions[ea_num].max);
         
         // check the proof on the overall product
         var overall_check = overall_result.verifyDisjunctiveProof(plaintexts, enc_answer.overall_proof, ElGamal.disjunctive_challenge_generator);

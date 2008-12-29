@@ -246,6 +246,7 @@ ElGamal.Ciphertext = Class.extend({
     // go through all plaintexts and simulate the ones that must be simulated.
     // note how the interface is as such so that the result does not reveal which is the real proof.
     var self = this;
+    
     var proofs = $(list_of_plaintexts).map(function(p_num, plaintext) {
       if (p_num == real_index) {
         // no real proof yet
@@ -268,6 +269,7 @@ ElGamal.Ciphertext = Class.extend({
       var commitments = $(proofs).map(function(proof_num, proof) {
         return proof.commitment;
       });
+      
       var disjunctive_challenge = challenge_generator(commitments);
       
       // now we must subtract all of the other challenges from this challenge.
@@ -283,7 +285,7 @@ ElGamal.Ciphertext = Class.extend({
     
     // set the real proof
     proofs[real_index] = real_proof;
-    
+        
     return new ElGamal.DisjunctiveProof(proofs);
   },
   

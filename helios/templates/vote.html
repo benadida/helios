@@ -69,6 +69,23 @@ BOOTH.show_election = function() {
   BOOTH.show($('#election_div')).processTemplate({'election' : BOOTH.election});
 };
 
+// check if the current question is ok
+BOOTH.validate_question = function(question_num) {
+    // check if enough answers are checked
+    if (BOOTH.ballot.answers[question_num].length < BOOTH.election.questions[question_num].min) {
+        alert('You need to select at least ' + BOOTH.election.questions[question_num].min + ' answer(s).');
+        return false;
+    }
+    
+    return true;
+};
+
+BOOTH.validate_and_confirm = function(question_num) {
+  if (BOOTH.validate_question(question_num)) {
+      BOOTH.show_confirm();
+  }
+};
+
 BOOTH.show_question = function(question_num) {
   BOOTH.show_progress('1');
   BOOTH.show($('#question_div')).processTemplate({'question_num' : question_num, 

@@ -13,7 +13,6 @@
 BigInt = Class.extend({
   init: function(value, radix) {
     if (value == null) {
-      debugger;
       throw "null value!";
     }
       

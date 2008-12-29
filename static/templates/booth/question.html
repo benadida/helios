@@ -1,13 +1,18 @@
 
-<h3 style="border-bottom: 1px solid black;">Question #{$T.question_num + 1} </h3>
+<h3 style="border-bottom: 1px solid black;">Question #{$T.question_num + 1} of {$T.last_question_num + 1}</h3>
 
 <form onsubmit="return false;" class="prettyform" id="answer_form">
 <input type="hidden" name="question_num" value="{$T.question_num}" />
 
 <p>
 <em>{$T.question.question}</em>
-
- (select {$T.question.max} answer{#if $T.question.max > 1}s{#/if})
+<br />
+<span style="font-size: 0.6em;">(select 
+{#if $T.question.min && $T.question.min > 0}
+at least {$T.question.min} answer{#if $T.question.min > 1}s{#/if}, 
+{#/if} 
+up to {$T.question.max} answer{#if $T.question.max > 1}s{#/if})
+</span>
 </p>
 
 
@@ -24,16 +29,16 @@
 {#/for}
 
 <div style="float: right;">
-<input type="button" onclick="BOOTH.show_confirm();" value="Review all Choices" />
+<input type="button" onclick="BOOTH.validate_and_confirm({$T.question_num});" value="Review all Choices" />
 </div>
 
 {#if $T.question_num != 0}
-<input type="button" onclick="BOOTH.show_question({$T.question_num -1});" value="Previous" />
+<input type="button" onclick="if (BOOTH.validate_question({$T.question_num})) {BOOTH.show_question({$T.question_num -1});}" value="Previous" />
 &nbsp;
 {#/if}
 
 {#if $T.question_num < $T.last_question_num}
-<input type="button" onclick="BOOTH.show_question({$T.question_num +1});" value="Next" />
+<input type="button" onclick="if (BOOTH.validate_question({$T.question_num})) {BOOTH.show_question({$T.question_num +1});}" value="Next" />
 &nbsp;
 {#/if}
 
