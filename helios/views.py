@@ -73,8 +73,15 @@ def about(request):
 
 @login_required
 def user_home(request):
+  include_archived = request.GET.get('include_archived', False)
+  
   user = get_user(request)
-  elections = Election.objects.filter(admin = user)
+  
+  if include_archived:
+    elections = Election.objects.filter(admin = user)
+  else:
+    elections = Election.objects.filter(admin = user, archived_at = None)
+    
   return render_template(request, "user_home", {'elections' : elections, 'include_archived':request.GET.get('include_archived', 0)})
   
 def user_logout(request):
@@ -364,7 +371,16 @@ def one_election_set_reg(request, election):
 
 @election_admin
 def one_election_archive(request, election):
-  return HttpResponse("election archive %s" % election.election_id)
+  
+  archive_p = request.GET.get('archive_p', True)
+  
+  if bool(int(archive_p)):
+    election.archived_at = datetime.datetime.utcnow()
+  else:
+    election.archived_at = None
+  election.save()
+
+  return HttpResponseRedirect('./view')
 
 @election_admin
 def one_election_build(request, election):

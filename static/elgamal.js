@@ -378,8 +378,8 @@ ElGamal.Proof = Class.extend({
   
   toJSONObject: function() {
     return {
-      commitment : {A: this.commitment.A.toJSONObject(), B: this.commitment.B.toJSONObject()},
       challenge : this.challenge.toJSONObject(),
+      commitment : {A: this.commitment.A.toJSONObject(), B: this.commitment.B.toJSONObject()},
       response : this.response.toJSONObject()
     }
   },
