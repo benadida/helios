@@ -14,6 +14,8 @@ from django.contrib import auth
 from crypto import algs
 import utils
 
+import csv
+
 from models import *
 
 # Parameters for everything
@@ -198,12 +200,15 @@ def one_election_open_submit(request, election):
   return HttpResponse("election open submit %s" % election.election_id)
 
 @election_view
+@json
 def one_election_result(request, election):
-  return HttpResponse("election result %s" % election.election_id)
+  return election.result
 
 @election_view
+@json
 def one_election_result_proof(request, election):
-  return HttpResponse("election result proof %s" % election.election_id)
+  return election.decryption_proof
+  
 
 @election_view
 @json
@@ -265,11 +270,43 @@ def one_election_voters_manage(request, election):
 
 @election_admin
 def one_election_voters_bulk_upload(request, election):
-  return HttpResponse("election voters bulk upload %s" % election.election_id)
-
+  # FIXME: check if either open reg or not frozen
+  
+  voters_csv_lines = request.POST['voters_csv'].split("\n")
+  reader = csv.reader(voters_csv_lines)
+  
+  for voter in reader:
+    
+    if len(voter) < 2:
+      continue
+      
+    # process the CSV and add
+    v = Voter.objects.create(election = election, email = voter[1], name = voter[0])
+    
+    if len(voter) > 2:
+      v.category = voter[2]
+    else:
+      v.category = ''
+      
+    v.generate_password()
+    v.save()
+    
+  return HttpResponseRedirect("./voters_manage")
+  
 @election_admin
 def one_election_voters_delete(request, election):
-  return HttpResponse("election voters delete %s" % election.election_id)
+  ## FIXME: check if election is frozen and can have voter deletion
+  
+  voter_id_list = request.POST['voter_ids'].split(",")
+  voters = [Voter.objects.get(voter_id = voter_id) for voter_id in voter_id_list]
+  for voter in voters:
+    if election != voter.election:
+      return HttpResponseServerError('bad voter')
+
+  for voter in voters:
+    voter.delete()
+    
+  return SUCCESS
 
 @election_admin
 def one_election_voters_email(request, election):
@@ -367,7 +404,17 @@ www.heliosvoting.org
 
 @election_admin
 def one_election_set_reg(request, election):
-  return HttpResponse("election voters set_reg %s" % election.election_id)
+  """
+  Set whether this is open registration or not
+  """
+  open_p = bool(int(request.POST['open_p']))
+  election.openreg_enabled = open_p
+  election.save()
+  
+  if request.user.is_authenticated():
+    return HttpResponseRedirect("./voters_manage")
+  else:
+    return SUCCESS
 
 @election_admin
 def one_election_archive(request, election):
@@ -408,7 +455,7 @@ def one_election_freeze(request, election):
 
 @election_admin
 def one_election_email_trustees(request, election):
-  return HttpResponse("election email trustees %s" % election.election_id)
+  pass
 
 @election_admin
 def one_election_compute_tally(request, election):
@@ -420,11 +467,29 @@ def one_election_drive_tally_chunk(request, election):
 
 @election_admin
 def one_election_drive_tally(request, election):
-  return HttpResponse("election drive tally %s" % election.election_id)
+  """
+  JavaScript-based driver for the entire tallying process, now done in JavaScript.
+  """
+  election_pk = election.public_key
+  election_pk_json = utils.to_json(election_pk.toJSONDict())
+  
+  election_sk = election.private_key
+  if election_sk:
+    election_sk_json = utils.to_json(election_sk.toJSONDict())
+  else:
+    election_sk_json = None
+  
+  return render_template(request, 'drive_tally', {'election': election, 'election_pk_json' : election_pk_json, 'election_sk_json' : election_sk_json})
 
 @election_admin
 def one_election_set_tally(request, election):
-  return HttpResponse("election set tally %s" % election.election_id)
+  """
+  Set the tally and proof.
+  """
+  tally_obj = utils.from_json(request.POST['tally'])
+  election.set_result(tally_obj['result'], tally_obj['result_proof'])
+  election.save()
+  return SUCCESS
 
 @election_admin
 def one_election_compute_tally_chunk(request, election):
@@ -432,8 +497,15 @@ def one_election_compute_tally_chunk(request, election):
 
 # Individual Voters
 @election_view
+@json
 def voter_list(request, election):
-  return HttpResponse("voter list for election %s" % election.election_id)
+  # normalize limit
+  limit = int(request.GET.get('limit', 500))
+  if limit > 500: limit = 500
+    
+  voters = election.get_voters(category= request.GET.get('category', None), after=request.GET.get('after',None), limit= limit)
+  return [v.toJSONDict(with_vote=request.GET.get('with_vote')) for v in voters]
+  
 
 @election_admin
 def voter_add(request, election):
@@ -445,8 +517,13 @@ def voter_add(request, election):
   return HttpResponseRedirect("../voters_manage")
 
 @election_view
+@json
 def one_voter(request, election, voter_id):
-  return HttpResponse("one voter for election %s" % election.election_id)
+  """
+  View a single voter's info as JSON.
+  """
+  voter = Voter.objects.get(voter_id = voter_id)
+  return voter.toJSONDict(with_vote=True)  
 
 @election_admin
 def one_voter_delete(request, election, voter_id):
@@ -494,8 +571,10 @@ The Helios Voting System
 
 # Trustees
 @election_view
+@json
 def trustees_list(request, election):
-  return HttpResponse("trustees list for election %s" % election.election_id)
+  keyshares = election.get_keyshares()
+  return [k.toJSONDict() for k in keyshares]
 
 @election_view
 def trustee_home(request, election, trustee_email):

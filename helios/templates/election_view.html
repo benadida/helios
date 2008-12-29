@@ -11,7 +11,7 @@
 {% if election.in_progress_p %}
 <b>Election in Progress</b>
 {% else %}
-{% if election.get_result %}
+{% if election.result %}
 <b>Election Done</b>
 {% else %}
 <b>Election Done, Ready for Tally</b>
@@ -48,7 +48,7 @@
 {% endif %}
 
 {% if election.encrypted_tally %}
-{% if result %}
+{% if election.result %}
 {% else %}
 <li> <a href="decrypt_and_prove">decrypt and prove</a></li>
 {% endif %}
@@ -81,7 +81,7 @@ Election Fingerprint<br />
 
 <p ><a style="font-size: 18pt;" target="_blank" href="vote">Vote in this election</a> &nbsp;&nbsp;&nbsp;[<a style="font-size: 12pt;" target="_blank" href="../single_ballot_verifier">Audit a Single Ballot</a>] &nbsp; &nbsp; [<a style="font-size: 12pt;" href="bboard">Bulletin Board of Cast Votes</a>]
 <br />
-{% if result %}
+{% if election.result %}
 (the tally has already been computed, but you can view the voting interface anyways.)
 {% endif %}
 
@@ -90,18 +90,16 @@ Election Fingerprint<br />
 {% endif %}
 
 <br clear="right" />
-{%if result %}
+{%if election.result %}
 <h2>Tally</h2>
-#for $i in range(len($election_obj.questions))
-#set $q = $election_obj.questions[$i]
-<b>$q.short_name</b>:
+{% for question in election.pretty_result %}
+<b>{{question.question}}</b>:
 <ul>
-#for $j in range(len($q.answers))
-#set $a = $q.answers[$j]
-<li> $a: $result[$i][$j]
-#end for
+{% for answer in question.answers %}
+<li> {{answer.answer}}: {{answer.count}}
+{% endfor %}
 </ul>
-#end for
+{% endfor %}
 
 <a style="font-size: 14pt;" target="_blank" href="../verifier">Audit the Election Tally</a><br />
 <br /><br />

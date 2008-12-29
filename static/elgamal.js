@@ -103,7 +103,7 @@ ElGamal.SecretKey = Class.extend({
   },
   
   toJSONObject: function() {
-    return {pk: this.pk.toJSONObject(), x: this.x.toJSONObject()};
+    return {public_key: this.pk.toJSONObject(), x: this.x.toJSONObject()};
   },
   
   // a decryption factor is *not yet* mod-inverted, because it needs to be part of the proof.

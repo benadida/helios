@@ -123,6 +123,30 @@ class Election(models.Model, JSONObject):
     self.result = tally_d
     self.decryption_proof = proof_d
 
+  @property
+  def pretty_result(self):
+    if not self.result:
+      return None
+
+    election_obj = self.toElection()
+    raw_result = self.result
+    prettified_result = []
+
+    # loop through questions
+    for i in range(len(election_obj.questions)):
+      q = election_obj.questions[i]
+      pretty_question = []
+      
+      # go through answers
+      for j in range(len(q['answers'])):
+        a = q['answers'][j]
+        count = raw_result[i][j]
+        pretty_question.append({'answer': a, 'count': count})
+        
+      prettified_result.append({'question': q['short_name'], 'answers': pretty_question})
+
+    return prettified_result
+    
   def get_first_uncounted_voter(self):
     """
     Return the voter that hasn't been counted yet, in order of cast_id
@@ -305,15 +329,14 @@ class Voter(models.Model, JSONObject):
   def selectByEmailOrOpenID(cls, election, email, openid_url):
     email_voter = openid_voter = None
     
-    ## FIXME
     if email:
-      email_voter = cls.selectByKeys({'election': election, 'email': email})
+      email_voter = cls.objects.get(election = election, email = email)
     
     if openid_url:
-      openid_voter = cls.selectByKeys({'election': election, 'openid_url': openid_url})
+      openid_voter = cls.objects.get(election = election, openid_url= openid_url)
       
     # two voters, not the same?
-    if email_voter and openid_voter and email_voter.voter_id != openid_voter.voter_id:
+    if email_voter and openid_voter and email_voter != openid_voter:
       raise Exception("problem matching openid and email")
             
     return email_voter or openid_voter
@@ -361,7 +384,7 @@ class Voter(models.Model, JSONObject):
     return vote_hash
   
   def get_vote(self):
-    vote_dict = utils.from_json(self.vote or "null")
+    vote_dict = self.vote
 
     # null vote
     if not vote_dict or vote_dict == "":
