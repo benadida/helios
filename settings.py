@@ -82,3 +82,4 @@ INSTALLED_APPS = (
 
 LOGIN_REDIRECT_URL = "/user/"
 SERVER_HOST = "localhost:8000"
+SERVER_BASE = "http://" + SERVER_HOST
