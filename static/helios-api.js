@@ -76,7 +76,7 @@ _Helios_CrossSite = Class.extend({
     }
       
     this.API_FRAME = document.createElement('iframe');
-    this.API_FRAME.src = API_HOST + "/elections/api";
+    this.API_FRAME.src = "http://" + API_HOST + API_PREFIX + "/elections/api";
     this.API_FRAME.style.width=0;
     this.API_FRAME.style.height=0;
     this.API_FRAME.style.border=0;
@@ -152,7 +152,7 @@ if (window.location.port != 80 && window.location.port != "") {
 }
 
 if (typeof(API_HOST) == 'undefined') {
-  API_HOST = 'http://www.heliosvoting.org';
+  API_HOST = 'www.heliosvoting.org';
 }
 
 if (host_str == API_HOST) {

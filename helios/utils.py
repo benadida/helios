@@ -162,8 +162,9 @@ def random_string(length=20):
 def get_host():
   return settings.SERVER_HOST
   
-def get_base():
-  return settings.SERVER_BASE
+def get_prefix():
+  return settings.SERVER_PREFIX
+  
 
 ##
 ## Datetime utilities
