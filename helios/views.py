@@ -107,13 +107,16 @@ def election_single_ballot_verifier(request):
 def election_js_api(request):
   return render_template(request, "js_api")
 
+@login_required
 def election_new(request):
   return render_template(request, "election_new")
 
+@login_required
 def election_new_2(request):
   return render_template(request, "election_new_2", {'eg_params_json' : utils.to_json(ELGAMAL_PARAMS.toJSONDict()),
                                                     'name': request.GET['name'], 'election_type': request.GET['election_type']})
-  
+                                                      
+@login_required
 def election_new_3(request):
   """
   Create the new election.
@@ -175,58 +178,58 @@ def election_new_3(request):
 ## Specific election features
 ##
 
-@election_admin
+@election_admin()
 def one_election_keyshares_manage(request, election):
   return HttpResponse("election keyshares %s" % election.election_id)
 
-@election_admin
+@election_admin()
 def one_election_keyshares_tally_manage(request, election):
   return HttpResponse("election keyshares tally %s" % election.election_id)
   
-@election_view
+@election_view()
 @json
 def one_election(request, election):
   return election.toElection().toJSONDict()
 
-@election_view
+@election_view()
 def one_election_view(request, election):
   user = get_user(request)
   admin_p = user_can_admin_election(user, election)
   election_obj = election.toElection()
   return render_template(request, 'election_view', {'election' : election, 'election_obj' : election_obj, 'admin_p': admin_p})
 
-@election_admin
+@election_admin(frozen=True)
 def one_election_open_submit(request, election):
   return HttpResponse("election open submit %s" % election.election_id)
 
-@election_view
+@election_view()
 @json
 def one_election_result(request, election):
   return election.result
 
-@election_view
+@election_view()
 @json
 def one_election_result_proof(request, election):
   return election.decryption_proof
   
 
-@election_view
+@election_view()
 @json
 def one_election_get_voter_by_email(request, election):
   return Voter.objects.get(election = election, email = request.GET['email']).toJSONDict()
 
-@election_view
+@election_view()
 def one_election_get_voter_by_openid(request, election):
   return HttpResponse("election get voter by openid %s" % election.election_id)
 
-@election_view
+@election_view(frozen=True)
 def one_election_vote(request, election):
   """
   UI to vote in an election
   """
   return render_template(request, "vote", {'election': election})
 
-@election_view
+@election_view(frozen=True)
 def one_election_bboard(request, election):
   """
   UI to show election bboard
@@ -257,21 +260,19 @@ def one_election_bboard(request, election):
                 'next_offset': next_offset, 'voter_email': request.GET.get('voter_email', ''),
                 'offset_plus_one': offset+1, 'offset_plus_limit': offset+limit})
   
-@election_admin
+@election_admin(frozen=False)
 def one_election_set_pk(request, election):
   return HttpResponse("election set pk %s" % election.election_id)
 
-@election_admin
+@election_admin()
 def one_election_voters_manage(request, election):
   voters = election.get_voters()
   voters_json = utils.to_json([v.toJSONDict() for v in voters])
   
   return render_template(request, "election_voters_manage", {'voters_json' : voters_json, 'voters': voters,'election': election})
 
-@election_admin
+@election_admin(newvoters=True)
 def one_election_voters_bulk_upload(request, election):
-  # FIXME: check if either open reg or not frozen
-  
   voters_csv_lines = request.POST['voters_csv'].split("\n")
   reader = csv.reader(voters_csv_lines)
   
@@ -293,10 +294,8 @@ def one_election_voters_bulk_upload(request, election):
     
   return HttpResponseRedirect("./voters_manage")
   
-@election_admin
+@election_admin(frozen=False)
 def one_election_voters_delete(request, election):
-  ## FIXME: check if election is frozen and can have voter deletion
-  
   voter_id_list = request.POST['voter_ids'].split(",")
   voters = [Voter.objects.get(voter_id = voter_id) for voter_id in voter_id_list]
   for voter in voters:
@@ -308,7 +307,7 @@ def one_election_voters_delete(request, election):
     
   return SUCCESS
 
-@election_admin
+@election_admin(frozen=True)
 def one_election_voters_email(request, election):
   if request.POST.has_key('voter_ids'):
     voter_id_list = request.POST['voter_ids'].split(",")
@@ -321,7 +320,7 @@ def one_election_voters_email(request, election):
   
   return render_template(request, 'voters_email', {'voter_ids' : request.POST['voter_ids'], 'voters': voters, 'election': election})
 
-@election_admin
+@election_admin(frozen=True)
 def one_election_voters_email_2(request, election):
   after = request.POST.get('after', None)
   limit = request.POST.get('limit', None)
@@ -402,7 +401,7 @@ www.heliosvoting.org
   # hack for now, no more batching
   return HttpResponse(last_id or "DONE")
 
-@election_admin
+@election_admin(frozen=False)
 def one_election_set_reg(request, election):
   """
   Set whether this is open registration or not
@@ -416,7 +415,7 @@ def one_election_set_reg(request, election):
   else:
     return SUCCESS
 
-@election_admin
+@election_admin()
 def one_election_archive(request, election):
   
   archive_p = request.GET.get('archive_p', True)
@@ -429,11 +428,11 @@ def one_election_archive(request, election):
 
   return HttpResponseRedirect('./view')
 
-@election_admin
+@election_admin(frozen=False)
 def one_election_build(request, election):
   return render_template(request, 'election_build', {'election': election})
 
-@election_admin
+@election_admin(frozen=False)
 def one_election_save_questions(request, election):
   election.questions = utils.from_json(request.POST['questions_json']);
   election.save()
@@ -441,7 +440,7 @@ def one_election_save_questions(request, election):
   # always a machine API
   return SUCCESS
 
-@election_admin
+@election_admin(frozen=False)
 def one_election_freeze(request, election):
   if request.method == "GET":
     return render_template(request, 'election_freeze', {'election': election})
@@ -453,19 +452,19 @@ def one_election_freeze(request, election):
     else:
       return SUCCESS    
 
-@election_admin
+@election_admin()
 def one_election_email_trustees(request, election):
   pass
 
-@election_admin
+@election_admin(frozen=True)
 def one_election_compute_tally(request, election):
   return HttpResponse("election compute tally %s" % election.election_id)
 
-@election_admin
+@election_admin(frozen=True)
 def one_election_drive_tally_chunk(request, election):
   return HttpResponse("election drive tally chunk %s" % election.election_id)
 
-@election_admin
+@election_admin(frozen=True)
 def one_election_drive_tally(request, election):
   """
   JavaScript-based driver for the entire tallying process, now done in JavaScript.
@@ -481,7 +480,7 @@ def one_election_drive_tally(request, election):
   
   return render_template(request, 'drive_tally', {'election': election, 'election_pk_json' : election_pk_json, 'election_sk_json' : election_sk_json})
 
-@election_admin
+@election_admin(frozen=True)
 def one_election_set_tally(request, election):
   """
   Set the tally and proof.
@@ -491,12 +490,12 @@ def one_election_set_tally(request, election):
   election.save()
   return SUCCESS
 
-@election_admin
+@election_admin(frozen=True)
 def one_election_compute_tally_chunk(request, election):
   return HttpResponse("election compute tally chunk %s" % election.election_id)
 
 # Individual Voters
-@election_view
+@election_view()
 @json
 def voter_list(request, election):
   # normalize limit
@@ -507,7 +506,7 @@ def voter_list(request, election):
   return [v.toJSONDict(with_vote=request.GET.get('with_vote')) for v in voters]
   
 
-@election_admin
+@election_admin(newvoters=True)
 def voter_add(request, election):
   v = Voter.objects.create(election = election, email = request.POST['email'], name = request.POST['name'], 
                             category = request.POST['category'])
@@ -516,7 +515,7 @@ def voter_add(request, election):
 
   return HttpResponseRedirect("../voters_manage")
 
-@election_view
+@election_view()
 @json
 def one_voter(request, election, voter_id):
   """
@@ -525,11 +524,11 @@ def one_voter(request, election, voter_id):
   voter = Voter.objects.get(voter_id = voter_id)
   return voter.toJSONDict(with_vote=True)  
 
-@election_admin
+@election_admin(frozen=False)
 def one_voter_delete(request, election, voter_id):
   return HttpResponse("voter delete for election %s" % election.election_id)
 
-@election_view
+@election_view(frozen=True)
 def one_voter_submit(request, election, voter_id):
   election_obj = election.toElection()
   
@@ -570,25 +569,25 @@ The Helios Voting System
   return SUCCESS  
 
 # Trustees
-@election_view
+@election_view()
 @json
 def trustees_list(request, election):
   keyshares = election.get_keyshares()
   return [k.toJSONDict() for k in keyshares]
 
-@election_view
+@election_view()
 def trustee_home(request, election, trustee_email):
   return HttpResponse("trustees home for election %s" % election.election_id)
 
-@election_view
+@election_view(frozen=False)
 def trustee_upload_pk(request, election, trustee_email):
   return HttpResponse("trustees upload pk for election %s" % election.election_id)
 
-@election_view
+@election_view(frozen=True)
 def trustee_tally(request, election, trustee_email):
   return HttpResponse("trustees tally for election %s" % election.election_id)
 
-@election_view
+@election_view(frozen=True)
 def trustee_upload_decryption_factor(request, election, trustee_email):
   return HttpResponse("trustees upload dec factor for election %s" % election.election_id)
 
