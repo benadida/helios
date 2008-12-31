@@ -8,16 +8,15 @@ Variables at the beginning
 import sys
 sys.path.append('../')
 
-from base import utils
+from helios import utils
 from crypto import algs, electionalgs
 from client import heliosclient
 
 # instantiate the client
 # modify variables here
-helios = heliosclient.HeliosClient({'consumer_key': 'test', 'consumer_secret': 'test',
-                        'access_token': '123', 'access_token_secret' : '123'},
+helios = heliosclient.HeliosClient({'consumer_key': 'test', 'consumer_secret': '123'},
                         host = 'localhost',
-                        port = 8082)
+                        port = 8000)
 
 # get the El Gamal Parameters
 params = helios.params()

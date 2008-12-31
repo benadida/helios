@@ -7,6 +7,8 @@ Ben Adida (ben@adida.net)
 from django.conf.urls.defaults import *
 
 from helios.views import *
+from helios.admin_views import *
+
 from helios.models import *
 
 urlpatterns = patterns('',
@@ -35,7 +37,13 @@ urlpatterns = patterns('',
     
     (r'^elections/(?P<election_id>[^/]+)/', include('helios.election_urls')),
     
-    # static hack -- DO DIFFERENTLY FOR PRODUCTION
+    # admin
+    (r'^admin/$', admin_home),
+    (r'^clients/$', admin_clients),
+    (r'^clients/new$', admin_client_new),
+    (r'^clients/delete$', admin_client_delete),
+    
+    # static hack -- production should bypass this route
     # static
     (r'^static/(?P<path>.*)$', 'django.views.static.serve',
             {'document_root': '/web/dev-helios/static'}),

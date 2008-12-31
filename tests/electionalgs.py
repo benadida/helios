@@ -6,7 +6,7 @@ Some tests of Elections Algs
 import sys
 sys.path.append('../')
 
-from base import utils
+from helios import utils
 from crypto import algs, electionalgs
 
 # parse an election

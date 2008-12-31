@@ -27,7 +27,7 @@ urlpatterns = patterns('',
     (r'^bboard$', one_election_bboard),
 
     # construct election
-    (r'^set_pk$', one_election_set_pk),
+    # (r'^set_pk$', one_election_set_pk),
     (r'^voters_manage$', one_election_voters_manage),
     (r'^voters_bulk_upload$', one_election_voters_bulk_upload),
     (r'^voters_delete$', one_election_voters_delete),
@@ -42,10 +42,10 @@ urlpatterns = patterns('',
     
     # computing tally
     (r'^compute_tally$', one_election_compute_tally),
-    (r'^drive_tally_chunk$', one_election_drive_tally_chunk),
+    # (r'^drive_tally_chunk$', one_election_drive_tally_chunk),
     (r'^drive_tally$', one_election_drive_tally),
     (r'^set_tally$', one_election_set_tally),
-    (r'^compute_tally_chunk$', one_election_compute_tally_chunk),
+    # (r'^compute_tally_chunk$', one_election_compute_tally_chunk),
     
     # managing voters
     (r'^voters/$', voter_list),

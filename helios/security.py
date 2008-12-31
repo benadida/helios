@@ -8,10 +8,12 @@ Ben Adida (ben@adida.net)
 from functools import update_wrapper
 
 from django.http import *
+from django.core.exceptions import *
+from django.conf import settings
 
 from models import *
 
-from django.core.exceptions import *
+import oauth
     
 # get authenticated user
 def get_user(request):
@@ -19,6 +21,71 @@ def get_user(request):
     return request.user
   else:
     return None
+
+##
+## OAuth and API clients
+##
+
+class OAuthDataStore(oauth.OAuthDataStore):
+  def __init__(self):
+    pass
+      
+  def lookup_consumer(self, key):
+    c = APIClient.objects.get(consumer_key = key)
+    return oauth.OAuthConsumer(c.consumer_key, c.consumer_secret)
+
+  def lookup_token(self, oauth_consumer, token_type, token):
+    if token_type != 'access':
+      raise NotImplementedError
+
+    c = APIClient.objects.get(consumer_key = oauth_consumer.key)
+    return oauth.OAuthToken(c.consumer_key, c.consumer_secret)
+
+  def lookup_nonce(self, oauth_consumer, oauth_token, nonce):
+    """
+    FIXME this to actually check for nonces
+    """
+    return None
+
+# create the oauth server
+OAUTH_SERVER = oauth.OAuthServer(OAuthDataStore())
+OAUTH_SERVER.add_signature_method(oauth.OAuthSignatureMethod_HMAC_SHA1())
+    
+def get_api_client(request):
+  parameters = request.POST.copy()
+  parameters.update(request.GET)
+  oauth_request = oauth.OAuthRequest.from_request(request.method, request.path_info, headers= request.META,
+                                                  parameters=parameters, query_string=None)
+                                                  
+  if not oauth_request:
+    return None
+    
+  try:
+    consumer, token, params = OAUTH_SERVER.verify_request(oauth_request)
+    return APIClient.objects.get(consumer_key = consumer.key)
+  except oauth.OAuthError:
+    return None
+  
+# decorator for login required
+def login_required(func):
+  def login_required_wrapper(request, *args, **kw):
+    if not (get_user(request) or get_api_client(request)):
+      return HttpResponseRedirect(settings.LOGIN_URL)
+  
+    return func(request, *args, **kw)
+
+  return update_wrapper(login_required_wrapper, func)
+  
+# decorator for admin required
+def admin_required(func):
+  def admin_required_wrapper(request, *args, **kw):
+    user = get_user(request)
+    if not user or not user.is_staff:
+      raise PermissionDenied()
+      
+    return func(request, *args, **kw)
+
+  return update_wrapper(admin_required_wrapper, func)
 
 #
 # some common election checks
@@ -45,7 +112,6 @@ def do_election_checks(election, props):
     
   # open for new voters check
   if newvoters != None:
-    import pdb; pdb.set_trace()
     if election.can_add_voters() != newvoters:
       raise PermissionDenied()
 

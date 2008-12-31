@@ -5,7 +5,7 @@ Ben Adida
 2008-08-30
 """
 
-from base import oauth, utils
+from helios import oauth, utils
 
 import httplib
 

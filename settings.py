@@ -80,4 +80,5 @@ INSTALLED_APPS = (
     'helios'
 )
 
+LOGIN_REDIRECT_URL = "/user/"
 SERVER_HOST = "localhost:8000"

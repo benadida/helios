@@ -6,7 +6,7 @@ Ben Adida
 """
 
 import oauthclient
-from base import utils, oauth
+from helios import utils, oauth
 from crypto import algs, electionalgs
 
 class HeliosClient(object):
@@ -15,7 +15,7 @@ class HeliosClient(object):
     auth_info is consumer_key, ....
     """
     self.consumer = oauth.OAuthConsumer(auth_info['consumer_key'],auth_info['consumer_secret'])
-    self.token = oauth.OAuthToken(auth_info['access_token'],auth_info['access_token_secret'])
+    self.token = oauth.OAuthToken(auth_info['consumer_key'],auth_info['consumer_secret'])
     self.client = oauthclient.MachineOAuthClient(self.consumer, self.token, host, port)
     
   def get(self, url, parameters = None):
@@ -33,7 +33,7 @@ class HeliosClient(object):
     return election_id
     
   def election_get(self, election_id):
-    return electionalgs.Election.fromJSONDict(utils.from_json(self.get("/elections/%s" % election_id)))
+    return electionalgs.Election.fromJSONDict(utils.from_json(self.get("/elections/%s/" % election_id)))
     
   def election_set_reg(self, election_id, open_reg=False):
     result = self.post("/elections/%s/set_reg" % election_id, {'open_p' : str(int(open_reg))})
@@ -44,7 +44,7 @@ class HeliosClient(object):
     return result == "SUCCESS"
     
   def election_freeze(self, election_id):
-    result = self.post("/elections/%s/freeze_2" % election_id, {})
+    result = self.post("/elections/%s/freeze" % election_id, {})
     return result == "SUCCESS"
     
   def open_submit(self, election_id, encrypted_vote, email=None, openid_url=None, name=None, category=None):

@@ -22,7 +22,7 @@ class Election(models.Model, JSONObject):
   election_id = models.AutoField(primary_key=True)
   
   # we'll use django users from now
-  admin = models.ForeignKey(auth_models.User)
+  admin = models.ForeignKey(auth_models.User, null = True)
   
   # if machine-able API
   api_client = models.ForeignKey('APIClient', null=True)
@@ -433,8 +433,6 @@ class APIClient(models.Model):
   api_client_id = models.AutoField(primary_key=True)
   consumer_key = models.CharField(max_length=100)
   consumer_secret = models.CharField(max_length=100)
-  access_token = models.CharField(max_length=100)
-  access_token_secret = models.CharField(max_length=100)
 
   @classmethod
   def get_by_consumer_key(cls, consumer_key):
