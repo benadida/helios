@@ -53,7 +53,7 @@ function check_dates() {
 </script>
 
   <h2 class="title">Create a New Election</h2>
-  <form class="prettyform" action="new_2" onsubmit="return check_dates();" method="GET" id="create_election_form">
+  <form class="prettyform" action="{% url helios.views.election_new_2 %}" onsubmit="return check_dates();" method="GET" id="create_election_form">
   <label for="name">Name:</label><input type="text" name="name" size="40" /><br />
 <!--  <label for="voting_starts_at">Starts At:</label><input type="text" id="voting_starts_at" name="voting_starts_at" size="12" /><span style="font-size: 12pt;" id="voting_starts_at_parsed"></span><br />
   <label for="voting_ends_at">Ends At:</label><input type="text" id="voting_ends_at" name="voting_ends_at" size="12" /><span style="font-size: 12pt;" id="voting_ends_at_parsed"></span><br /> -->

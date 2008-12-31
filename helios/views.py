@@ -5,16 +5,17 @@ Ben Adida (ben@adida.net)
 """
 
 from django.http import *
-from security import *
-
+from django.core.urlresolvers import reverse
 from django.contrib import auth
 
-from crypto import algs
-import utils
 import csv
 
+from security import *
+from crypto import algs
+import utils
 from models import *
 from view_utils import *
+
 
 # Parameters for everything
 ELGAMAL_PARAMS = algs.ElGamal()
@@ -55,7 +56,7 @@ def user_home(request):
   
 def user_logout(request):
   auth.logout(request)
-  return HttpResponseRedirect("/")
+  return HttpResponseRedirect(reverse(home))
   
 ##
 ## General election features
@@ -137,7 +138,7 @@ def election_new_3(request):
   
   # user or api_client?
   if get_user(request):
-    return HttpResponseRedirect("./%s/view" % str(election.election_id))
+    return HttpResponseRedirect(reverse(one_election_view, args=[election.election_id]))
   else:
     return HttpResponse(str(election.election_id))
 
@@ -231,7 +232,7 @@ def one_election_bboard(request, election):
   limit = int(request.GET.get('limit', 20))
 
   if not election.is_frozen():
-    return HttpResponseRedirect("./view")
+    return HttpResponseRedirect(reverse(one_election_view, args=[election.election_id]))
     
   # if there's a specific voter
   if request.GET.has_key('voter_email') or request.GET.has_key('voter_openid'):
@@ -282,7 +283,7 @@ def one_election_voters_bulk_upload(request, election):
     v.save()
     
   if get_user(request):
-    return HttpResponseRedirect("./voters_manage")
+    return HttpResponseRedirect(reverse(one_election_voters_manage, args=[election.election_id]))
   else:
     return SUCCESS
   
@@ -374,7 +375,7 @@ Your password: %s
 %s
 via the Helios Voting System
 www.heliosvoting.org
-""" % ((settings.SERVER_HOST + '/elections/%s/view')%election.election_id, (settings.SERVER_HOST + '/elections/%s/vote')%election.election_id, election.toElection().get_hash(), voter.email, voter.password, sender_email)
+""" % (settings.SERVER_HOST + reverse(one_election_view, args=[election.election_id]), settings.SERVER_HOST + reverse(one_election_vote, args=[election.election_id]), election.toElection().get_hash(), voter.email, voter.password, sender_email)
 
     message = message_header
     message += unicode(request.POST['introductory_message'])
@@ -403,7 +404,7 @@ def one_election_set_reg(request, election):
   election.save()
   
   if get_user(request):
-    return HttpResponseRedirect("./voters_manage")
+    return HttpResponseRedirect(reverse(one_election_voters_manage, args=[election.election_id]))
   else:
     return SUCCESS
 
@@ -419,7 +420,7 @@ def one_election_archive(request, election):
   election.save()
 
   if get_user(request):
-    return HttpResponseRedirect('./view')
+    return HttpResponseRedirect(reverse(one_election_view, args=[election.election_id]))
   else:
     return SUCCESS
 
@@ -443,7 +444,7 @@ def one_election_freeze(request, election):
     election.freeze()
 
     if get_user(request):
-      return HttpResponseRedirect("/elections/%s/view" % election.election_id)
+      return HttpResponseRedirect(reverse(one_election_view, args=[election.election_id]))
     else:
       return SUCCESS    
 
@@ -502,7 +503,7 @@ def voter_add(request, election):
   v.save()
 
   if get_user(request):
-    return HttpResponseRedirect("../voters_manage")
+    return HttpResponseRedirect(reverse(one_election_voters_manage, args=[election.election_id]))
   else:
     return SUCCESS
 
@@ -524,7 +525,7 @@ def one_voter_delete(request, election, voter_id):
     logging.info("no voter")
 
   if get_request(user):
-    return HttpResponseRedirect("../../voters_manage")
+    return HttpResponseRedirect(reverse(one_election_voters_manage, args=[election.election_id]))
   else:
     return SUCCESS
 

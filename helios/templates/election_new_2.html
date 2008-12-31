@@ -56,7 +56,7 @@ $(document).ready(function() {
 <b>An election managed by multiple trustees</b>.
 {% endifequal %}
 {% endifequal %}
-  <form class="prettyform" action="new_3" method="POST" id="create_election_form" onsubmit="return before_create();">
+  <form class="prettyform" action="{% url helios.views.election_new_3 %}" method="POST" id="create_election_form" onsubmit="return before_create();">
       <input type="hidden" name="name" value="{{name}}" />
       <input type="hidden" name="public_key" id="pk" value="" />
       <input type="hidden" name="private_key" id="sk" value="" /><br />

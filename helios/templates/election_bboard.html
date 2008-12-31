@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
-  <h2 class="title">{{election.name}} &mdash; Bulletin Board <span style="font-size:0.7em;">[<a href="./view">done</a>]</span></h2>
+  <h2 class="title">{{election.name}} &mdash; Bulletin Board <span style="font-size:0.7em;">[<a href="{% url helios.views.one_election_view election_id=election.election_id %}">done</a>]</span></h2>
 
 <h3>Search</h3>
 <form method="get" action="">

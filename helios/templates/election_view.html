@@ -22,27 +22,27 @@
 {% endif %}
 
 <ul>
-<li> <a href="voters_manage">voters</a></li><br />
+<li> <a href="{% url helios.views.one_election_voters_manage election_id=election.election_id %}">voters</a></li><br />
 
 {% if not election.is_frozen %}
-<li> <a href="build">questions and answers</a></li>
+<li> <a href="{% url helios.views.one_election_build election_id=election.election_id %}">questions and answers</a></li>
 
 {% if election.public_key %}
-<li> <a href="freeze"><em>freeze</em> election and start voting.</a></li>
+<li> <a href="{% url helios.views.one_election_build election_id=election.election_id %}"><em>freeze</em> election and start voting.</a></li>
 {% else %}
-<li> <a href="keyshares_manage">manage trustees' key shares</a></li>
+<li> <a href="{% url helios.views.one_election_keyshares_manage election_id=election.election_id %}">manage trustees' key shares</a></li>
 {% endif %}
 
 {% else %}
 
 {% if election.has_keyshares %}
-<li> <a href="keyshares_tally_manage">manage trustees' tally</a></li>
+<li> <a href="{% url helios.views.one_election_keyshares_tally_manage election_id=election.election_id %}">manage trustees' tally</a></li>
 {% else %}
 {% if election.in_progress_p %}
 {% if election.get_sk %}
-<li> <a href="drive_tally_chunk">compute tally</a></li>
+<li> <a href="{% url helios.views.one_election_drive_tally_chunk election_id=election.election_id %}">compute tally</a></li>
 {% else %}
-<li> <a href="drive_tally">compute tally</a></li>
+<li> <a href="{% url helios.views.one_election_drive_tally election_id=election.election_id %}">compute tally</a></li>
 {% endif %}
 {% endif %}
 {% endif %}
@@ -50,20 +50,20 @@
 {% if election.encrypted_tally %}
 {% if election.result %}
 {% else %}
-<li> <a href="decrypt_and_prove">decrypt and prove</a></li>
+<li> <a href="{% url helios.views.one_election_decrypt_and_prove election_id=election.election_id %}">decrypt and prove</a></li>
 {% endif %}
 {% endif %}
 
 {% endif %}
 
 {% if election.has_keyshares %}
-<li> <a href="email_trustees">email trustees</a></li>
+<li> <a href="{% url helios.views.one_election_email_trustees election_id=election.election_id %}">email trustees</a></li>
 {% endif %}
 
 {% if election.archived_at %}
-<br /><br /><em>election archived</em><br />[<a href="./archive?archive_p=0">un-archive</a>]
+<br /><br /><em>election archived</em><br />[<a href="{% url helios.views.one_election_archive election_id=election.election_id %}?archive_p=0">un-archive</a>]
 {% else %}
-<br /><li> <a href="archive">archive election</a></li>
+<br /><li> <a href="{% url helios.views.one_election_archive election_id=election.election_id %}">archive election</a></li>
 {% endif %}
 </ul>
 </div>
@@ -101,7 +101,7 @@ Election Fingerprint<br />
 </ul>
 {% endfor %}
 
-<a style="font-size: 14pt;" target="_blank" href="../verifier">Audit the Election Tally</a><br />
+<a style="font-size: 14pt;" target="_blank" href="{% url helios.views.election_verifier %}">Audit the Election Tally</a><br />
 <br /><br />
 {% endif %}
 

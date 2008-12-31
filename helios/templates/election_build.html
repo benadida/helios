@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block content %}
-  <h2 class="title">{{election.name}} &mdash; Build <span style="font-size:0.7em;">[<a href="./view">done</a>]</span></h2>
+  <h2 class="title">{{election.name}} &mdash; Build <span style="font-size:0.7em;">[<a href="{% url helios.views.one_election_view election_id=election.election_id %}">done</a>]</span></h2>
 
   <script language="javascript">
     Helios.setup();
@@ -89,7 +89,7 @@
     };
 
     BUILDER.save = function() {
-      $.post('/elections/{{election.election_id}}/save_questions', {questions_json : $.toJSON(BUILDER.election.questions)}, function(result) {
+      $.post('{% url helios.views.one_election_save_questions election_id=election.election_id %}', {questions_json : $.toJSON(BUILDER.election.questions)}, function(result) {
         alert('saved!');
       });
     };
