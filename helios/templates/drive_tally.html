@@ -52,7 +52,7 @@ function when_ready_verify_ballots_and_tally() {
         setTimeout('when_ready_verify_ballots_and_tally()', 2000);
     } else {
         // store the tally
-        $.post('/elections/{{election.election_id}}/set_tally', {tally: jQuery.toJSON(tally)}, function(result) {
+        $.post(API_PREFIX + '/elections/{{election.election_id}}/set_tally', {tally: jQuery.toJSON(tally)}, function(result) {
             if (result == "success" || result == "SUCCESS") {
                 alert('tally and proof done and uploaded');
                 document.location = "./view"
