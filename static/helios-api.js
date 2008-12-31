@@ -35,7 +35,7 @@ _Helios_SameSite = Class.extend({
   
   getJSON: function(url, callback) {
     $.getJSON(API_PREFIX + url, callback);
-  };
+  },
   
   get_election: function(params, callback) {
     this.getJSON("/elections/" + params['election_id'] + "?date=" + new Date().getTime(), callback);
