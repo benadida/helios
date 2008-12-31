@@ -28,7 +28,7 @@
 <li> <a href="{% url helios.views.one_election_build election_id=election.election_id %}">questions and answers</a></li>
 
 {% if election.public_key %}
-<li> <a href="{% url helios.views.one_election_build election_id=election.election_id %}"><em>freeze</em> election and start voting.</a></li>
+<li> <a href="{% url helios.views.one_election_freeze election_id=election.election_id %}"><em>freeze</em> election and start voting.</a></li>
 {% else %}
 <li> <a href="{% url helios.views.one_election_keyshares_manage election_id=election.election_id %}">manage trustees' key shares</a></li>
 {% endif %}

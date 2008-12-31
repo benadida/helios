@@ -224,7 +224,7 @@ BOOTH.send_ballot_raw = function() {
 
     $.ajax({
         type: "GET",
-        url: "/elections/{{election.election_id}}/get_voter_by_email",
+        url: API_PREFIX + "/elections/{{election.election_id}}/get_voter_by_email",
         data: {email: data['email']},
         success: function(result) {
             var voter = jQuery.secureEvalJSON(result);
@@ -238,7 +238,7 @@ BOOTH.send_ballot_raw = function() {
                 // not the way to do an error, check this.
                 $.ajax({
                     type: "POST",
-                    url: "/elections/{{election.election_id}}/voters/" + voter.voter_id + "/submit",
+                    url: API_PREFIX + "/elections/{{election.election_id}}/voters/" + voter.voter_id + "/submit",
                     data: data,
                     success: function(result) {
                         BOOTH.show_progress('4');
