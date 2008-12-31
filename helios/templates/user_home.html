@@ -9,17 +9,17 @@
 
   <h3>Elections you Manage
 {% if include_archived %} 
-<span style="font-size: 12pt;">[<a href="./">exclude archived</a>]</span>
+<span style="font-size: 12pt;">[<a href="{% url helios.views.user_home %}">exclude archived</a>]</span>
 {% else %}
-<span style="font-size: 12pt;">[<a href="./?include_archived=1">include archived</a>]</span>
+<span style="font-size: 12pt;">[<a href="{% url helios.views.user_home %}?include_archived=1">include archived</a>]</span>
 {% endif %}
 </h3>
   <ul>
 {% for e in elections %}
-  <li> <a href="/elections/{{e.election_id}}/view">{{e.name}}</a></li>
+  <li> <a href="{% url helios.views.one_election_view election_id=e.election_id %}">{{e.name}}</a></li>
 {% endfor %}
 <br />
-  <li> <a href="/elections/new">create a new election</a>
+  <li> <a href="{% url helios.views.election_new %}">create a new election</a>
   </ul>
 					
 {% endblock %}
