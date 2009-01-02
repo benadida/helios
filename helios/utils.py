@@ -184,8 +184,7 @@ from django.core import mail as django_mail
 
 def send_email(sender, recpt_lst, subject, body):
   logging.error("sending email - %s" % subject)
-  # FIXME: fail silently, needs to change
-  django_mail.send_mail(subject, body, sender, recpt_lst, fail_silently=True)
+  django_mail.send_mail(subject, body, sender, recpt_lst, fail_silently=False)
   
 
   
