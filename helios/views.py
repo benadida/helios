@@ -381,9 +381,7 @@ www.heliosvoting.org
     message += unicode(request.POST['introductory_message'])
     message += message_footer
 
-    # FIXME: do actual mail sending
-    # mail.simple_send([voter.name], [voter.email], "Helios", sender_email,"Voting in Election %s" % election.name, message)
-    logging.error("would be sending mail right now to " + voter.email)
+    utils.send_email("%s <%s>" % ("Helios", sender_email), ["%s <%s>" % (voter.name, voter.email)], "Voting in Election %s" % election.name, message)
     
     last_id = voter.voter_id
       
@@ -563,9 +561,7 @@ And, as a reminder, the fingerprint of the election itself is:
 The Helios Voting System
 """ % (voter.name, election_obj.name, voter.get_vote_hash(), election_obj.hash)
 
-  # FIXME: send mail
-  # mail.simple_send([voter.name],[voter.email], "Helios", "system@heliosvoting.org", "your vote was recorded", mail_body)
-  logging.error("would send mail to confirm voter " + voter.email)
+  utils.send_email("%s <%s>" % ("Helios", "system@heliosvoting.org"), ["%s <%s>" % (voter.name, voter.email)], "your vote was recorded", mail_body)
 
   return SUCCESS  
 

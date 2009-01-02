@@ -83,3 +83,9 @@ INSTALLED_APPS = (
 LOGIN_REDIRECT_URL = "/user/"
 SERVER_HOST = "localhost:8000"
 SERVER_PREFIX = ""
+
+# email server
+EMAIL_HOST = "localhost"
+EMAIL_PORT = 25
+EMAIL_HOST_USER = None
+EMAIL_HOST_PASSWORD = None

@@ -12,7 +12,7 @@ from django.utils import simplejson
 
 from django.conf import settings
   
-import random
+import random, logging
 import sha, hmac, base64
 
 def hash(s):
@@ -175,3 +175,17 @@ def string_to_datetime(str, fmt="%Y-%m-%d %H:%M"):
     return None
 
   return datetime.datetime.strptime(str, fmt)
+  
+##
+## email
+##
+
+from django.core import mail as django_mail
+
+def send_email(sender, recpt_lst, subject, body):
+  logging.error("sending email - %s" % subject)
+  # FIXME: fail silently, needs to change
+  django_mail.send_mail(subject, body, sender, recpt_lst, fail_silently=True)
+  
+
+  
