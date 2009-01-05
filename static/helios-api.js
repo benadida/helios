@@ -34,7 +34,10 @@ _Helios_SameSite = Class.extend({
   },
   
   getJSON: function(url, callback) {
-    $.getJSON(API_PREFIX + url, callback);
+    // get the JSON manually so that the raw source is still accessible
+    $.get(API_PREFIX + url, function(json_str) {
+      callback($.secureEvalJSON(json_str), json_str);
+    });
   },
   
   get_election: function(params, callback) {

@@ -50,9 +50,11 @@ BOOTH.setup_ballot = function(election) {
   });
 };
 
-BOOTH.setup_election = function(election) {
+BOOTH.setup_election = function(election, raw_json) {
   BOOTH.election = HELIOS.Election.fromJSONObject(election);
-  BOOTH.election_hash = BOOTH.election.get_hash();
+  
+  // compute the hash from the raw JSON
+  BOOTH.election_hash = b64_sha1(raw_json);
 
   $('#election_hash').html(BOOTH.election_hash);
 
@@ -144,8 +146,8 @@ BOOTH.show_processing_before = function(str_to_execute) {
 
 BOOTH.load_and_setup_election = function() {
     // the hash will be computed within the setup function call now
-    Helios.get_election({'election_id': "{{election.election_id}}"}, function(data) {
-        BOOTH.setup_election(data);
+    Helios.get_election({'election_id': "{{election.election_id}}"}, function(data, raw_json) {
+        BOOTH.setup_election(data, raw_json);
         BOOTH.show_election();
     });    
 };

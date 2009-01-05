@@ -28,7 +28,8 @@ def hash_b64(s):
   removes the trailing "="
   """
   hasher = sha.new(s)
-  return base64.b64encode(hasher.digest())[:-1]
+  result= base64.b64encode(hasher.digest())[:-1]
+  return result
 
 def do_hmac(k,s):
   """
