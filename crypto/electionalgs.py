@@ -20,10 +20,27 @@ class EncryptedAnswer(object):
     self.overall_proof = overall_proof
     self.randomness = randomness
     
-  def verify(self, pk):
-    possible_plaintexts = [algs.EGPlaintext(1, pk), algs.EGPlaintext(pk.g, pk)]
-    homomorphic_sum = 0
+  @classmethod
+  def generate_plaintexts(cls, pk, min=0, max=1):
+    plaintexts = []
+    running_product = 1
+    
+    # run the product up to the min
+    for i in range(max+1):
+      # if we're in the range, add it to the array
+      if i >= min:
+        plaintexts.append(algs.EGPlaintext(running_product, pk))
+        
+      # next value in running product
+      running_product = (running_product * pk.g) % pk.p
+      
+    return plaintexts
 
+    
+  def verify(self, pk, min=0, max=1):
+    possible_plaintexts = self.generate_plaintexts(pk)
+    homomorphic_sum = 0
+      
     for choice_num in range(len(self.choices)):
       choice = self.choices[choice_num]
       choice.pk = pk
@@ -36,8 +53,11 @@ class EncryptedAnswer(object):
       # compute homomorphic sum
       homomorphic_sum = choice * homomorphic_sum
     
+    # determine possible plaintexts for the sum
+    sum_possible_plaintexts = self.generate_plaintexts(pk, min=min, max=max)
+
     # verify the sum
-    return homomorphic_sum.verify_disjunctive_encryption_proof(possible_plaintexts, self.overall_proof, algs.EG_disjunctive_challenge_generator)
+    return homomorphic_sum.verify_disjunctive_encryption_proof(sum_possible_plaintexts, self.overall_proof, algs.EG_disjunctive_challenge_generator)
         
   def toJSONDict(self):
     return {
@@ -78,7 +98,7 @@ class EncryptedAnswer(object):
     randomness = [None for a in range(len(answers))]
     
     # possible plaintexts [0, 1]
-    plaintexts = [algs.EGPlaintext(1, pk), algs.EGPlaintext(pk.g, pk)]
+    plaintexts = cls.generate_plaintexts(pk)
     
     # keep track of number of options selected.
     num_selected_answers = 0;
@@ -110,7 +130,18 @@ class EncryptedAnswer(object):
 
     # prove that the sum is 0 or 1 (can be "blank vote" for this answer)
     # num_selected_answers is 0 or 1, which is the index into the plaintext that is actually encoded
-    overall_proof = homomorphic_sum.generate_disjunctive_encryption_proof(plaintexts, num_selected_answers, randomness_sum, algs.EG_disjunctive_challenge_generator);
+    min_answers = 0
+    if question.has_key('min'):
+      min_answers = question['min']
+    max_answers = question['max']
+    
+    if num_selected_answers < min_answers:
+      raise Exception("Need to select at least %s answer(s)" % min_answers)
+    
+    sum_plaintexts = cls.generate_plaintexts(pk, min=min_answers, max=max_answers)
+    
+    # need to subtract the min from the offset
+    overall_proof = homomorphic_sum.generate_disjunctive_encryption_proof(sum_plaintexts, num_selected_answers - min_answers, randomness_sum, algs.EG_disjunctive_challenge_generator);
     
     return cls(choices, individual_proofs, overall_proof, randomness)
     
@@ -138,8 +169,14 @@ class EncryptedVote(object):
       return False
       
     # check proofs on all of answers
-    for ea in self.encrypted_answers:
-      if not ea.verify(election.pk):
+    for question_num in range(len(election.questions)):
+      ea = self.encrypted_answers[question_num]
+      question = election.questions[question_num]
+      min_answers = 0
+      if question.has_key('min'):
+        min_answers = question['min']
+        
+      if not ea.verify(election.pk, min=min_answers, max=question['max']):
         return False
         
     return True

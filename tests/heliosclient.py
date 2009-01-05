@@ -16,7 +16,10 @@ from client import heliosclient
 # modify variables here
 helios = heliosclient.HeliosClient({'consumer_key': 'test', 'consumer_secret': '123'},
                         host = '174.129.241.146',
-                        port = 80)
+#                        host = "localhost",
+                        port = 80,
+                        prefix = "/helios"
+                        )
 
 # get the El Gamal Parameters
 params = helios.params()
@@ -33,7 +36,7 @@ print "election id is: " + election_id
 helios.election_set_reg(election_id, open_reg= True)
 
 # set questions
-questions = [{"answers": ["ice-cream", "cake"], "max": 1, "question": "ice-cream or cake?", "short_name": "dessert"}]
+questions = [{"answers": ["ice-cream", "cake"], "min": 1, "max": 1, "question": "ice-cream or cake?", "short_name": "dessert"}]
 helios.election_questions_save(election_id, questions)
 
 # freeze it
@@ -48,7 +51,7 @@ print "election hash is %s" % election.hash
 # create three ballots
 ballot_1 = electionalgs.EncryptedVote.fromElectionAndAnswers(election, [[1]])
 ballot_2 = electionalgs.EncryptedVote.fromElectionAndAnswers(election, [[1]])
-ballot_3 = electionalgs.EncryptedVote.fromElectionAndAnswers(election, [[0]])
+ballot_3 = electionalgs.EncryptedVote.fromElectionAndAnswers(election, [[]])
 
 print "created 3 ballots"
 

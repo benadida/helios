@@ -10,19 +10,23 @@ from helios import utils, oauth
 from crypto import algs, electionalgs
 
 class HeliosClient(object):
-  def __init__(self, auth_info, host, port):
+  def __init__(self, auth_info, host, port, prefix=""):
     """
     auth_info is consumer_key, ....
     """
     self.consumer = oauth.OAuthConsumer(auth_info['consumer_key'],auth_info['consumer_secret'])
     self.token = oauth.OAuthToken(auth_info['consumer_key'],auth_info['consumer_secret'])
     self.client = oauthclient.MachineOAuthClient(self.consumer, self.token, host, port)
+    self.prefix = prefix
     
   def get(self, url, parameters = None):
-    return self.client.access_resource("GET", url, parameters= parameters)
+    print "getting " + self.prefix + url
+    return self.client.access_resource("GET", self.prefix + url, parameters= parameters)
   
   def post(self, url, parameters = None):
-    return self.client.access_resource("POST", url, parameters= parameters)
+    print "posting " + self.prefix + url
+    result = self.client.access_resource("POST", self.prefix + url, parameters= parameters)
+    return result
 
   def params(self):
     params_json = self.get("/elections/params")
