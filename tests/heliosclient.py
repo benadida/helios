@@ -18,7 +18,7 @@ helios = heliosclient.HeliosClient({'consumer_key': 'test', 'consumer_secret': '
                         host = '174.129.241.146',
 #                        host = "localhost",
                         port = 80,
-#                        prefix = "/helios"
+                        prefix = "/helios"
                         )
 
 print "headers:\n"
