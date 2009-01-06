@@ -36,7 +36,11 @@ def get_api_client():
   # verify the OAuth request
   request = cherrypy.request
 
-  oauth_request = oauth.OAuthRequest.from_request(request.method, request.path_info, headers= request.headers,
+  full_url = ""
+  if request.META.has_key('SCRIPT_NAME'):
+    full_url = request.META['SCRIPT_NAME'] + request.path_info
+    
+  oauth_request = oauth.OAuthRequest.from_request(request.method, full_url, headers= request.headers,
                                                   parameters=request.params, query_string=None)
                                                   
   if not oauth_request:
