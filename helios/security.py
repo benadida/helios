@@ -54,7 +54,13 @@ OAUTH_SERVER.add_signature_method(oauth.OAuthSignatureMethod_HMAC_SHA1())
 def get_api_client(request):
   parameters = request.POST.copy()
   parameters.update(request.GET)
-  oauth_request = oauth.OAuthRequest.from_request(request.method, request.path_info, headers= request.META,
+  
+  if request.META.has_key('SCRIPT_NAME'):
+    full_url = request.META['SCRIPT_NAME'] + request.path_info
+  else:
+    full_url = request.path_info
+    
+  oauth_request = oauth.OAuthRequest.from_request(request.method, full_url, headers= request.META,
                                                   parameters=parameters, query_string=None)
                                                   
   if not oauth_request:
