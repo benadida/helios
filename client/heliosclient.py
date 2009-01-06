@@ -28,6 +28,9 @@ class HeliosClient(object):
     result = self.client.access_resource("POST", self.prefix + url, parameters= parameters)
     return result
 
+  def get_test(self):
+    return self.get("/test")
+    
   def params(self):
     params_json = self.get("/elections/params")
     return algs.ElGamal.fromJSONDict(utils.from_json(params_json))

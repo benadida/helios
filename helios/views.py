@@ -24,6 +24,10 @@ ELGAMAL_PARAMS.q = 8499485989097049796751979547804341696483536667566694251303960
 ELGAMAL_PARAMS.g = 68111451286792593845145063691659993410221812806874234365854504719057401858372594942893291581957322023471947260828209362467690671421429979048643907159864269436501403220400197614308904460547529574693875218662505553938682573554719632491024304637643868603338114042760529545510633271426088675581644231528918421974L
 
 
+def test(request):
+  str = ["%s : %s\n" % (k,request.META[k]) for k in request.META.keys()]
+  return HttpResponse(str)
+  
 # Create your views here.
 def home(request):
   return render_template(request, "index")
@@ -93,7 +97,6 @@ def election_new_3(request):
   trustees is a JSON list
   """
   
-  import pdb; pdb.set_trace()
   name = request.POST['name']
   trustee = request.POST.getlist('trustee')
   public_key = request.POST.get('public_key', None)

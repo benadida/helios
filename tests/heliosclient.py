@@ -15,11 +15,14 @@ from client import heliosclient
 # instantiate the client
 # modify variables here
 helios = heliosclient.HeliosClient({'consumer_key': 'test', 'consumer_secret': '123'},
-                        host = '174.129.241.146',
-#                        host = "localhost",
-                        port = 80,
-                        prefix = "/helios"
+#                        host = '174.129.241.146',
+                        host = "localhost",
+                        port = 8000,
+#                        prefix = "/helios"
                         )
+
+print "headers:\n"
+print helios.get_test()
 
 # get the El Gamal Parameters
 params = helios.params()
