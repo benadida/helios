@@ -17,7 +17,7 @@ urlpatterns = patterns('',
     # (r'^admin/doc/', include('django.contrib.admindocs.urls')),
 
     # basic static stuff
-    (r'^test$', test),
+    (r'^helios_test$', test),
     (r'^$', home),
     (r'^learn$', learn),
     (r'^faq$', faq),

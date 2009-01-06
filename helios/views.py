@@ -26,6 +26,7 @@ ELGAMAL_PARAMS.g = 6811145128679259384514506369165999341022181280687423436585450
 
 def test(request):
   str = ["%s : %s\n" % (k,request.META[k]) for k in request.META.keys()]
+  str += "\n\n request.path_info is %s " % request.path_info
   return HttpResponse(str)
   
 # Create your views here.

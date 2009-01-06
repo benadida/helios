@@ -29,7 +29,7 @@ class HeliosClient(object):
     return result
 
   def get_test(self):
-    return self.get("/test")
+    return self.get("/helios_test")
     
   def params(self):
     params_json = self.get("/elections/params")
