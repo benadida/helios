@@ -159,13 +159,13 @@ function verify_ballots_and_tally() {
                 
                 // verify the keys
                 $(trustees).each(function(i, trustee) {
-                   if (trustee.pk.verifyKnowledgeOfSecretKey(trustee.pok, ElGamal.fiatshamir_dlog_challenge_generator)) {
+                   if (trustee.public_key.verifyKnowledgeOfSecretKey(trustee.pok, ElGamal.fiatshamir_dlog_challenge_generator)) {
                        result_append("Trustee PK for " + trustee.email + " VERIFIED.");
                    } else {
                        result_append("==== ERROR for PK of trustee " + trustee.email);
                    }
                    
-                   combined_key = trustee.pk.multiply(combined_key);
+                   combined_key = trustee.public_key.multiply(combined_key);
                 });
                 
                 // verify the combination of the keys into the final public key
@@ -184,7 +184,7 @@ function verify_ballots_and_tally() {
                         var decryption_factors = [];
                         // go through the trustees' decryption factors
                         $(trustees).each(function(t_num, trustee) {
-                            if (trustee.pk.verifyDecryptionFactor(a, trustee.decryption_factors[q_num][a_num],
+                            if (trustee.public_key.verifyDecryptionFactor(a, trustee.decryption_factors[q_num][a_num],
                                             trustee.decryption_proofs[q_num][a_num], ElGamal.fiatshamir_challenge_generator)) {
                                 result_append("-- Trustee " + trustee.email + " decryption factor verifies");
                             } else {

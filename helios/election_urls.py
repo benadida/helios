@@ -27,7 +27,7 @@ urlpatterns = patterns('',
     (r'^bboard$', one_election_bboard),
 
     # construct election
-    # (r'^set_pk$', one_election_set_pk),
+    (r'^set_pk$', one_election_set_pk),
     (r'^voters_manage$', one_election_voters_manage),
     (r'^voters_bulk_upload$', one_election_voters_bulk_upload),
     (r'^voters_delete$', one_election_voters_delete),

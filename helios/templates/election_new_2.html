@@ -39,7 +39,7 @@ function generate_keypair() {
 }
 
 $(document).ready(function() {
-{% ifnotequal election_tpe "multiple" %}
+{% ifnotequal election_type "multiple" %}
     $('#submit').hide();
 {% endifnotequal %}
     $('#sk_form').hide();

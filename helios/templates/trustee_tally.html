@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+{% block content %}
+<script language="javascript">
+Helios.setup();
+
+var ELECTION_PK, TRUSTEE_SK;
+ELECTION_PK = ElGamal.PublicKey.fromJSONObject({{election_pk_json|safe}});
+
+$(document).ready(function() {
+});
+
+function load_election_and_ballots(election_id) {
+    // BALLOTS by voter key
+    ELECTION = null;
+    ELECTION_ID = election_id;
+    BALLOTS = {};
+    BALLOTS_LOADED = {};
+    VOTER_LIST = [];
+    
+    // get the election data
+    Helios.get_election({'election_id' : election_id}, function(election_json) {
+        var election = HELIOS.Election.fromJSONObject(election_json);        
+        ELECTION = election;
+        
+        // get the voters
+        Helios.get_election_voters({'election_id' : election_id}, function(voters) {
+            VOTER_LIST = voters;
+            $(voters).each(function(v_num, v) {
+                // download each voter's data, stuffing into BALLOTS
+                Helios.get_election_voter({'election_id' : election_id, 'voter_id' : v.voter_id}, function(voter) {
+                    BALLOTS[voter.voter_id] = HELIOS.EncryptedVote.fromJSONObject(voter.vote, ELECTION);
+                    BALLOTS_LOADED[voter.voter_id] = true;
+                });
+            });
+            
+            when_ready_verify_ballots_and_tally();
+        });
+    });
+}
+
+function when_ready_verify_ballots_and_tally() {
+    var tally = verify_ballots_and_tally();
+    var password = $('#password').val();
+    
+    if (!tally) {
+        setTimeout('when_ready_verify_ballots_and_tally()', 2000);
+    } else {
+        $('#password').val("");
+        // store the decryption factor and proof, relative URL
+        $.post('upload_decryption_factor', {'password': password,'decryption_factors': jQuery.toJSON(tally.decryption_factors), 'decryption_proofs': jQuery.toJSON(tally.decryption_proofs)}, function(result) {
+            if (result == "success") {
+                alert('partial decryption factors and proofs computed and uploaded');
+            } else {
+                alert(result);
+            }
+
+            document.location = "home"
+          });
+    }
+}
+
+var NUM_VOTES = 0;
+
+function increment_vote_tally_count() {
+    NUM_VOTES += 1;
+    $('#num_votes').html(NUM_VOTES);
+}
+
+function verify_ballots_and_tally() {
+    // check that ballots are here
+    for (var i=0; i<VOTER_LIST.length; i++) {
+        if (BALLOTS_LOADED[VOTER_LIST[i].voter_id] == null) {
+            // not all ballots have been downloaded
+            return false;
+        }
+    }
+    
+    // initialize the tallies
+    var TALLY = [];
+    $(ELECTION.questions).each(function(qnum, q) {
+        TALLY[qnum] = $(q.answers).map(function(anum, a) {
+            return 1;
+        });
+    });
+    
+    // voter hashes
+    var voters = [];
+    
+    var VALID_P = true;
+    
+    // no need to keep discrete logs for this, we're not fully decrypting
+    
+    // all ballots are here
+    $(VOTER_LIST).each(function(vnum, voter) {
+        var ballot = BALLOTS[voter.voter_id];
+        
+        // non-voter?
+        if (ballot == null) {
+            return;
+        }
+        
+        var voter_hash = ballot.get_hash();
+
+        // verify the ballot
+        var this_vote_result = ballot.verifyProofs(ELECTION.pk, function(answer_num, choice_num, result, choice) {
+            if (choice_num != null) {
+                // keep track of tally
+                TALLY[answer_num][choice_num] = choice.multiply(TALLY[answer_num][choice_num]);
+            }
+        });
+        
+        VALID_P = VALID_P && this_vote_result;
+        
+        increment_vote_tally_count();
+    });
+    
+    // are we okay?
+    if (!VALID_P)
+        return false;
+
+    // do the trustee partial factor computation
+    var decryption_factors= [];
+    var decryption_proofs= [];
+    
+    // decrypt the tallies
+    $(TALLY).each(function(q_num, q_tally) {
+        decryption_factors[q_num] = [];
+        decryption_proofs[q_num] = [];
+        
+       $(q_tally).each(function(choice_num, choice_tally) {
+           // generate decryption factor and proof
+           var one_choice_result = TRUSTEE_SK.decryptionFactorAndProof(choice_tally, ElGamal.fiatshamir_challenge_generator);
+           
+           decryption_factors[q_num][choice_num] = one_choice_result.decryption_factor
+           decryption_proofs[q_num][choice_num] = one_choice_result.decryption_proof;
+       });
+    });
+    
+    return {'decryption_factors': decryption_factors, 'decryption_proofs' : decryption_proofs};
+}
+
+function do_tally() {
+    TRUSTEE_SK = ElGamal.SecretKey.fromJSONObject($.secureEvalJSON($('#sk_textarea').val()));
+    $('#sk_textarea').val("");
+    $('#sk_section').hide();
+    $('#tally_section').hide();
+    
+    load_election_and_ballots('{{election.election_id}}');
+}
+</script>
+  <h2 class="title">{{election.name}} &mdash; Tally by Trustee {{keyshare.email}}</h2>
+
+  <p>
+      This page will perform partial tallying for this trustee.
+  </p>
+  
+  <p align="center" style="font-size:16pt;">
+      <span id="num_votes">0</span> tallied.
+  </p>
+ 
+<div id="sk_section">
+    <form onsubmit="return false;">
+        Your Password: <input type="password" name="password" id="password" class="prettysmall" size="20"/><br /><br />
+        Your Secret Key:<br />
+        <textarea id="sk_textarea" cols="60" rows="5"></textarea>
+    </form>
+</div>
+
+<p id="tally_section">
+    <button onclick="do_tally();">Perform Trustee Partial Tally</button>
+</p>
+
+{% endblock %}

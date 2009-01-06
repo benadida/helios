@@ -444,13 +444,13 @@ class APIClient(models.Model):
 ## Distributed Decryption
 ##
 
-class KeyShare(models.Model):
-  JSON_FIELDS = ['email','pk','pok', 'decryption_factors', 'decryption_proofs']
+class KeyShare(models.Model, JSONObject):
+  JSON_FIELDS = ['email','public_key','pok', 'decryption_factors', 'decryption_proofs']
   
   keyshare_id = models.AutoField(primary_key = True)
   
   election = models.ForeignKey(Election)
-  pk = JSONField(null=True)
+  public_key = JSONField(json_obj_class = algs.EGPublicKey, null=True)
   pok = JSONField(null=True)
   email = models.EmailField()
   password = models.CharField(max_length=50, null=True)

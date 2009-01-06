@@ -93,16 +93,17 @@ def election_new_3(request):
   trustees is a JSON list
   """
   
+  import pdb; pdb.set_trace()
   name = request.POST['name']
-  trustee = request.POST.get('trustee', None)
+  trustee = request.POST.getlist('trustee')
   public_key = request.POST.get('public_key', None)
   private_key = request.POST.get('private_key', None)
   voting_starts_at = request.POST.get('voting_starts_at', None)
   voting_ends_at = request.POST.get('voting_ends_at', None)
   
   # we need a list of admins, or at least a public key
-  if not trustee and not public_key:
-    raise HttpResponseServerError('Need a list of trustees or a public key')
+  if len(trustee) == 0 and not public_key:
+    return HttpResponseServerError('Need a list of trustees or a public key')
   
   # create an election
   if public_key and public_key != "":
@@ -124,7 +125,7 @@ def election_new_3(request):
   ## FIXME: transaction!
   
   # go through the trustees
-  if trustee:
+  if len(trustee) > 0:
     for t in trustee:
       if t.strip() == "":
         continue
@@ -134,7 +135,7 @@ def election_new_3(request):
       keyshare.save()
       
     # send out the email
-    email_trustees_2(election, 'You have been designated as a trustee of the Helios Election "%s".' % election.name)
+    send_trustees_email(election, 'Trustee for Election %s' % election.name, 'You have been designated as a trustee of the Helios Election "%s".' % election.name)
   
   # user or api_client?
   if get_user(request):
@@ -148,11 +149,23 @@ def election_new_3(request):
 
 @election_admin()
 def one_election_keyshares_manage(request, election):
-  return HttpResponse("election keyshares %s" % election.election_id)
+  keyshares = election.get_keyshares()
+  ready_p = True
+  for keyshare in keyshares:
+    ready_p = ready_p and (keyshare.public_key != None)
+  return render_template(request, "keyshares_manage", {'election' : election, 'keyshares': keyshares, 'ready_p': ready_p})
 
 @election_admin()
 def one_election_keyshares_tally_manage(request, election):
-  return HttpResponse("election keyshares tally %s" % election.election_id)
+  election_pk_json = utils.to_json(election.public_key.toJSONDict())
+  keyshares = election.get_keyshares()
+  
+  ready_p = True
+  for keyshare in keyshares:
+    ready_p = ready_p and (keyshare.decryption_factors != None)
+  
+  return render_template(request,"keyshares_tally_manage", {'election': election, 'election_pk_json': election_pk_json, 'ready_p' : ready_p})
+  
   
 @election_view()
 @json
@@ -435,6 +448,16 @@ def one_election_save_questions(request, election):
   return SUCCESS
 
 @election_admin(frozen=False)
+def one_election_set_pk(request, election):
+  if election.public_key:
+    return HttpResponseServerError("failure: Public Key exists already")
+  
+  election.public_key = algs.EGPublicKey.fromJSONDict(utils.from_json(request.POST['public_key_json']))
+  election.save()
+  
+  return SUCCESS
+  
+@election_admin(frozen=False)
 def one_election_freeze(request, election):
   if request.method == "GET":
     return render_template(request, 'election_freeze', {'election': election})
@@ -446,9 +469,39 @@ def one_election_freeze(request, election):
     else:
       return SUCCESS    
 
+def send_trustees_email(election, subject, body):
+  trustees = election.get_keyshares()
+  footer_template = """
+Your Trustee homepage for election "%s" is:
+%s
+
+Your password is:
+%s
+
+--
+The Helios Voting System
+"""
+
+  for trustee in trustees:
+    footer = footer_template % (election.name, reverse(trustee_home, args=[election.election_id, trustee.email]), trustee.password)
+    
+    full_body = body + footer
+
+    # send out the emails for the shares
+    utils.send_email("%s <%s>" % ("Helios", "system@heliosvoting.org"), ["%s <%s>" % (trustee.email, trustee.email)], subject, full_body)
+
 @election_admin()
 def one_election_email_trustees(request, election):
-  pass
+  if request.method == "GET":
+    keyshares = election.get_keyshares()
+    return render_template(request, 'email_trustees', {'election' : election,'keyshares': keyshares})
+  else:
+    body = request.POST['body']
+    subject = "Trustee Information for %s" % election.name
+
+    send_trustees_email(election, subject, body)
+
+    return "DONE"
 
 @election_admin(frozen=True)
 def one_election_compute_tally(request, election):
@@ -529,6 +582,7 @@ def one_voter_delete(request, election, voter_id):
 
 @election_view(frozen=True)
 def one_voter_submit(request, election, voter_id):
+  import pdb; pdb.set_trace()
   election_obj = election.toElection()
   
   # this will raise an exception if the voter is bad
@@ -574,17 +628,40 @@ def trustees_list(request, election):
 
 @election_view()
 def trustee_home(request, election, trustee_email):
-  return HttpResponse("trustees home for election %s" % election.election_id)
+  eg_params_json = utils.to_json(ELGAMAL_PARAMS.toJSONDict())
+  keyshare = KeyShare.objects.get(election=election, email=trustee_email)
+  return render_template(request, "trustee_home", {'election': election, 'keyshare': keyshare, 'eg_params_json': eg_params_json})
 
 @election_view(frozen=False)
 def trustee_upload_pk(request, election, trustee_email):
-  return HttpResponse("trustees upload pk for election %s" % election.election_id)
+  keyshare = KeyShare.objects.get(election=election, email=trustee_email)
+
+  if keyshare.password != request.POST['password']:
+    return HttpResponseServerError("failure: bad password")
+    
+  election.public_key = None
+  election.save()
+  
+  keyshare.public_key = algs.EGPublicKey.fromJSONDict(utils.from_json(request.POST['public_key']))
+  keyshare.pok = utils.from_json(request.POST['pok'])
+  keyshare.save()
+  return SUCCESS
+  
 
 @election_view(frozen=True)
 def trustee_tally(request, election, trustee_email):
-  return HttpResponse("trustees tally for election %s" % election.election_id)
+  keyshare = KeyShare.objects.get(election=election, email=trustee_email)
+  election_pk_json = utils.to_json(election.public_key.toJSONDict())
+  return render_template(request, "trustee_tally", {'election' : election, 'election_pk_json': election_pk_json, 'keyshare': keyshare})
 
 @election_view(frozen=True)
 def trustee_upload_decryption_factor(request, election, trustee_email):
-  return HttpResponse("trustees upload dec factor for election %s" % election.election_id)
-
+  keyshare = KeyShare.objects.get(election=election, email=trustee_email)
+  if keyshare.password != request.POST['password']:
+    return "failure: password doesn't match"
+    
+  keyshare.decryption_factors = utils.from_json(request.POST['decryption_factors'])
+  keyshare.decryption_proofs = utils.from_json(request.POST['decryption_proofs'])
+  keyshare.save()
+  return SUCCESS
+  
