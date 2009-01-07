@@ -51,10 +51,9 @@ BOOTH.setup_ballot = function(election) {
 };
 
 BOOTH.setup_election = function(election, raw_json) {
-  BOOTH.election = HELIOS.Election.fromJSONObject(election);
-  
-  // compute the hash from the raw JSON
-  BOOTH.election_hash = b64_sha1(raw_json);
+  // use the raw JSON for safer hash computation
+  BOOTH.election = HELIOS.Election.fromJSONString(raw_json);  
+  BOOTH.election_hash = BOOTH.election.get_hash();
 
   $('#election_hash').html(BOOTH.election_hash);
 

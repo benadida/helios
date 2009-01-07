@@ -130,4 +130,4 @@ class JSONObject(object):
       
   def toJSON(self):
     # FIXME: factor in the JSON_FIELDS for the class
-    return json.dumps(self.toJSONDict())
+    return dumps(self.toJSONDict())

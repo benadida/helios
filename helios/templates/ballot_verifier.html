@@ -34,11 +34,16 @@ function verify_single_ballot(audit_trail) {
   var encrypted_vote_json = jQuery.secureEvalJSON(audit_trail);
   
   // go get the election
-  Helios.get_election({'election_id' : encrypted_vote_json.election_id}, function(election_json) {
+  Helios.get_election({'election_id' : encrypted_vote_json.election_id}, function(election_json, election_raw_json) {
       // display election fingerprint
-      var election = HELIOS.Election.fromJSONObject(election_json);
+      var election = HELIOS.Election.fromJSONString(election_raw_json);
       var election_hash = election.get_hash();
       result_append("election fingerprint is " + election_hash);
+      
+      // check if the election ballot_type is homomorphic
+      if (election.ballot_type != "homomorphic") {
+          result_append("WARNING: the ballot type for this election is not homomorphic. Verification may fail because this verifier is only set up to handle homomorphic ballots.");
+      }
       
       // display ballot fingerprint
       encrypted_vote = HELIOS.EncryptedVote.fromJSONObject(encrypted_vote_json, election);

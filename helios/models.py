@@ -17,7 +17,7 @@ from json import JSONField, JSONObject, dumps, loads
 
 class Election(models.Model, JSONObject):
   # when JSON'ified
-  JSON_FIELDS = ['election_id', 'name', 'public_key', 'questions', 'voters_hash', 'openreg', 'voting_starts_at', 'voting_ends_at']
+  JSON_FIELDS = ['ballot_type', 'election_id', 'name', 'public_key', 'questions', 'tally_type', 'voters_hash', 'openreg', 'voting_starts_at', 'voting_ends_at']
   
   election_id = models.AutoField(primary_key=True)
   
@@ -52,8 +52,9 @@ class Election(models.Model, JSONObject):
   # decryption proof, a JSON object
   decryption_proof = JSONField(null=True)
 
-  # type of election (homomorphic, mixnet, possibly with more detail)
-  election_type = models.CharField(max_length=300, default='homomorphic')
+  # type of election
+  ballot_type = models.CharField(max_length=300, default='homomorphic')
+  tally_type = models.CharField(max_length=300, default='homomorphic')
 
   def toJSONDict(self):
     # JSON fields, no need!

@@ -40,9 +40,17 @@
 {% else %}
 {% if election.in_progress_p %}
 {% if election.get_sk %}
+{% ifequal election.tally_type "homomorphic" %}
 <li> <a href="{% url helios.views.one_election_drive_tally_chunk election_id=election.election_id %}">compute tally</a></li>
 {% else %}
+<li> custom tally</li>
+{% endifequal %}
+{% else %}
+{% ifequal election.tally_type "homomorphic" %}
 <li> <a href="{% url helios.views.one_election_drive_tally election_id=election.election_id %}">compute tally</a></li>
+{% else %}
+<li> custom tally</li>
+{% endifequal %}
 {% endif %}
 {% endif %}
 {% endif %}
@@ -101,7 +109,12 @@ Election Fingerprint<br />
 </ul>
 {% endfor %}
 
+{% ifequal election.tally_type "homomorphic" %}
 <a style="font-size: 14pt;" target="_blank" href="{% url helios.views.election_verifier %}">Audit the Election Tally</a><br />
+{% else %}
+<b>This election uses a custom tallying mechanism, which must be audited by the custom code.</b>
+{% endifequal %}
+
 <br /><br />
 {% endif %}
 

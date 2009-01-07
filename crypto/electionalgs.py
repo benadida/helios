@@ -220,6 +220,8 @@ class Election(object):
     self.voting_starts_at = None
     self.voting_ends_at = None
     self.openreg = False
+    self.ballot_type = False
+    self.tally_type = False
     
   def init_tally(self):
     return Tally(self)
@@ -231,10 +233,12 @@ class Election(object):
 
   def toJSONDict(self):
     return_value = {
+      'ballot_type' : self.ballot_type,
       'election_id' : self.election_id,
       'name' : self.name,
       'public_key' : self.pk.toJSONDict(),
       'questions' : self.questions,
+      'tally_type' : self.tally_type,
       'voting_starts_at' : self.voting_starts_at,
       'voting_ends_at' : self.voting_ends_at
     }
@@ -256,6 +260,8 @@ class Election(object):
     el.voting_starts_at = d['voting_starts_at']
     el.voting_ends_at = d['voting_ends_at']
     el.questions = d['questions']
+    el.ballot_type = d['ballot_type']
+    el.tally_type = d['tally_type']
     
     if d['public_key']:
       el.pk = algs.EGPublicKey.fromJSONDict(d['public_key'])

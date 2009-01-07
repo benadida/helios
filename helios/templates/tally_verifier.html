@@ -40,10 +40,15 @@ function load_election_and_ballots(election_id) {
     VOTER_LIST = [];
     
     // get the election data
-    Helios.get_election({'election_id' : election_id}, function(election_json) {
-        var election = HELIOS.Election.fromJSONObject(election_json);
+    Helios.get_election({'election_id' : election_id}, function(election_json, election_raw_json) {
+        var election = HELIOS.Election.fromJSONString(election_raw_json);
         ELECTION = election;
         result_append("Election: " + election.name);
+        
+        if (election.tally_type != "homomorphic") {
+            result_append("PROBLEM: this election is not a straight-forward homomorphic-tally election. As a result, Helios cannot currently verify it.");
+            return;
+        }
         
         // hash it
         var election_hash = election.get_hash();

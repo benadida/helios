@@ -35,8 +35,8 @@ class HeliosClient(object):
     params_json = self.get("/elections/params")
     return algs.ElGamal.fromJSONDict(utils.from_json(params_json))
     
-  def election_new(self, name, public_key):
-    election_id = self.post("/elections/new_3", {"name" : name, "public_key" : utils.to_json(public_key.toJSONDict())})
+  def election_new(self, name, public_key, ballot_type = 'homomorphic', tally_type = 'homomorphic'):
+    election_id = self.post("/elections/new_3", {"name" : name, "public_key" : utils.to_json(public_key.toJSONDict()), "ballot_type": ballot_type, "tally_type": tally_type})
     return election_id
     
   def election_get(self, election_id):

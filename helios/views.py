@@ -105,6 +105,11 @@ def election_new_3(request):
   voting_starts_at = request.POST.get('voting_starts_at', None)
   voting_ends_at = request.POST.get('voting_ends_at', None)
   
+  # election type is homomorphic. The type of the election determines
+  # how votes are tallied and verified.
+  ballot_type = request.POST.get('ballot_type', 'homomorphic')
+  tally_type = request.POST.get('tally_type', 'homomorphic')
+  
   # we need a list of admins, or at least a public key
   if len(trustee) == 0 and not public_key:
     return HttpResponseServerError('Need a list of trustees or a public key')
@@ -120,7 +125,7 @@ def election_new_3(request):
   else:
     sk = None
     
-  election = Election.objects.create(election_type = 'homomorphic', name = name,
+  election = Election.objects.create(ballot_type = ballot_type, tally_type = tally_type, name = name,
                       admin = get_user(request), api_client= get_api_client(request),
 #                      voting_starts_at = utils.string_to_datetime(voting_starts_at),
 #                      voting_ends_at = utils.string_to_datetime(voting_ends_at),
@@ -509,6 +514,9 @@ def one_election_email_trustees(request, election):
 
 @election_admin(frozen=True)
 def one_election_compute_tally(request, election):
+  if election.tally_type != "homomorphic":
+    return HttpResponseRedirect(reverse(one_election_view,args=[election.election_id]))
+
   return HttpResponse("election compute tally %s" % election.election_id)
 
 @election_admin(frozen=True)
@@ -516,6 +524,9 @@ def one_election_drive_tally(request, election):
   """
   JavaScript-based driver for the entire tallying process, now done in JavaScript.
   """
+  if election.tally_type != "homomorphic":
+    return HttpResponseRedirect(reverse(one_election_view,args=[election.election_id]))
+  
   election_pk = election.public_key
   election_pk_json = utils.to_json(election_pk.toJSONDict())
   
@@ -586,7 +597,6 @@ def one_voter_delete(request, election, voter_id):
 
 @election_view(frozen=True)
 def one_voter_submit(request, election, voter_id):
-  import pdb; pdb.set_trace()
   election_obj = election.toElection()
   
   # this will raise an exception if the voter is bad

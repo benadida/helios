@@ -72,18 +72,24 @@ HELIOS.Election = Class.extend({
     // in terms of ordering the keys. FIXME: get a JSON library that orders keys properly.
     if (this.openreg) {
       return {
-        election_id : this.election_id, name : this.name, openreg: true, public_key: this.pk.toJSONObject(), questions : this.questions,
-        voting_ends_at : this.voting_ends_at, voting_starts_at : this.voting_starts_at
+        ballot_type: this.ballot_type, election_id : this.election_id,
+        name : this.name, openreg: true, public_key: this.pk.toJSONObject(), questions : this.questions,
+        tally_type: this.tally_type, voting_ends_at : this.voting_ends_at, voting_starts_at : this.voting_starts_at
       };
     } else {
       return {
-        election_id : this.election_id, name : this.name, public_key: this.pk.toJSONObject(), questions : this.questions,
-        voters_hash : this.voters_hash, voting_ends_at : this.voting_ends_at, voting_starts_at : this.voting_starts_at
+        ballot_type: this.ballot_type, election_id : this.election_id,
+        name : this.name, public_key: this.pk.toJSONObject(), questions : this.questions,
+        tally_type: this.tally_type, voters_hash : this.voters_hash, voting_ends_at : this.voting_ends_at, voting_starts_at : this.voting_starts_at
       };      
     }
   },
   
   get_hash: function() {
+    if (this.election_hash)
+      return this.election_hash;
+    
+    // otherwise  
     return b64_sha1(this.toJSON());
   },
   
@@ -93,11 +99,25 @@ HELIOS.Election = Class.extend({
   }
 });
 
+HELIOS.Election.fromJSONString = function(raw_json) {
+  var json_object = $.secureEvalJSON(raw_json);
+  
+  // hash fix for the issue with re-json'ifying unicode chars
+  var election = HELIOS.Election.fromJSONObject(json_object);
+  election.election_hash = b64_sha1(raw_json);
+  
+  return election;
+};
+
 HELIOS.Election.fromJSONObject = function(d) {
   var el = new HELIOS.Election();
   el.election_id = d.election_id;
   el.name = d.name; el.voters_hash = d.voters_hash; el.voting_starts_at = d.voting_starts_at; el.voting_ends_at = d.voting_ends_at;
   el.questions = d.questions;
+  
+  // stuff about the election
+  el.ballot_type = d.ballot_type;
+  el.tally_type = d.tally_type;
   
   // empty questions
   if (!el.questions)
