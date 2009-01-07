@@ -185,7 +185,7 @@ from django.core import mail as django_mail
 
 def send_email(sender, recpt_lst, subject, body):
   logging.error("sending email - %s" % subject)
-  django_mail.send_mail(subject, body, sender, recpt_lst, fail_silently=False)
+  django_mail.send_mail(subject, body, sender, recpt_lst, fail_silently=True)
   
 
   

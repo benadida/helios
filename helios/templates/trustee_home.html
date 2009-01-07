@@ -4,6 +4,15 @@
 
 var PUBLIC_KEY, PROOF;
 
+function clear() {
+    $('#sk_textarea').val("");
+    $('#pk_textarea').val("");
+    $('#sk_form').hide();
+    $('#pk_form').hide();
+    $('#submit_message_and_button').hide(); 
+    $('#buttons').show();
+}
+
 function generate_keypair() {
     ELGAMAL_PARAMS = ElGamal.Params.fromJSONObject({{eg_params_json|safe}});
 
@@ -23,6 +32,8 @@ function generate_keypair() {
 
     $('#sk_textarea').val(jQuery.toJSON(secret_key));
     $('#sk_form').show();
+    $('#pk_textarea').val(jQuery.toJSON({'pok': PROOF, 'public_key': PUBLIC_KEY}));
+    $('#pk_form').show();
     $('#submit_message_and_button').show();
 }
 
@@ -43,9 +54,7 @@ function do_upload() {
 }
 
 $(document).ready(function() {
-    $('#sk_form').hide();
-    $('#pk_form').hide();
-    $('#submit_message_and_button').hide();
+    clear();
 });
 
 </script>
@@ -79,7 +88,8 @@ or <button onclick="download_sk_program(); return false;">download a program</bu
 Your password: <input type="password" class="pretty" name="password" id="password" /><br /><br />
 Your key has been generated. Copy the secret key below and keep it safe (we can't recover it.)<br />
 Then click "submit" to send the public portion of the key to Helios servers.<br />
-<input class="pretty" type="submit" id="pk_submit" value="submit" /><br /><br />
+<input class="pretty" type="submit" id="pk_submit" value="submit" /><br />
+<a href="javascript:clear()">clear keys and start again</a>.<br /><br />
 </span>
 </form>
 
@@ -89,12 +99,14 @@ Your Secret Key:<br />
 </textarea>
 </form>
 
+<br /><br />
 <form id="pk_form">
-Your Public Key:<br />
+Your Public Key and Proof of Knowledge:<br />
 <textarea id="pk_textarea"  cols="80" rows="10">
 </textarea>
 </form>
 {% endif %}
 </p>
 
+<br /><br />
 {% endblock %}
