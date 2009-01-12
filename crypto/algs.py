@@ -109,6 +109,7 @@ class ElGamal:
       EG.p = Utils.random_safe_prime(n_bits)
 
       # q is the order of the group
+      # FIXME: not always p-1/2
       EG.q = (EG.p-1)/2
   
       # find g that generates the q-order subgroup
@@ -125,7 +126,7 @@ class ElGamal:
       """
       
       keypair = EGKeyPair()
-      keypair.generate(self.p, self.g)
+      keypair.generate(self.p, self.q, self.g)
   
       return keypair
       
@@ -145,13 +146,13 @@ class EGKeyPair:
       self.pk = EGPublicKey()
       self.sk = EGSecretKey()
 
-    def generate(self, p, g):
+    def generate(self, p, q, g):
       """
       Generate an ElGamal keypair
       """
       self.pk.g = g
       self.pk.p = p
-      self.pk.q = (p-1)/2
+      self.pk.q = q
       
       self.sk.x = Utils.random_mpz_lt(p)
       self.pk.y = pow(g, self.sk.x, p)
