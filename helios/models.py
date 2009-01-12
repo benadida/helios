@@ -79,9 +79,7 @@ class Election(models.Model, JSONObject):
     return electionalgs.Election.fromJSONDict(self.toJSONDict())
 
   def get_voters(self, category=None, after=None, limit=None):
-    keys = {'election': self}
-    
-    query = Voter.objects.all()
+    query = Voter.objects.filter(election = self)
     
     if category:
       query = query.filter(category = category)
