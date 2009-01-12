@@ -80,10 +80,17 @@ class Election(models.Model, JSONObject):
 
   def get_voters(self, category=None, after=None, limit=None):
     keys = {'election': self}
-    if category:
-      keys['category'] = category
     
-    query = Voter.objects.filter(**keys).order_by('voter_id')
+    query = Voter.objects.all()
+    
+    if category:
+      query = query.filter(category = category)
+    
+    if after:
+      query = query.filter(voter_id__gt = after)
+      
+    query = query.order_by('voter_id')
+
     if limit:
       return query[:limit]
     else:

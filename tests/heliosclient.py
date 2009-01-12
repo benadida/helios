@@ -15,11 +15,11 @@ from client import heliosclient
 # instantiate the client
 # modify variables here
 helios = heliosclient.HeliosClient({'consumer_key': 'test', 'consumer_secret': '123'},
-                        host = '174.129.241.146',
-#                        host = "localhost",
-#                        port = 8000,
-                         port = 80,
-                        prefix = "/helios"
+#                        host = '174.129.241.146',
+                        host = "localhost",
+                        port = 8000,
+#                         port = 80,
+#                        prefix = "/helios"
                         )
 
 print "headers:\n"
@@ -54,7 +54,9 @@ print "election hash is %s" % election.hash
 
 # create three ballots
 ballot_1 = electionalgs.EncryptedVote.fromElectionAndAnswers(election, [[1]])
+print "one ballot"
 ballot_2 = electionalgs.EncryptedVote.fromElectionAndAnswers(election, [[1]])
+print "two ballots"
 ballot_3 = electionalgs.EncryptedVote.fromElectionAndAnswers(election, [[0]])
 
 print "created 3 ballots"
