@@ -210,6 +210,33 @@ class EGPublicKey:
         return {'y' : str(self.y), 'p' : str(self.p), 'g' : str(self.g) , 'q' : str(self.q)}
 
     toJSONDict = to_dict
+    
+    def __mul__(self,other):
+      if other == 0 or other == 1:
+        return self
+        
+      # check p and q
+      if self.p != other.p or self.q != other.q or self.g != other.g:
+        raise Exception("incompatible public keys")
+        
+      result = EGPublicKey()
+      result.p = self.p
+      result.q = self.q
+      result.g = self.g
+      result.y = (self.y * other.y) % result.p
+      return result
+      
+    def verify_sk_proof(self, dlog_proof, challenge_generator = None):
+      """
+      verify the proof of knowledge of the secret key
+      g^response = commitment * y^challenge
+      """
+      left_side = pow(self.g, dlog_proof.response, self.p)
+      right_side = (dlog_proof.commitment * pow(self.y, dlog_proof.challenge, self.p)) % self.p
+      
+      expected_challenge = challenge_generator(dlog_proof.commitment) % self.q
+      
+      return ((left_side == right_side) and (dlog_proof.challenge == expected_challenge))
 
     @classmethod
     def from_dict(cls, d):
@@ -282,6 +309,21 @@ class EGSecretKey:
         return {'x' : str(self.x), 'public_key' : self.pk.to_dict()}
         
     toJSONDict = to_dict
+
+    def prove_sk(self, challenge_generator):
+      """
+      Generate a PoK of the secret key
+      Prover generates w, a random integer modulo q, and computes commitment = g^w mod p.
+      Verifier provides challenge modulo q.
+      Prover computes response = w + x*challenge mod q, where x is the secret key.
+      """
+      w = Utils.random_mpz_lt(self.pk.q)
+      commitment = pow(self.pk.g, w, self.pk.p)
+      challenge = challenge_generator(commitment) % self.pk.q
+      response = (w + (self.x * challenge)) % self.pk.q
+      
+      return DLogProof(commitment, challenge, response)
+      
 
     @classmethod
     def from_dict(cls, d):
@@ -559,6 +601,22 @@ class EGZKDisjunctiveProof:
   
   toJSONDict = to_dict
 
+class DLogProof(object):
+  def __init__(self, commitment, challenge, response):
+    self.commitment = commitment
+    self.challenge = challenge
+    self.response = response
+    
+  def to_dict(self):
+    return {'challenge': str(self.challenge), 'commitment': str(self.commitment), 'response' : str(self.response)}
+  
+  toJSONDict = to_dict
+  
+  @classmethod
+  def from_dict(cls, d):
+    dlp = cls(int(d['commitment']), int(d['challenge']), int(d['response']))
+    return dlp
+
 def EG_disjunctive_challenge_generator(commitments):
   array_to_hash = []
   for commitment in commitments:
@@ -566,5 +624,9 @@ def EG_disjunctive_challenge_generator(commitments):
     array_to_hash.append(str(commitment['B']))
 
   string_to_hash = ",".join(array_to_hash)
+  return int(sha.new(string_to_hash).hexdigest(),16)
+  
+def DLog_challenge_generator(commitment):
+  string_to_hash = str(commitment)
   return int(sha.new(string_to_hash).hexdigest(),16)
 
