@@ -1,0 +1,1827 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=UTF-8" /> 
+  <title>Helios Voting System -- Single-Ballot Verifier</title>
+
+<!-- THE ELECTION DATA GOES HERE 
+    It is in the form of a JSON string. Make sure it is properly quoted,
+    usually in single-quotes because the election JSON produced by Helios
+    only uses double-quotes.
+    
+    It is important that this be the JSON *string*, not the JavaScript data structure.
+    
+    This will be securely parsed by the code below, so as to prevent the erroneous adding of executable code in this string.
+    -->
+<script language="javascript">
+var ELECTION_JSON_STRING = '{"ballot_type": "homomorphic", "election_id": 10, "name": "Remote Test", "openreg": true, "public_key": {"g": "14887492224963187634282421537186040801304008017743492304481737382571933937568724473847106029915040150784031882206090286938661464458896494215273989547889201144857352611058572236578734319505128042602372864570426550855201448111746579871811249114781674309062693442442368697449970648232621880001709535143047913661432883287150003429802392229361583608686643243349727791976247247948618930423866180410558458272606627111270040091203073580238905303994472202930783207472394578498507764703191288249547659899997131166130259700604433891232298182348403175947450284433411265966789131024573629546048637848902243503970966798589660808533", "p": "16328632084933010002384055033805457329601614771185955389739167309086214800406465799038583634953752941675645562182498120750264980492381375579367675648771293800310370964745767014243638518442553823973482995267304044326777047662957480269391322789378384619428596446446984694306187644767462460965622580087564339212631775817895958409016676398975671266179637898557687317076177218843233150695157881061257053019133078545928983562221396313169622475509818442661047018436264806901023966236718367204710755935899013750306107738002364137917426595737403871114187750804346564731250609196846638183903982387884578266136503697493474682071", "q": "61329566248342901292543872769978950870633559608669337131139375508370458778917", "y": "1829082159918425085320782773401803398348616063226819462867445065521462666752563698440643278939254894921333148062648025562135545103238821925379826815456691891991754063714376085773746750231875244924381746181472046902378948741351541894384587887392318489162715242121819092805567608837612575600545316233404105167093703253436776742056190022162993935172651495678605220595451812562535714240638099590186360529566924901155427231988268333707785029928756338772606619886581256484079431807638987484168342589609563521514026755757358768896022779470088060346627014245891608642036113310813290681087690114240989400492387066761189084622"}, "questions": [{"answers": ["ice-cream", "cake"], "max": 1, "min": 1, "question": "ice-cream or cake?", "short_name": "dessert"}], "tally_type": "homomorphic", "voting_ends_at": null, "voting_starts_at": null}';
+</script>
+
+<!-- booth.css -->
+<style>
+body {
+  font-family: Arial;
+  background: #bbb;
+  padding: 0px;
+  margin: 0px;
+}
+
+#wrapper {
+  position: absolute;
+  padding: 0px;
+  background: #ffc;
+  border-left: 1px solid #666;
+  border-right: 1px solid #666;
+  border-bottom: 1px solid #666;
+  top: 0px;
+  margin-left: 100px;
+  margin-top: 0px;
+  width: 860px;
+}
+
+#content {
+  padding: 20px 30px 20px 30px;
+}
+
+#header {
+  padding-top: 0px;
+  text-align: center;
+  padding-bottom: 5px;
+}
+
+#header h1 {
+  font-size: 28pt;
+  padding: 0px;
+  margin: 0px;
+  line-height: 120%;
+}
+
+#header h2 {
+  font-size: 20pt;
+  padding: 0px;
+  margin: 0px;
+  line-height: 100%;
+  font-weight: none;
+}
+
+#banner {
+  width: 100%;
+  text-align: center;
+  padding: 2px 0px 2px 0px;
+  background: #fc9;
+  font-size: 18pt;
+  border-bottom: 1px solid #666;
+}
+
+#footer {
+  border-top: 1px solid #666;
+  position: absolute;
+  margin: auto;
+  width: 860px;
+  text-align: center;
+  color: #666;
+}
+
+#footer a, #footer a:visited {
+  color: black;
+  text-decoration: none;
+}
+
+#footer a:hover {
+  text-decoration: underline;
+}
+
+#page h2 {
+  background: #fc9;
+  border-bottom: 1px solid #f90;
+  padding: 5px 0px 2px 5px;
+}
+
+#election_info {
+  font-size: 16pt;
+}
+
+</style>
+
+<!-- forms.css: doesn't look necessary -->
+<style>
+</style>
+
+<!-- jquery -->
+<script language="javascript" src="/static/jquery-1.2.2.min.js"></script>
+
+<!-- jquery JSON -->
+<script language="javascript">
+(function($){function toIntegersAtLease(n)
+{return n<10?'0'+n:n;}
+Date.prototype.toJSON=function(date)
+{return date.getUTCFullYear()+'-'+
+toIntegersAtLease(date.getUTCMonth()+1)+'-'+
+toIntegersAtLease(date.getUTCDate());};var escapeable=/["\\\x00-\x1f\x7f-\x9f]/g;var meta={'\b':'\\b','\t':'\\t','\n':'\\n','\f':'\\f','\r':'\\r','"':'\\"','\\':'\\\\'};
+$.quoteString=function(string)
+{if(escapeable.test(string))
+{return'"'+string.replace(escapeable,function(a)
+{var c=meta[a];if(typeof c==='string'){return c;}
+c=a.charCodeAt();return'\\u00'+Math.floor(c/16).toString(16)+(c%16).toString(16);})+'"';}
+return'"'+string+'"';};
+$.toJSON=function(o)
+{var type=typeof(o);if(type=="undefined")
+return"null";else if(type=="number"||type=="boolean")
+return o+"";else if(o===null)
+return"null";if(type=="string")
+{return $.quoteString(o);}
+if(type=="object"&&typeof o.toJSONObject=="function")
+return $.toJSON(o.toJSONObject());if(type!="function"&&typeof(o.length)=="number")
+{var ret=[];for(var i=0;i<o.length;i++){ret.push($.toJSON(o[i]));}
+return"["+ret.join(", ")+"]";}
+if(type=="function"){throw new TypeError("Unable to convert object of type 'function' to json.");}
+ret=[];for(var k in o){var name;var type=typeof(k);if(type=="number")
+name='"'+k+'"';else if(type=="string")
+name=$.quoteString(k);else
+continue;val=$.toJSON(o[k]);if(typeof(val)!="string"){continue;}
+ret.push(name+": "+val);}
+return"{"+ret.join(", ")+"}";}
+$.evalJSON=function(src)
+{return eval("("+src+")");}
+$.secureEvalJSON=function(src)
+{var filtered=src;filtered=filtered.replace(/\\["\\\/bfnrtu]/g,'@');filtered=filtered.replace(/"[^"\\\n\r]*"|true|false|null|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?/g,']');filtered=filtered.replace(/(?:^|:|,)(?:\s*\[)+/g,'');if(/^[\],:{}\s]*$/.test(filtered))
+return eval("("+src+")");else
+throw new SyntaxError("Error parsing JSON, source is not valid.");}})(jQuery);
+</script>
+
+<!-- class.js -->
+<script language="javascript">
+
+/*
+ * John Resig's Class Inheritance
+ */
+ 
+// Inspired by base2 and Prototype
+(function(){
+  var initializing = false, fnTest = /xyz/.test(function(){xyz;}) ? /\b_super\b/ : /.*/;
+
+  // The base Class implementation (does nothing)
+  this.Class = function(){};
+ 
+  // Create a new Class that inherits from this class
+  Class.extend = function(prop) {
+    var _super = this.prototype;
+   
+    // Instantiate a base class (but only create the instance,
+    // don't run the init constructor)
+    initializing = true;
+    var prototype = new this();
+    initializing = false;
+   
+    // Copy the properties over onto the new prototype
+    for (var name in prop) {
+      // Check if we're overwriting an existing function
+      prototype[name] = typeof prop[name] == "function" &&
+        typeof _super[name] == "function" && fnTest.test(prop[name]) ?
+        (function(name, fn){
+          return function() {
+            var tmp = this._super;
+           
+            // Add a new ._super() method that is the same method
+            // but on the super-class
+            this._super = _super[name];
+           
+            // The method only need to be bound temporarily, so we
+            // remove it when we're done executing
+            var ret = fn.apply(this, arguments);       
+            this._super = tmp;
+           
+            return ret;
+          };
+        })(name, prop[name]) :
+        prop[name];
+    }
+   
+    // The dummy class constructor
+    function Class() {
+      // All construction is actually done in the init method
+      if ( !initializing && this.init )
+        this.init.apply(this, arguments);
+    }
+   
+    // Populate our constructed prototype object
+    Class.prototype = prototype;
+   
+    // Enforce the constructor to be what we expect
+    Class.constructor = Class;
+
+    // And make this class extendable
+    Class.extend = arguments.callee;
+   
+    return Class;
+  };
+})();
+</script>
+
+<!-- bigint.js -->
+<script language="javascript">
+/*
+ * This software incorporates components derived from the
+ * Secure Remote Password JavaScript demo developed by
+ * Tom Wu (tjw@CS.Stanford.EDU).
+ *
+ * This library is almost entirely re-written by Ben Adida (ben@adida.net)
+ * with a BigInt wrapper.
+ */
+
+// A wrapper for java.math.BigInteger with some appropriate extra functions for JSON and 
+// generally being a nice JavaScript object.
+
+BigInt = Class.extend({
+  init: function(value, radix) {
+    if (value == null) {
+      throw "null value!";
+    }
+      
+    if (BigInt.use_applet) {
+      this._java_bigint = BigInt.APPLET.newBigInteger(value, radix);
+    } else {
+      try {
+        this._java_bigint = new java.math.BigInteger(value, radix);
+      } catch (e) {
+        alert("oy " + e.toString() + " value=" + value + " , radix=" + radix);
+      }
+    }
+  },
+  
+  toString: function() {
+    return this._java_bigint.toString() + "";
+  },
+  
+  toJSONObject: function() {
+    // toString is apparently not overridden in IE, so we reproduce it here.
+    return this._java_bigint.toString() + "";
+  },
+  
+  add: function(other) {
+    return BigInt._from_java_object(this._java_bigint.add(other._java_bigint));
+  },
+  
+  bitLength: function() {
+    return this._java_bigint.bitLength();
+  },
+  
+  mod: function(modulus) {
+    return BigInt._from_java_object(this._java_bigint.mod(modulus._java_bigint));
+  },
+  
+  equals: function(other) {
+    return this._java_bigint.equals(other._java_bigint);
+  },
+  
+  modPow: function(exp, modulus) {
+    return BigInt._from_java_object(this._java_bigint.modPow(exp._java_bigint, modulus._java_bigint));
+  },
+  
+  negate: function() {
+    return BigInt._from_java_object(this._java_bigint.negate());
+  },
+  
+  multiply: function(other) {
+    return BigInt._from_java_object(this._java_bigint.multiply(other._java_bigint));
+  },
+  
+  modInverse: function(modulus) {
+    return BigInt._from_java_object(this._java_bigint.modInverse(modulus._java_bigint));
+  }
+  
+});
+
+//
+// Some Class Methods
+//
+BigInt._from_java_object = function(jo) {
+  // bogus object
+  var obj = new BigInt("0",10);
+  obj._java_bigint = jo;
+  return obj;
+};
+
+BigInt.fromJSONObject = function(s) {
+  return new BigInt(s, 10);
+};
+
+BigInt.fromInt = function(i) {
+  return BigInt.fromJSONObject("" + i);
+};
+
+//
+// do the applet check
+//
+function check_applet() {
+  /* Is this Netscape 4.xx? */
+  var is_ns4 = (navigator.appName == "Netscape" && navigator.appVersion < "5");
+
+  /* Do we need the toString() workaround (requires applet)? */
+  var str_workaround = (navigator.appName == "Opera");
+
+  // stuff this in BigInt
+  BigInt.is_ie = (navigator.appName == "Microsoft Internet Explorer");
+
+  /* Decide whether we need the helper applet or not */
+  var use_applet = BigInt.is_ie || (!is_ns4 && navigator.platform.substr(0, 5) == "Linux") || str_workaround || typeof(java) == 'undefined';
+
+  if(!navigator.javaEnabled()) {
+    alert("Java support required for Helios");
+  }
+  
+  return use_applet;
+};
+
+BigInt.use_applet = check_applet();
+
+// Set up the pointer to the applet if necessary, and some
+// basic Big Ints that everyone needs (0, 1, 2, and 42)
+BigInt.setup = function() {
+  if(BigInt.use_applet) {
+      BigInt.APPLET = document.applets["bigint"];
+      if (BigInt.APPLET == null) {
+        //setTimeout("BigInt.setup();", 2000);
+        //return;
+      }
+  }
+
+  BigInt.ZERO = new BigInt("0",10);
+  BigInt.ONE = new BigInt("1",10);
+  BigInt.TWO = new BigInt("2",10);
+  BigInt.FORTY_TWO = new BigInt("42",10);
+};
+
+// .onload instead of .ready, as I don't think the applet is ready until onload.
+// FIXME: something wrong here in the first load
+$(document).ready(function() {
+    BigInt.setup();
+});
+</script>
+
+<!-- random.js -->
+<script language="javascript">
+
+/*
+ * Random Number generation, now uses the glue to Java
+ */
+
+Random = {};
+
+Random.GENERATOR = null;
+
+Random.setupGenerator = function() {
+    if (Random.GENERATOR == null) {
+	    if (BigInt.use_applet) {
+	      var foo = BigInt.APPLET.newSecureRandom();
+	      Random.GENERATOR = BigInt.APPLET.newSecureRandom();
+	    } else {
+	      // we do it twice because of some weird bug;
+	      var foo = new java.security.SecureRandom();
+	      Random.GENERATOR = new java.security.SecureRandom();
+	    }
+    }
+};
+
+Random.getRandomInteger = function(max) {
+  Random.setupGenerator();
+  var bit_length = max.bitLength();
+  var random;
+  if (BigInt.use_applet) {
+      random = BigInt.APPLET.randomBigInteger(bit_length, Random.GENERATOR);
+  } else {
+      random = new java.math.BigInteger(bit_length, Random.GENERATOR);
+  }
+  
+  return BigInt._from_java_object(random).mod(max);
+};
+
+Random.getRandomPrime = function(n_bits) {
+  Random.setupGenerator();
+  var certainty = 80;
+  var prime;
+  if (BigInt.use_applet) {
+      prime = BigInt.APPLET.randomPrimeBigInteger(n_bits, certainty, Random.GENERATOR);
+  } else {
+      prime = new java.math.BigInteger(n_bits, certainty, Random.GENERATOR);
+  }
+  
+  return BigInt._from_java_object(prime);
+};
+</script>
+
+<!-- elgamal.js -->
+<script language="javascript">
+
+//
+// inspired by George Danezis, rewritten by Ben Adida.
+//
+
+ElGamal = {};
+
+ElGamal.Params = Class.extend({
+  init: function(p, q, g) {
+    this.p = p;
+    this.q = q;
+    this.g = g;
+  },
+  
+  generate: function() {
+    // get the value x
+    var x = Random.getRandomInteger(this.q);
+    var y = this.g.modPow(x, this.p);
+    var pk = new ElGamal.PublicKey(this.p, this.q, this.g, y);
+    var sk = new ElGamal.SecretKey(x, pk);
+    return sk;
+  },
+  
+  toJSONObject: function() {
+    return {g: this.g.toJSONObject(), p: this.p.toJSONObject(), q: this.q.toJSONObject()};
+  }
+});
+
+ElGamal.Params.fromJSONObject = function(d) {
+  var params = new ElGamal.Params();
+  params.p = BigInt.fromJSONObject(d.p);
+  params.q = BigInt.fromJSONObject(d.q);
+  params.g = BigInt.fromJSONObject(d.g);
+  return params;
+};
+
+ElGamal.PublicKey = Class.extend({
+  init : function(p,q,g,y) {
+    this.p = p;
+    this.q = q;
+    this.g = g;
+    this.y = y;
+  },
+  
+  toJSONObject: function() {
+    return {g : this.g.toJSONObject(), p : this.p.toJSONObject(), q : this.q.toJSONObject(), y : this.y.toJSONObject()};
+  },
+  
+  verifyKnowledgeOfSecretKey: function(proof, challenge_generator) {
+    // if challenge_generator is present, we have to check that the challenge was properly generated.
+    if (challenge_generator != null) {
+      if (!proof.challenge.equals(challenge_generator(proof.commitment))) {
+        return false;
+      }
+    }
+    
+    // verify that g^response = s * y^challenge
+    var check = this.g.modPow(proof.response, this.p).equals(this.y.modPow(proof.challenge, this.p).multiply(proof.commitment).mod(this.p));
+    
+    return check;
+  },
+  
+  // check if the decryption factor is correct for this public key, given the proof
+  verifyDecryptionFactor: function(ciphertext, decryption_factor, decryption_proof, challenge_generator) {
+    return decryption_proof.verify(this.g, ciphertext.alpha, this.y, decryption_factor, this.p, this.q, challenge_generator);
+  },
+  
+  multiply: function(other) {
+    // base condition
+    if (other == 0 || other == 1) {
+      return this;
+    }
+    
+    // check params
+    if (!this.p.equals(other.p))
+      throw "mismatched params";
+    if (!this.g.equals(other.g))
+      throw "mismatched params";
+    
+    var new_pk = new ElGamal.PublicKey(this.p, this.q, this.g, this.y.multiply(other.y).mod(this.p));
+    return new_pk;
+  },
+  
+  equals: function(other) {
+    return (this.p.equals(other.p) && this.q.equals(other.q) && this.g.equals(other.g) && this.y.equals(other.y));
+  }
+  
+});
+
+ElGamal.PublicKey.fromJSONObject = function(d) {
+  var pk = new ElGamal.PublicKey();
+  pk.p = BigInt.fromJSONObject(d.p);
+  pk.q = BigInt.fromJSONObject(d.q);
+  pk.g = BigInt.fromJSONObject(d.g);
+  pk.y = BigInt.fromJSONObject(d.y);
+  return pk;
+};
+
+ElGamal.SecretKey = Class.extend({
+  init: function(x, pk) {
+    this.x = x;
+    this.pk = pk;
+  },
+  
+  toJSONObject: function() {
+    return {public_key: this.pk.toJSONObject(), x: this.x.toJSONObject()};
+  },
+  
+  // a decryption factor is *not yet* mod-inverted, because it needs to be part of the proof.
+  decryptionFactor: function(ciphertext) {
+    var decryption_factor = ciphertext.alpha.modPow(this.x, this.pk.p);
+    return decryption_factor;
+  },
+  
+  decrypt: function(ciphertext, decryption_factor) {
+    if (!decryption_factor)
+      decryption_factor = this.decryptionFactor(ciphertext);
+
+    // use the ciphertext's built-in decryption given a list of decryption factors.
+    return ciphertext.decrypt([decryption_factor]);
+  },
+  
+  decryptAndProve: function(ciphertext, challenge_generator) {
+    var dec_factor_and_proof = this.decryptionFactorAndProof(ciphertext, challenge_generator);
+    
+    // decrypt, but using the already computed decryption factor
+    var plaintext = this.decrypt(ciphertext, dec_factor_and_proof.decryption_factor);
+
+    return {
+      'plaintext': plaintext,
+      'proof': dec_factor_and_proof.decryption_proof
+    };
+  },
+  
+  decryptionFactorAndProof: function(ciphertext, challenge_generator) {
+    var decryption_factor = this.decryptionFactor(ciphertext);
+    
+    // the DH tuple we need to prove, given the secret key x, is:
+    // g, alpha, y, beta/m
+    var proof = ElGamal.Proof.generate(this.pk.g, ciphertext.alpha, this.x, this.pk.p, this.pk.q, challenge_generator);
+    
+    return {
+      'decryption_factor' : decryption_factor,
+      'decryption_proof' : proof
+    }
+  },
+  
+  // generate a proof of knowledge of the secret exponent x
+  proveKnowledge: function(challenge_generator) {
+    // generate random w
+    var w = Random.getRandomInteger(this.pk.q);
+
+    // compute s = g^w for random w.
+    var s = this.pk.g.modPow(w, this.pk.p);
+    
+    // get challenge
+    var challenge = challenge_generator(s);
+    
+    // compute response = w +  x * challenge
+    var response = w.add(this.x.multiply(challenge).mod(this.pk.q));
+    
+    return new ElGamal.DLogProof(s, challenge, response);
+  }
+});
+
+ElGamal.SecretKey.fromJSONObject = function(d) {
+  var sk = new ElGamal.SecretKey();
+  sk.pk = ElGamal.PublicKey.fromJSONObject(d.public_key);
+  sk.x = BigInt.fromJSONObject(d.x);
+  return sk;
+}
+
+ElGamal.Ciphertext = Class.extend({
+  init: function(alpha, beta, pk) {
+    this.alpha = alpha;
+    this.beta = beta;
+    this.pk = pk;
+  },
+  
+  toString: function() {
+    return this.alpha.toString() + ',' + this.beta.toString();
+  },
+  
+  toJSONObject: function() {
+    return {alpha: this.alpha.toJSONObject(), beta: this.beta.toJSONObject()}
+  },
+  
+  multiply: function(other) {
+    // special case if other is 1 to enable easy aggregate ops
+    if (other == 1)
+      return this;
+    
+    // homomorphic multiply
+    return new ElGamal.Ciphertext(this.alpha.multiply(other.alpha).mod(this.pk.p),
+                                  this.beta.multiply(other.beta).mod(this.pk.p),
+                                  this.pk);
+  },
+  
+  // a decryption method by decryption factors
+  decrypt: function(list_of_dec_factors) {
+    var running_decryption = this.beta;
+    var self = this;
+    $(list_of_dec_factors).each(function(i, dec_factor) {
+      running_decryption = dec_factor.modInverse(self.pk.p).multiply(running_decryption).mod(self.pk.p);    
+    });
+    
+    return new ElGamal.Plaintext(running_decryption, this.pk, false);    
+  },
+  
+  generateProof: function(plaintext, randomness, challenge_generator) {
+    // DH tuple to prove is 
+    // g, y, alpha, beta/m
+    // with dlog randomness
+    var proof = ElGamal.Proof.generate(this.pk.g, this.pk.y, randomness, this.pk.p, this.pk.q, challenge_generator);
+    
+    return proof;
+  },
+  
+  simulateProof: function(plaintext, challenge) {
+    // compute beta/plaintext, the completion of the DH tuple
+    var beta_over_plaintext = this.beta.multiply(plaintext.m.modInverse(this.pk.p)).mod(this.pk.p);
+    
+    // the DH tuple we are simulating here is
+    // g, y, alpha, beta/m
+    return ElGamal.Proof.simulate(this.pk.g, this.pk.y, this.alpha, beta_over_plaintext, this.pk.p, this.pk.q, challenge);
+  },
+  
+  verifyProof: function(plaintext, proof, challenge_generator) {
+    // DH tuple to verify is 
+    // g, y, alpha, beta/m
+    var beta_over_m = this.beta.multiply(plaintext.m.modInverse(this.pk.p)).mod(this.pk.p);
+    
+    return proof.verify(this.pk.g, this.pk.y, this.alpha, beta_over_m, this.pk.p, this.pk.q, challenge_generator);
+  },
+
+  verifyDecryptionProof: function(plaintext, proof, challenge_generator) {
+    // DH tuple to verify is 
+    // g, alpha, y, beta/m
+    // since the proven dlog is the secret key x, y=g^x.
+    var beta_over_m = this.beta.multiply(plaintext.m.modInverse(this.pk.p)).mod(this.pk.p);
+
+    return proof.verify(this.pk.g, this.alpha, this.pk.y, beta_over_m, this.pk.p, this.pk.q, challenge_generator);
+  },
+  
+  generateDisjunctiveProof: function(list_of_plaintexts, real_index, randomness, challenge_generator) {
+    // go through all plaintexts and simulate the ones that must be simulated.
+    // note how the interface is as such so that the result does not reveal which is the real proof.
+    var self = this;
+    
+    var proofs = $(list_of_plaintexts).map(function(p_num, plaintext) {
+      if (p_num == real_index) {
+        // no real proof yet
+        return {};
+      } else {
+        // simulate!
+        return self.simulateProof(plaintext);
+      }
+    });
+    
+    // do the real proof
+    var real_proof = this.generateProof(list_of_plaintexts[real_index], randomness, function(commitment) {
+      // now we generate the challenge for the real proof by first determining
+      // the challenge for the whole disjunctive proof.
+      
+      // set up the partial real proof so we're ready to get the hash;
+      proofs[real_index] = {'commitment' : commitment};
+
+      // get the commitments in a list and generate the whole disjunctive challenge
+      var commitments = $(proofs).map(function(proof_num, proof) {
+        return proof.commitment;
+      });
+      
+      var disjunctive_challenge = challenge_generator(commitments);
+      
+      // now we must subtract all of the other challenges from this challenge.
+      var real_challenge = disjunctive_challenge;
+      $(proofs).each(function(proof_num, proof) {
+        if (proof_num != real_index)
+          real_challenge = real_challenge.add(proof.challenge.negate());
+      });
+      
+      // make sure we mod q, the exponent modulus
+      return real_challenge.mod(self.pk.q);
+    });
+    
+    // set the real proof
+    proofs[real_index] = real_proof;
+        
+    return new ElGamal.DisjunctiveProof(proofs);
+  },
+  
+  verifyDisjunctiveProof: function(list_of_plaintexts, disj_proof, challenge_generator) {
+    var result = true;
+    var proofs = disj_proof.proofs;
+    
+    // for loop because we want to bail out of the inner loop
+    // if we fail one of the verifications.
+    for (var i=0; i < list_of_plaintexts.length; i++) {
+      if (!this.verifyProof(list_of_plaintexts[i], proofs[i]))
+        return false;
+    }
+    
+    // check the overall challenge
+    
+    // first the one expected from the proofs
+    var commitments = $(proofs).map(function(proof_num, proof) {return proof.commitment;});
+    var expected_challenge = challenge_generator(commitments);
+    
+    // then the one that is the sum of the previous one.
+    var sum = new BigInt("0", 10); var self = this;
+    $(proofs).each(function(p_num, proof) {sum = sum.add(proof.challenge).mod(self.pk.q);});
+    
+    return expected_challenge.equals(sum);    
+  },
+  
+  equals: function(other) {
+    return (this.alpha.equals(other.alpha) && this.beta.equals(other.beta));
+  }
+});
+
+ElGamal.Ciphertext.fromJSONObject = function(d, pk) {
+  return new ElGamal.Ciphertext(BigInt.fromJSONObject(d.alpha), BigInt.fromJSONObject(d.beta), pk);
+};
+
+// we need the public key to figure out how to encode m
+ElGamal.Plaintext = Class.extend({
+  init: function(m, pk, encode_m) {
+    if (m == null) {
+      alert('oy null m');
+	    return;
+    }
+
+    this.pk = pk;
+
+    if (encode_m) {
+      // need to encode the message given that p = 2q+1
+      var y = m.add(BigInt.ONE);
+      var test = y.modPow(pk.q, pk.p);
+      if (test.equals(BigInt.ONE)) {
+    	  this.m = y;
+      } else {
+    	  this.m = y.negate().mod(pk.p);
+      }
+    } else {
+      this.m = m;
+    }    
+  },
+  
+  getPlaintext: function() {
+    var y;
+
+    // if m < q
+    if (this.m.compareTo(this.pk.q) < 0) {
+  	  y = this.m;
+    } else {
+  	  y = this.m.negate().mod(this.pk.p);
+    }
+
+    return y.subtract(BigInt.ONE);
+  },
+  
+  getM: function() {
+    return this.m;
+  }
+  
+});
+
+//
+// Proof abstraction
+//
+
+ElGamal.Proof = Class.extend({
+  init: function(A, B, challenge, response) {
+    this.commitment = {};
+    this.commitment.A = A;
+    this.commitment.B = B;
+    this.challenge = challenge;
+    this.response = response;
+  },
+  
+  toJSONObject: function() {
+    return {
+      challenge : this.challenge.toJSONObject(),
+      commitment : {A: this.commitment.A.toJSONObject(), B: this.commitment.B.toJSONObject()},
+      response : this.response.toJSONObject()
+    }
+  },
+  
+  // verify a DH tuple proof
+  verify: function(little_g, little_h, big_g, big_h, p, q, challenge_generator) {
+    // check that little_g^response = A * big_g^challenge
+    var first_check = little_g.modPow(this.response, p).equals(big_g.modPow(this.challenge, p).multiply(this.commitment.A).mod(p));
+
+    // check that little_h^response = B * big_h^challenge
+    var second_check = little_h.modPow(this.response, p).equals(big_h.modPow(this.challenge, p).multiply(this.commitment.B).mod(p));
+    
+    var third_check = true;
+    
+    if (challenge_generator) {
+      third_check = this.challenge.equals(challenge_generator(this.commitment));
+    }
+    
+    return (first_check && second_check && third_check);
+  }
+});
+
+ElGamal.Proof.fromJSONObject = function(d) {
+  return new ElGamal.Proof(
+    BigInt.fromJSONObject(d.commitment.A),
+    BigInt.fromJSONObject(d.commitment.B),
+    BigInt.fromJSONObject(d.challenge),
+    BigInt.fromJSONObject(d.response));
+};
+
+// a generic way to prove that four values are a DH tuple.
+// a DH tuple is g,h,G,H where G = g^x and H=h^x
+// challenge generator takes a commitment, whose subvalues are A and B
+// all modulo p, with group order q, which we provide just in case.
+// as it turns out, G and H are not necessary to generate this proof, given that they're implied by x.
+ElGamal.Proof.generate = function(little_g, little_h, x, p, q, challenge_generator) {
+  // generate random w
+  var w = Random.getRandomInteger(q);
+  
+  // create a proof instance
+  var proof = new ElGamal.Proof();
+  
+  // compute A=little_g^w, B=little_h^w
+  proof.commitment.A = little_g.modPow(w, p);
+  proof.commitment.B = little_h.modPow(w, p);
+  
+  // Get the challenge from the callback that generates it
+  proof.challenge = challenge_generator(proof.commitment);
+  
+  // Compute response = w + x * challenge
+  proof.response = w.add(x.multiply(proof.challenge).mod(q));
+  
+  return proof;
+};
+
+// simulate a a DH-tuple proof, with a potentially assigned challenge (but can be null)
+ElGamal.Proof.simulate = function(little_g, little_h, big_g, big_h, p, q, challenge) {
+  // generate a random challenge if not provided
+  if (challenge == null) {
+    challenge = Random.getRandomInteger(q);
+  }
+  
+  // random response, does not even need to depend on the challenge
+  var response = Random.getRandomInteger(q);
+
+  // now we compute A and B
+  // A = little_g ^ w, and at verification time, g^response = G^challenge * A, so A = (G^challenge)^-1 * g^response
+  var A = big_g.modPow(challenge, p).modInverse(p).multiply(little_g.modPow(response, p)).mod(p);
+
+  // B = little_h ^ w, and at verification time, h^response = H^challenge * B, so B = (H^challenge)^-1 * h^response
+  var B = big_h.modPow(challenge, p).modInverse(p).multiply(little_h.modPow(response, p)).mod(p);
+
+  return new ElGamal.Proof(A, B, challenge, response);  
+};
+
+ElGamal.DisjunctiveProof = Class.extend({
+  init: function(list_of_proofs) {
+    this.proofs = list_of_proofs;
+  },
+  
+  toJSONObject: function() {
+    return $(this.proofs).map(function(i, proof) {
+      return proof.toJSONObject();
+    });
+  }
+});
+
+ElGamal.DisjunctiveProof.fromJSONObject = function(d) {
+  return new ElGamal.DisjunctiveProof(
+    $(d).map(function(i, p) {
+      return ElGamal.Proof.fromJSONObject(p);
+    })
+  );
+};
+
+ElGamal.encrypt = function(pk, plaintext, r) {
+  if (plaintext.getM().equals(BigInt.ZERO))
+    throw "Can't encrypt 0 with El Gamal"
+
+  if (!r)
+    r = Random.getRandomInteger(pk.q);
+  
+  var alpha = pk.g.modPow(r, pk.p);
+  var beta = (pk.y.modPow(r, pk.p)).multiply(plaintext.m).mod(pk.p);
+  
+  return new ElGamal.Ciphertext(alpha, beta, pk);
+};
+
+//
+// DLog Proof
+//
+ElGamal.DLogProof = Class.extend({
+  init: function(commitment, challenge, response) {
+    this.commitment = commitment;
+    this.challenge = challenge;
+    this.response = response;
+  },
+  
+  toJSONObject: function() {
+    return {'challenge' : this.challenge.toJSONObject(), 'commitment': this.commitment.toJSONObject(), 'response': this.response.toJSONObject()};
+  }
+});
+
+ElGamal.DLogProof.fromJSONObject = function(d) {
+  return new ElGamal.DLogProof(BigInt.fromJSONObject(d.commitment || d.s), BigInt.fromJSONObject(d.challenge), BigInt.fromJSONObject(d.response));
+};
+
+// a challenge generator based on a list of commitments of
+// proofs of knowledge of plaintext. Just appends A and B with commas.
+ElGamal.disjunctive_challenge_generator = function(commitments) {
+  var strings_to_hash = [];
+
+  // go through all proofs and append the commitments
+  $(commitments).each(function(commitment_num, commitment) {
+    // toJSONObject instead of toString because of IE weirdness.
+    strings_to_hash[strings_to_hash.length] = commitment.A.toJSONObject();
+    strings_to_hash[strings_to_hash.length] = commitment.B.toJSONObject();
+  });
+  
+  // STRINGS = strings_to_hash;
+  return new BigInt(hex_sha1(strings_to_hash.join(",")), 16);
+};
+
+// a challenge generator for Fiat-Shamir
+ElGamal.fiatshamir_challenge_generator = function(commitment) {
+  return ElGamal.disjunctive_challenge_generator([commitment]);
+};
+
+ElGamal.fiatshamir_dlog_challenge_generator = function(commitment) {
+  return new BigInt(hex_sha1(commitment.toJSONObject()), 16);
+};
+</script>
+
+<!-- sha1.js -->
+<script language="javascript">
+/*
+ * A JavaScript implementation of the Secure Hash Algorithm, SHA-1, as defined
+ * in FIPS PUB 180-1
+ * Version 2.1a Copyright Paul Johnston 2000 - 2002.
+ * Other contributors: Greg Holt, Andrew Kepert, Ydnar, Lostinet
+ * Distributed under the BSD License
+ * See http://pajhome.org.uk/crypt/md5 for details.
+ */
+
+/*
+ * Configurable variables. You may need to tweak these to be compatible with
+ * the server-side, but the defaults work in most cases.
+ */
+var hexcase = 0;  /* hex output format. 0 - lowercase; 1 - uppercase        */
+var b64pad  = ""; /* base-64 pad character. "=" for strict RFC compliance   */
+var chrsz   = 8;  /* bits per input character. 8 - ASCII; 16 - Unicode      */
+
+/*
+ * These are the functions you'll usually want to call
+ * They take string arguments and return either hex or base-64 encoded strings
+ */
+function hex_sha1(s){return binb2hex(core_sha1(str2binb(s),s.length * chrsz));}
+function b64_sha1(s){return binb2b64(core_sha1(str2binb(s),s.length * chrsz));}
+function str_sha1(s){return binb2str(core_sha1(str2binb(s),s.length * chrsz));}
+function hex_hmac_sha1(key, data){ return binb2hex(core_hmac_sha1(key, data));}
+function b64_hmac_sha1(key, data){ return binb2b64(core_hmac_sha1(key, data));}
+function str_hmac_sha1(key, data){ return binb2str(core_hmac_sha1(key, data));}
+
+/*
+ * Perform a simple self-test to see if the VM is working
+ */
+function sha1_vm_test()
+{
+  return hex_sha1("abc") == "a9993e364706816aba3e25717850c26c9cd0d89d";
+}
+
+/*
+ * Calculate the SHA-1 of an array of big-endian words, and a bit length
+ */
+function core_sha1(x, len)
+{
+  /* append padding */
+  x[len >> 5] |= 0x80 << (24 - len % 32);
+  x[((len + 64 >> 9) << 4) + 15] = len;
+
+  var w = Array(80);
+  var a =  1732584193;
+  var b = -271733879;
+  var c = -1732584194;
+  var d =  271733878;
+  var e = -1009589776;
+
+  for(var i = 0; i < x.length; i += 16)
+  {
+    var olda = a;
+    var oldb = b;
+    var oldc = c;
+    var oldd = d;
+    var olde = e;
+
+    for(var j = 0; j < 80; j++)
+    {
+      if(j < 16) w[j] = x[i + j];
+      else w[j] = rol(w[j-3] ^ w[j-8] ^ w[j-14] ^ w[j-16], 1);
+      var t = safe_add(safe_add(rol(a, 5), sha1_ft(j, b, c, d)),
+                       safe_add(safe_add(e, w[j]), sha1_kt(j)));
+      e = d;
+      d = c;
+      c = rol(b, 30);
+      b = a;
+      a = t;
+    }
+
+    a = safe_add(a, olda);
+    b = safe_add(b, oldb);
+    c = safe_add(c, oldc);
+    d = safe_add(d, oldd);
+    e = safe_add(e, olde);
+  }
+  return Array(a, b, c, d, e);
+
+}
+
+/*
+ * Perform the appropriate triplet combination function for the current
+ * iteration
+ */
+function sha1_ft(t, b, c, d)
+{
+  if(t < 20) return (b & c) | ((~b) & d);
+  if(t < 40) return b ^ c ^ d;
+  if(t < 60) return (b & c) | (b & d) | (c & d);
+  return b ^ c ^ d;
+}
+
+/*
+ * Determine the appropriate additive constant for the current iteration
+ */
+function sha1_kt(t)
+{
+  return (t < 20) ?  1518500249 : (t < 40) ?  1859775393 :
+         (t < 60) ? -1894007588 : -899497514;
+}
+
+/*
+ * Calculate the HMAC-SHA1 of a key and some data
+ */
+function core_hmac_sha1(key, data)
+{
+  var bkey = str2binb(key);
+  if(bkey.length > 16) bkey = core_sha1(bkey, key.length * chrsz);
+
+  var ipad = Array(16), opad = Array(16);
+  for(var i = 0; i < 16; i++)
+  {
+    ipad[i] = bkey[i] ^ 0x36363636;
+    opad[i] = bkey[i] ^ 0x5C5C5C5C;
+  }
+
+  var hash = core_sha1(ipad.concat(str2binb(data)), 512 + data.length * chrsz);
+  return core_sha1(opad.concat(hash), 512 + 160);
+}
+
+/*
+ * Add integers, wrapping at 2^32. This uses 16-bit operations internally
+ * to work around bugs in some JS interpreters.
+ */
+function safe_add(x, y)
+{
+  var lsw = (x & 0xFFFF) + (y & 0xFFFF);
+  var msw = (x >> 16) + (y >> 16) + (lsw >> 16);
+  return (msw << 16) | (lsw & 0xFFFF);
+}
+
+/*
+ * Bitwise rotate a 32-bit number to the left.
+ */
+function rol(num, cnt)
+{
+  return (num << cnt) | (num >>> (32 - cnt));
+}
+
+/*
+ * Convert an 8-bit or 16-bit string to an array of big-endian words
+ * In 8-bit function, characters >255 have their hi-byte silently ignored.
+ */
+function str2binb(str)
+{
+  var bin = Array();
+  var mask = (1 << chrsz) - 1;
+  for(var i = 0; i < str.length * chrsz; i += chrsz)
+    bin[i>>5] |= (str.charCodeAt(i / chrsz) & mask) << (32 - chrsz - i%32);
+  return bin;
+}
+
+/*
+ * Convert an array of big-endian words to a string
+ */
+function binb2str(bin)
+{
+  var str = "";
+  var mask = (1 << chrsz) - 1;
+  for(var i = 0; i < bin.length * 32; i += chrsz)
+    str += String.fromCharCode((bin[i>>5] >>> (32 - chrsz - i%32)) & mask);
+  return str;
+}
+
+/*
+ * Convert an array of big-endian words to a hex string.
+ */
+function binb2hex(binarray)
+{
+  var hex_tab = hexcase ? "0123456789ABCDEF" : "0123456789abcdef";
+  var str = "";
+  for(var i = 0; i < binarray.length * 4; i++)
+  {
+    str += hex_tab.charAt((binarray[i>>2] >> ((3 - i%4)*8+4)) & 0xF) +
+           hex_tab.charAt((binarray[i>>2] >> ((3 - i%4)*8  )) & 0xF);
+  }
+  return str;
+}
+
+/*
+ * Convert an array of big-endian words to a base-64 string
+ */
+function binb2b64(binarray)
+{
+  var tab = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+  var str = "";
+  for(var i = 0; i < binarray.length * 4; i += 3)
+  {
+    var triplet = (((binarray[i   >> 2] >> 8 * (3 -  i   %4)) & 0xFF) << 16)
+                | (((binarray[i+1 >> 2] >> 8 * (3 - (i+1)%4)) & 0xFF) << 8 )
+                |  ((binarray[i+2 >> 2] >> 8 * (3 - (i+2)%4)) & 0xFF);
+    for(var j = 0; j < 4; j++)
+    {
+      if(i * 8 + j * 6 > binarray.length * 32) str += b64pad;
+      else str += tab.charAt((triplet >> 6*(3-j)) & 0x3F);
+    }
+  }
+  return str;
+}
+</script>
+
+<!-- helios.js -->
+<script language="javascript">
+
+//
+// Helios Protocols
+// 
+// ben@adida.net
+//
+// FIXME: needs a healthy refactor/cleanup based on Class.extend()
+//
+
+var UTILS = {};
+
+UTILS.array_remove_value = function(arr, val) {
+  var new_arr = [];
+  $(arr).each(function(i, v) {
+    if (v != val) {
+	new_arr.push(v);
+    }
+  });
+
+  return new_arr;
+};
+
+UTILS.select_element_content = function(element) {
+  var range;
+  if (window.getSelection) { // FF, Safari, Opera
+    var sel = window.getSelection();
+    range = document.createRange();
+    range.selectNodeContents(element);
+    sel.removeAllRanges();
+    sel.addRange(range);
+  } else {
+    document.selection.empty();
+    range = document.body.createTextRange();
+    range.moveToElementText(el);
+    range.select();
+  }
+};
+
+// a progress tracker
+UTILS.PROGRESS = Class.extend({
+  init: function() {
+    this.n_ticks = 0.0;
+    this.current_tick = 0.0;
+  },
+  
+  addTicks: function(n_ticks) {
+    this.n_ticks += n_ticks;
+  },
+  
+  tick: function() {
+    this.current_tick += 1.0;
+  },
+  
+  progress: function() {
+    return Math.round((this.current_tick / this.n_ticks) * 100);
+  }
+});
+
+//
+// Helios Stuff
+//
+
+HELIOS = {};
+
+// election
+HELIOS.Election = Class.extend({
+  init: function() {
+  },
+  
+  toJSONObject: function() {
+    // the reason we repeat code here is to make JSON do the right thing
+    // in terms of ordering the keys. FIXME: get a JSON library that orders keys properly.
+    if (this.openreg) {
+      return {
+        ballot_type: this.ballot_type, election_id : this.election_id,
+        name : this.name, openreg: true, public_key: this.pk.toJSONObject(), questions : this.questions,
+        tally_type: this.tally_type, voting_ends_at : this.voting_ends_at, voting_starts_at : this.voting_starts_at
+      };
+    } else {
+      return {
+        ballot_type: this.ballot_type, election_id : this.election_id,
+        name : this.name, public_key: this.pk.toJSONObject(), questions : this.questions,
+        tally_type: this.tally_type, voters_hash : this.voters_hash, voting_ends_at : this.voting_ends_at, voting_starts_at : this.voting_starts_at
+      };      
+    }
+  },
+  
+  get_hash: function() {
+    if (this.election_hash)
+      return this.election_hash;
+    
+    // otherwise  
+    return b64_sha1(this.toJSON());
+  },
+  
+  toJSON: function() {
+    // FIXME: only way around the backslash thing for now.... how ugly
+    return jQuery.toJSON(this.toJSONObject()).replace(/\//g,"\\/");
+  }
+});
+
+HELIOS.Election.fromJSONString = function(raw_json) {
+  var json_object = $.secureEvalJSON(raw_json);
+  
+  // hash fix for the issue with re-json'ifying unicode chars
+  var election = HELIOS.Election.fromJSONObject(json_object);
+  election.election_hash = b64_sha1(raw_json);
+  
+  return election;
+};
+
+HELIOS.Election.fromJSONObject = function(d) {
+  var el = new HELIOS.Election();
+  el.election_id = d.election_id;
+  el.name = d.name; el.voters_hash = d.voters_hash; el.voting_starts_at = d.voting_starts_at; el.voting_ends_at = d.voting_ends_at;
+  el.questions = d.questions;
+  
+  // stuff about the election
+  el.ballot_type = d.ballot_type;
+  el.tally_type = d.tally_type;
+  
+  // empty questions
+  if (!el.questions)
+    el.questions = [];
+  
+  if (d.public_key)
+    el.pk = ElGamal.PublicKey.fromJSONObject(d.public_key);
+    
+  el.openreg = d.openreg;
+  return el;
+};
+
+HELIOS.Election.setup = function(election) {
+  return ELECTION.fromJSONObject(election);
+};
+
+
+// ballot handling
+BALLOT = {};
+
+BALLOT.pretty_choices = function(election, ballot) {
+    var questions = election.questions;
+    var answers = ballot.answers;
+
+    // process the answers
+    var choices = $(questions).map(function(q_num) {
+	    return $(answers[q_num]).map(function(dummy, ans) {
+	      return questions[q_num].answers[ans];
+	    });
+    });
+
+    return choices;
+};
+
+
+// open up a new window and do something with it.
+UTILS.open_window_with_content = function(content) {
+    if (BigInt.is_ie) {
+	    w = window.open("");
+	    w.document.open("text/plain");
+	    w.document.write(content);
+	    w.document.close();
+    } else {
+	    w = window.open("data:text/plain," + encodeURIComponent(content));
+    }
+};
+
+// generate an array of the first few plaintexts
+UTILS.generate_plaintexts = function(pk, min, max) {
+  var last_plaintext = BigInt.ONE;
+
+  // an array of plaintexts
+  var plaintexts = [];
+  
+  if (min == null)
+    min = 0;
+  
+  // questions with more than one possible answer, add to the array.
+  for (var i=0; i<=max; i++) {
+    if (i >= min)
+      plaintexts.push(new ElGamal.Plaintext(last_plaintext, pk, false));
+    last_plaintext = last_plaintext.multiply(pk.g).mod(pk.p);
+  }
+  
+  return plaintexts;
+}
+
+
+//
+// crypto
+//
+
+
+HELIOS.EncryptedAnswer = Class.extend({
+  init: function(question, answer, pk, progress) {    
+    // if nothing in the constructor
+    if (question == null)
+      return;
+
+    // store answer
+    // CHANGE 2008-08-06: answer is now an *array* of answers, not just a single integer
+    this.answer = answer;
+
+    // do the encryption
+    var enc_result = this.doEncryption(question, answer, pk, null, progress);
+
+    this.choices = enc_result.choices;
+    this.randomness = enc_result.randomness;
+    this.individual_proofs = enc_result.individual_proofs;
+    this.overall_proof = enc_result.overall_proof;    
+  },
+  
+  doEncryption: function(question, answer, pk, randomness, progress) {
+    var choices = [];
+    var individual_proofs = [];
+    var overall_proof = null;
+    
+    // possible plaintexts [question.min .. , question.max]
+    var plaintexts = UTILS.generate_plaintexts(pk, question.min, question.max);
+    var zero_one_plaintexts = UTILS.generate_plaintexts(pk, 0, 1);
+    
+    // keep track of whether we need to generate new randomness
+    var generate_new_randomness = false;    
+    if (!randomness) {
+      randomness = [];
+      generate_new_randomness = true;
+    }
+    
+    // keep track of number of options selected.
+    var num_selected_answers = 0;
+    
+    // go through each possible answer and encrypt either a g^0 or a g^1.
+    for (var i=0; i<question.answers.length; i++) {
+      var index, plaintext_index;
+      // if this is the answer, swap them so m is encryption 1 (g)
+      if (jQuery.inArray(i, answer) > -1) {
+        plaintext_index = 1;
+        num_selected_answers += 1;
+      } else {
+        plaintext_index = 0;
+      }
+
+      // generate randomness?
+      if (generate_new_randomness) {
+        randomness[i] = Random.getRandomInteger(pk.q);        
+      }
+
+      choices[i] = ElGamal.encrypt(pk, zero_one_plaintexts[plaintext_index], randomness[i]);
+      
+      // generate proof
+      if (generate_new_randomness) {
+        // generate proof that this ciphertext is a 0 or a 1
+        individual_proofs[i] = choices[i].generateDisjunctiveProof(zero_one_plaintexts, plaintext_index, randomness[i], ElGamal.disjunctive_challenge_generator);        
+      }
+      
+      if (progress)
+        progress.tick();
+    }
+
+    if (generate_new_randomness) {
+      // we also need proof that the whole thing sums up to the right number
+    
+      // compute the homomorphic sum of all the options
+      var hom_sum = choices[0];
+      var rand_sum = randomness[0];
+      for (var i=1; i<question.answers.length; i++) {
+        hom_sum = hom_sum.multiply(choices[i]);
+        rand_sum = rand_sum.add(randomness[i]).mod(pk.q);
+      }
+    
+      // prove that the sum is 0 or 1 (can be "blank vote" for this answer)
+      // num_selected_answers is 0 or 1, which is the index into the plaintext that is actually encoded
+      //
+      // now that "plaintexts" only contains the array of plaintexts that are possible starting with min
+      // and going to max, the num_selected_answers needs to be reduced by min to be the proper index
+      var overall_plaintext_index = num_selected_answers;
+      if (question.min)
+        overall_plaintext_index -= question.min;
+        
+      overall_proof = hom_sum.generateDisjunctiveProof(plaintexts, overall_plaintext_index, rand_sum, ElGamal.disjunctive_challenge_generator);
+      if (progress)
+        progress.tick();
+    }
+    
+    return {
+      'choices' : choices,
+      'randomness' : randomness,
+      'individual_proofs' : individual_proofs,
+      'overall_proof' : overall_proof
+    };
+  },
+  
+  clearPlaintexts: function() {
+    this.answer = null;
+    this.randomness = null;
+  },
+  
+  // FIXME: should verifyEncryption really generate proofs? Overkill.
+  verifyEncryption: function(question, pk) {
+    var result = this.doEncryption(question, this.answer, pk, this.randomness);
+
+    // check that we have the same number of ciphertexts
+    if (result.choices.length != this.choices.length) {
+      return false;      
+    }
+      
+    // check the ciphertexts
+    for (var i=0; i<result.choices.length; i++) {
+      if (!result.choices[i].equals(this.choices[i])) {
+        alert ("oy: " + result.choices[i] + "/" + this.choices[i]);
+        return false;
+      }
+    }
+    
+    // we made it, we're good
+    return true;
+  },
+  
+  toString: function() {
+    // get each ciphertext as a JSON string
+    var choices_strings = jQuery.makeArray($(this.choices).map(function(i,c) {return c.toString();}));
+    return choices_strings.join("|");
+  },
+  
+  toJSONObject: function(include_plaintext) {
+    var return_obj = {
+      'choices' : $(this.choices).map(function(i, choice) {
+        return choice.toJSONObject();
+      }),
+      'individual_proofs' : $(this.individual_proofs).map(function(i, disj_proof) {
+        return disj_proof.toJSONObject();
+      }),
+      'overall_proof' : this.overall_proof.toJSONObject()
+    };
+    
+    if (include_plaintext) {
+      return_obj.answer = this.answer;
+      return_obj.randomness = $(this.randomness).map(function(i, r) {
+        return r.toJSONObject();
+      });
+    }
+    
+    return return_obj;
+  }
+});
+
+HELIOS.EncryptedAnswer.fromJSONObject = function(d, election) {
+  var ea = new HELIOS.EncryptedAnswer();
+  ea.choices = $(d.choices).map(function(i, choice) {
+    return ElGamal.Ciphertext.fromJSONObject(choice, election.pk);
+  });
+  
+  ea.individual_proofs = $(d.individual_proofs).map(function (i, p) {
+    return ElGamal.DisjunctiveProof.fromJSONObject(p);
+  });
+  
+  ea.overall_proof = ElGamal.DisjunctiveProof.fromJSONObject(d.overall_proof);
+  
+  // possibly load randomness and plaintext
+  if (d.randomness) {
+    ea.randomness = $(d.randomness).map(function(i, r) {
+      return BigInt.fromJSONObject(r);
+    });
+    ea.answer = d.answer;
+  }
+  
+  return ea;
+};
+
+HELIOS.EncryptedVote = Class.extend({
+  init: function(election, answers, progress) {
+    // empty constructor
+    if (election == null)
+      return;
+
+    // keep information about the election around
+    this.election_id = election.election_id;
+    this.election_hash = election.get_hash();
+    this.election = election;
+     
+    if (answers == null)
+      return;
+      
+    var n_questions = election.questions.length;
+    this.encrypted_answers = [];
+
+    if (progress) {
+      // set up the number of ticks
+      $(election.questions).each(function(q_num, q) {
+        // + 1 for the overall proof
+        progress.addTicks(q.answers.length + 1);
+      });
+    }
+      progress.addTicks(0, n_questions);
+      
+    // loop through questions
+    for (var i=0; i<n_questions; i++) {
+      this.encrypted_answers[i] = new HELIOS.EncryptedAnswer(election.questions[i], answers[i], election.pk, progress);
+    }    
+  },
+  
+  toString: function() {
+    // for each question, get the encrypted answer as a string
+    var answer_strings = jQuery.makeArray($(this.encrypted_answers).map(function(i,a) {return a.toString();}));
+    
+    return answer_strings.join("//");
+  },
+  
+  clearPlaintexts: function() {
+    $(this.encrypted_answers).each(function(i, ea) {
+      ea.clearPlaintexts();
+    });
+  },
+  
+  verifyEncryption: function(questions, pk) {
+    var overall_result = true;
+    $(this.encrypted_answers).each(function(i, ea) {
+      overall_result = overall_result && ea.verifyEncryption(questions[i], pk);
+    });
+    return overall_result;
+  },
+  
+  toJSONObject: function(include_plaintext) {
+    var answers = $(this.encrypted_answers).map(function(i,ea) {
+      return ea.toJSONObject(include_plaintext);
+    });
+    
+    return {
+      answers : answers,
+      election_hash : this.election_hash,
+      election_id : this.election_id
+    }
+  },
+  
+  get_hash: function() {
+    return b64_sha1(jQuery.toJSON(this));
+  },
+  
+  get_audit_trail: function() {
+    return this.toJSONObject(true);
+  },
+  
+  verifyProofs: function(pk, outcome_callback) {
+    var zero_or_one = UTILS.generate_plaintexts(pk, 0, 1);
+
+    var VALID_P = true;
+    
+    var self = this;
+    
+    // for each question and associate encrypted answer
+    $(this.encrypted_answers).each(function(ea_num, enc_answer) {
+        var overall_result = 1;
+
+        // go through each individual proof
+        $(enc_answer.choices).each(function(choice_num, choice) {
+          var result = choice.verifyDisjunctiveProof(zero_or_one, enc_answer.individual_proofs[choice_num], ElGamal.disjunctive_challenge_generator);
+          outcome_callback(ea_num, choice_num, result, choice);
+          
+          VALID_P = VALID_P && result;
+           
+          // keep track of homomorphic product
+          overall_result = choice.multiply(overall_result);
+        });
+        
+        // possible plaintexts [0, 1, .. , question.max]
+        var plaintexts = UTILS.generate_plaintexts(pk, self.election.questions[ea_num].min, self.election.questions[ea_num].max);
+        
+        // check the proof on the overall product
+        var overall_check = overall_result.verifyDisjunctiveProof(plaintexts, enc_answer.overall_proof, ElGamal.disjunctive_challenge_generator);
+        outcome_callback(ea_num, null, overall_check, null);
+        VALID_P = VALID_P && overall_check;
+    });
+    
+    return VALID_P;
+  }
+});
+
+HELIOS.EncryptedVote.fromJSONObject = function(d, election) {
+  if (d == null)
+    return null;
+    
+  var ev = new HELIOS.EncryptedVote(election);
+  
+  ev.encrypted_answers = $(d.answers).map(function(i, ea) {
+    return HELIOS.EncryptedAnswer.fromJSONObject(ea, election);
+  });
+  
+  ev.election_hash = d.election_hash;
+  ev.election_id = d.election_id;
+  
+  return ev;
+};
+
+//
+// distributed decryption : Trustees
+//
+
+// a utility function for jsonifying a list of lists of items
+HELIOS.jsonify_list_of_lists = function(lol) {
+  if (!lol)
+    return null;
+    
+  return $(lol).map(function(i, sublist) {return $(sublist).map(function(j, item) {return item.toJSONObject();})});
+};
+
+// a utility function for doing the opposite with an item-level de-jsonifier
+HELIOS.dejsonify_list_of_lists = function(lol, item_dejsonifier) {
+  if (!lol)
+    return null;
+    
+  return $(lol).map(function(i, sublist) {return $(sublist).map(function(j, item) {return item_dejsonifier(item);})});
+}
+
+HELIOS.Trustee = Class.extend({
+  init: function(email, name, public_key, pok, decryption_factors, decryption_proofs) {
+    this.email = email;
+    this.name = name;
+    this.public_key = public_key;
+    this.pok = pok;
+    this.decryption_factors = decryption_factors;
+    this.decryption_proofs = decryption_proofs;
+  },
+  
+  toJSONObject: function() {
+    return {
+      'decryption_factors' : HELIOS.jsonify_list_of_lists(this.decryption_factors),
+      'decryption_proofs' : HELIOS.jsonify_list_of_list(this.decryption_proofs),
+      'email' : this.email, 'name' : this.name, 'pok' : this.pok.toJSONObject(), 'public_key' : this.pk.toJSONObject()
+    }
+  }
+});
+
+HELIOS.Trustee.fromJSONObject = function(d) {
+  return new HELIOS.Trustee(d.email, d.name, 
+    ElGamal.PublicKey.fromJSONObject(d.public_key), ElGamal.DLogProof.fromJSONObject(d.pok),
+    HELIOS.dejsonify_list_of_lists(d.decryption_factors, BigInt.fromJSONObject),
+    HELIOS.dejsonify_list_of_lists(d.decryption_proofs, ElGamal.Proof.fromJSONObject));
+};
+</script>
+
+<!-- A patch of the Helios API so that the verification code stays the same,
+    but when it GETs the election, we just return the locally hard-wired election data
+    for this standalone verifier.
+    -->
+<script language="javascript">
+Helios = {};
+
+Helios.get_election = function(parameters, callback) {
+    callback($.secureEvalJSON(ELECTION_JSON_STRING), ELECTION_JSON_STRING);
+};
+
+// update the display
+$(document).ready(function() {
+    var election = HELIOS.Election.fromJSONString(ELECTION_JSON_STRING);
+    var election_hash = election.get_hash();
+
+    $('#election_fingerprint').html(election_hash);
+});
+</script>
+
+<!-- THE VERIFICATION-SPECIFIC CODE 
+    Prior to this, it was all libraries
+    -->
+<script language="javascript">
+
+function result_append(str) {
+    $('#results').append(str).append("<br />");
+}
+
+function verify_single_ballot(audit_trail) {
+  var encrypted_vote_json = jQuery.secureEvalJSON(audit_trail);
+  
+  // in this standalone version, we have the election already
+  // go get the election
+  Helios.get_election({'election_id' : encrypted_vote_json.election_id}, function(election_json, election_raw_json) {
+      // display election fingerprint
+      var election = HELIOS.Election.fromJSONString(election_raw_json);
+      var election_hash = election.get_hash();
+      result_append("election fingerprint is " + election_hash);
+      
+      var everything_ok=true;
+      
+      // check if the election ballot_type is homomorphic
+      if (election.ballot_type != "homomorphic") {
+          result_append("WARNING: the ballot type for this election is not homomorphic. Verification may fail because this verifier is only set up to handle homomorphic ballots.");
+          everything_ok=false;
+      }
+      
+      // display ballot fingerprint
+      encrypted_vote = HELIOS.EncryptedVote.fromJSONObject(encrypted_vote_json, election);
+      result_append("ballot fingerprint is " + encrypted_vote.get_hash());
+
+      // check the hash
+      if (election_hash == encrypted_vote.election_hash) {
+          result_append("election fingerprint matches ballot");
+      } else {
+          result_append("PROBLEM = election fingerprint does not match");
+          everything_ok=false;
+      }
+      
+      // display the ballot as it is claimed to be
+      result_append("Ballot Contents:")
+      $(election.questions).each(function(qnum, q) {
+          var answer_pretty_list = jQuery.map(encrypted_vote.encrypted_answers[qnum].answer, function(aindex, anum) {
+              return q.answers[aindex];
+          });
+          result_append("Question #" + qnum + " - " + q.short_name + " : " + answer_pretty_list.join(", "));
+      });
+      
+      // verify the encryption
+      if (encrypted_vote.verifyEncryption(election.questions, election.pk)) {
+          result_append("Encryption Verified");
+      } else {
+          result_append("PROBLEM = Encryption doesn't match.");
+          everything_ok=false;
+      }
+      
+      // verify the proofs
+      if (encrypted_vote.verifyProofs(election.pk, function(ea_num, choice_num, result) {
+      })) {
+          result_append("Proofs ok.");
+      } else {
+          result_append("PROBLEM = Proofs don't work.");
+          everything_ok=false;
+      }
+      
+      if (everything_ok) {
+          result_append("DONE - ballot is correctly formed for the contents shown above.");
+      } else {
+          result_append("DONE - there is a PROBLEM with the ballot.");
+      }
+  });
+}
+
+</script>
+</head>
+<body>
+<div id="wrapper">
+<div id="banner">
+    Helios Single-Ballot Verifier
+</div>
+<div id="content">
+<did id="page">
+<p style="font-size: 16pt;">
+    This ballot verifier lets you enter an audited ballot<br />and verify that it was prepared correctly.<br /><br />
+    
+    This verifier is built for Election with Fingerprint <span style="font-weight: bold;" id="election_fingerprint"></span>.
+</p>
+
+<p>
+Your Ballot:
+</p>
+
+<form onsubmit="try {verify_single_ballot(this.audit_trail.value);} catch (e) {E = e;} return false;">
+<textarea name="audit_trail" cols="80" rows="7">
+</textarea><br /><br />
+<input type="submit" class="pretty" value="Verify" />
+</form>
+
+<br /><br />
+<div id="results">
+</div>
+</div>
+</div>
+<applet name="bigint" code="bigint.class" width=1 height=1></applet>
+
+</body>
+</html>
