@@ -144,6 +144,9 @@ def election_view(**checks):
 def user_can_admin_election(user, election):
   return election.admin == user
   
+def api_client_can_admin_election(api_client, election):
+  return election.api_client == api_client and api_client != None
+  
 # decorator for checking election admin access, and some properties of the election
 # frozen - is the election frozen
 # newvoters - does the election accept new voters

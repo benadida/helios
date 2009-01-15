@@ -107,13 +107,17 @@ def election_new_2(request):
 def election_new_3(request):
   """
   Create the new election.
-  name, trustee = None, public_key=None, private_key=None, voting_starts_at=None, voting_ends_at=None, **kw
   
   trustees is a JSON list
   """
   
   name = request.POST['name']
-  trustee = request.POST.getlist('trustee')
+
+  if request.POST.has_key('trustee_list'):
+    trustee = request.POST['trustee_list'].split(",")
+  else:
+    trustee = request.POST.getlist('trustee')
+    
   public_key = request.POST.get('public_key', None)
   private_key = request.POST.get('private_key', None)
   voting_starts_at = request.POST.get('voting_starts_at', None)
@@ -158,7 +162,8 @@ def election_new_3(request):
       keyshare.save()
       
     # send out the email
-    send_trustees_email(election, 'Trustee for Election %s' % election.name, 'You have been designated as a trustee of the Helios Election "%s".' % election.name)
+    ## NO LONGER BY DEFAULT - must send the mail manually
+    # send_trustees_email(election, 'Trustee for Election %s' % election.name, 'You have been designated as a trustee of the Helios Election "%s".' % election.name)
   
   # user or api_client?
   if get_user(request):
@@ -647,7 +652,10 @@ The Helios Voting System
 
   return SUCCESS  
 
-# Trustees
+##
+## Trustee Stuff
+##
+
 @election_view()
 @json
 def trustees_list(request, election):
@@ -664,8 +672,11 @@ def trustee_home(request, election, trustee_email):
 def trustee_upload_pk(request, election, trustee_email):
   keyshare = KeyShare.objects.get(election=election, email=trustee_email)
 
-  if keyshare.password != request.POST['password']:
-    return HttpResponseServerError("failure: bad password")
+  # is this authenticated properly, first api_client, otherwise password?
+  api_client = get_api_client(request)
+  if not api_client_can_admin_election(api_client, election):
+    if keyshare.password != request.POST['password']:
+      return HttpResponseServerError("failure: bad password")
     
   election.public_key = None
   election.save()

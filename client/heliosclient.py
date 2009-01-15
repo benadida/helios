@@ -35,9 +35,21 @@ class HeliosClient(object):
     params_json = self.get("/elections/params")
     return algs.ElGamal.fromJSONDict(utils.from_json(params_json))
     
-  def election_new(self, name, public_key, ballot_type = 'homomorphic', tally_type = 'homomorphic'):
-    election_id = self.post("/elections/new_3", {"name" : name, "public_key" : utils.to_json(public_key.toJSONDict()), "ballot_type": ballot_type, "tally_type": tally_type})
+  def election_new(self, name, public_key=None, ballot_type = 'homomorphic', tally_type = 'homomorphic', trustee_list=None):
+    args = {"name" : name, "ballot_type": ballot_type, "tally_type": tally_type}
+    if public_key:
+      args['public_key'] = utils.to_json(public_key.toJSONDict())
+    if trustee_list:
+      args['trustee_list'] = ",".join(trustee_list)
+      
+    election_id = self.post("/elections/new_3", args)
     return election_id
+    
+  def election_set_pk(self, election_id, public_key):
+    return self.post("/elections/%s/set_pk" % election_id, {'public_key_json' : utils.to_json(public_key.toJSONDict())})
+    
+  def election_set_trustee_pk(self, election_id, trustee, public_key, pok):
+    return self.post("/elections/%s/trustees/%s/upload_pk" % (election_id, trustee), {'public_key' : utils.to_json(public_key.toJSONDict()), 'pok': utils.to_json(pok.toJSONDict())})
     
   def election_get(self, election_id):
     return electionalgs.Election.fromJSONDict(utils.from_json(self.get("/elections/%s/" % election_id)))
