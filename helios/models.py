@@ -352,9 +352,10 @@ class Voter(models.Model, JSONObject):
     return False
     
   def save(self, *args, **kwargs):
-    if not self.is_saved():
+    # for now, let's not maintain these 
+    #if not self.is_saved():
       # add an election exponent
-      ElectionExponent.add_exp_to_election(self.election)
+    #  ElectionExponent.add_exp_to_election(self.election)
     
     super(Voter, self).save(*args, **kwargs)
       

@@ -15,7 +15,7 @@ from client import heliosclient
 # instantiate the client
 # modify variables here
 helios = heliosclient.HeliosClient({'consumer_key': 'test', 'consumer_secret': '123'},
-#                        host = '174.129.241.146',
+#                        host = '79.125.5.192',
                         host = "localhost",
                         port = 8000,
 #                         port = 80,
@@ -57,7 +57,7 @@ all_votes = []
 plaintext_choices = [0, 0]
 
 # create 1000 ballots
-for i in range(1000):
+for i in range(100):
   # random choice for the ballot
   choice = algs.Utils.random_mpz_lt(1000) % 2
   
