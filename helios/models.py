@@ -367,16 +367,21 @@ class Voter(models.Model, JSONObject):
     pk = self.election.public_key
     election_obj = self.election.toElection()
     vote_dict = utils.from_json(votes_json_string)
-    enc_vote = electionalgs.EncryptedVote.fromJSONDict(vote_dict, pk)
     
     # verify
     # turned off for now (Ben- 2008-11-28)
+    #enc_vote = electionalgs.EncryptedVote.fromJSONDict(vote_dict, pk)
     #if not enc_vote.verify(election_obj):
     #  raise Exception("Vote does not verify")
       
     # store this current vote in the voter structure
     self.vote = vote_dict
-    self.vote_hash = self.compute_vote_hash()
+    
+    if vote_dict:
+      self.vote_hash = self.compute_vote_hash()
+    else:
+      self.vote_hash = None
+      
     self.cast_id = str(datetime.datetime.utcnow()) + str(self.voter_id)
     
     # store the vote
@@ -429,8 +434,8 @@ class Vote(models.Model, JSONObject):
   vote_id = models.AutoField(primary_key=True)
   voter = models.ForeignKey(Voter, related_name = 'all_votes')
   cast_at = models.DateTimeField(auto_now_add=True)
-  vote = JSONField()
-  vote_hash = models.CharField(max_length=100)
+  vote = JSONField(null=True  )
+  vote_hash = models.CharField(max_length=100, null=True)
 
 ##
 ## Machine API
