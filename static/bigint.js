@@ -113,8 +113,9 @@ function check_applet() {
   
   // add the applet
   if (use_applet) {
-    // var applet_html = '<applet codebase="/static" name="bigint" code="bigint.class" width=1 height=1></applet>';
-    var applet_html = '<object classid="clsid:8AD9C840-044E-11D1-B3E9-00805F499D93" name="bigint" width="1" height="1" codebase="http://java.sun.com/products/plugin/autodl/jinstall-1_5_0-windows-i586.cab#Version=1,5,0,0"> <param name="code" value="bigint.class"> <param name="codebase" value="/static"> <param name="archive" value="myapplet.jar"> <param name="type" value="application/x-java-applet;version=1.5.0"> <param name="scriptable" value="true"> <param name="mayscript" value="false"> <comment> <embed code="bigint.class" name="bigint" java_codebase="/static" width="1" height="1" scriptable="true" mayscript="false" type="application/x-java-applet;version=1.5.0" pluginspage="http://java.sun.com/j2se/1.5.0/download.html"> <noembed>No Java Support.</noembed> </embed> </comment> </object>';
+    var applet_base = '/static';
+    
+    var applet_html = '<object classid="clsid:8AD9C840-044E-11D1-B3E9-00805F499D93" name="bigint" width="1" height="1" codebase="http://java.sun.com/products/plugin/autodl/jinstall-1_5_0-windows-i586.cab#Version=1,5,0,0"> <param name="code" value="bigint.class"> <param name="codebase" value="' + applet_base + '"> <param name="archive" value="myapplet.jar"> <param name="type" value="application/x-java-applet;version=1.5.0"> <param name="scriptable" value="true"> <param name="mayscript" value="false"> <comment> <embed code="bigint.class" name="bigint" java_codebase="' + applet_base + '" width="1" height="1" scriptable="true" mayscript="false" type="application/x-java-applet;version=1.5.0" pluginspage="http://java.sun.com/j2se/1.5.0/download.html"> <noembed>No Java Support.</noembed> </embed> </comment> </object>';
     $("#applet_div").html(applet_html);
   }
   
