@@ -13,7 +13,6 @@
 BigInt = Class.extend({
   init: function(value, radix) {
     if (value == null) {
-      debugger;
       throw "null value!";
     }
       
@@ -109,20 +108,26 @@ function check_applet() {
     alert("Java support required for Helios");
   }
   
+  // HACK
+  // use_applet = true;
+  
+  // add the applet
+  if (use_applet) {
+    var applet_base = '/static';
+    
+    var applet_html = '<applet codebase="' + applet_base + '" mayscript name="bigint" code="bigint.class" width=1 height=1></applet>';
+    // var applet_html = '<object classid="clsid:8AD9C840-044E-11D1-B3E9-00805F499D93" name="bigint" width="1" height="1" codebase="http://java.sun.com/products/plugin/autodl/jinstall-1_5_0-windows-i586.cab#Version=1,5,0,0"> <param name="code" value="bigint.class"> <param name="codebase" value="' + applet_base + '"> <param name="archive" value="myapplet.jar"> <param name="type" value="application/x-java-applet;version=1.5.0"> <param name="scriptable" value="true"> <param name="mayscript" value="false"> <comment> <embed code="bigint.class" name="bigint" java_codebase="' + applet_base + '" width="1" height="1" scriptable="true" mayscript="false" type="application/x-java-applet;version=1.5.0" pluginspage="http://java.sun.com/j2se/1.5.0/download.html"> <noembed>No Java Support.</noembed> </embed> </comment> </object>';
+    $("#applet_div").html(applet_html);
+  }
+  
   return use_applet;
 };
-
-BigInt.use_applet = check_applet();
 
 // Set up the pointer to the applet if necessary, and some
 // basic Big Ints that everyone needs (0, 1, 2, and 42)
 BigInt.setup = function() {
   if(BigInt.use_applet) {
       BigInt.APPLET = document.applets["bigint"];
-      if (BigInt.APPLET == null) {
-        //setTimeout("BigInt.setup();", 2000);
-        //return;
-      }
   }
 
   BigInt.ZERO = new BigInt("0",10);
@@ -134,6 +139,7 @@ BigInt.setup = function() {
 // .onload instead of .ready, as I don't think the applet is ready until onload.
 // FIXME: something wrong here in the first load
 $(document).ready(function() {
+    BigInt.use_applet = check_applet();
     BigInt.setup();
 });
 

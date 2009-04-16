@@ -1,0 +1,246 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=UTF-8" /> 
+  <title>Helios Voting System -- Verifier</title>
+  <link rel="stylesheet" type="text/css" href="/static/booth.css" />
+  <link rel="stylesheet" type="text/css" href="/static/forms.css" />      
+  <script language="javascript" src="/static/jquery-1.2.2.min.js"></script>
+  <script language="javascript" src="/static/jquery-jtemplates.js"></script>
+  <script language="javascript" src="/static/jquery.json.min.js"></script>
+  <script language="javascript" src="/static/class.js"></script>  
+  <script language="javascript" src="/static/bigint.js"></script>
+  <script language="javascript" src="/static/random.js"></script>
+  <script language="javascript" src="/static/elgamal.js"></script>
+  <script language="javascript" src="/static/sha1.js"></script>
+  <script language="javascript" src="/static/helios.js"></script>
+  
+<script language="javascript">
+var API_HOST = '{{utils.get_host}}';
+var API_PREFIX = '{{utils.get_prefix}}';
+</script>
+
+<script language="javascript" src="/static/helios-api.js"></script>
+
+<script language="javascript">
+
+Helios.setup();
+
+function result_append(str) {
+    $('#results').append(str).append("<br />");
+}
+
+function load_election_and_ballots(election_id) {
+    
+    // BALLOTS by voter key
+    ELECTION = null;
+    ELECTION_ID = election_id;
+    BALLOTS = {};
+    BALLOTS_LOADED = {};
+    VOTER_LIST = [];
+    
+    // get the election data
+    Helios.get_election({'election_id' : election_id}, function(election_json, election_raw_json) {
+        var election = HELIOS.Election.fromJSONString(election_raw_json);
+        ELECTION = election;
+        result_append("Election: " + election.name);
+        
+        if (election.tally_type != "homomorphic") {
+            result_append("PROBLEM: this election is not a straight-forward homomorphic-tally election. As a result, Helios cannot currently verify it.");
+            return;
+        }
+        
+        // hash it
+        var election_hash = election.get_hash();
+        result_append("Fingerprint: " + election_hash);
+        
+        // get the voters
+        Helios.get_election_voters({'election_id': election_id}, function(voters) {
+            VOTER_LIST = voters;
+            $(voters).each(function(v_num, v) {
+                // download each voter's data, stuffing into BALLOTS
+                Helios.get_election_voter({'election_id': election_id, 'voter_id': v.voter_id}, function(voter) {
+                    BALLOTS[voter.voter_id] = HELIOS.EncryptedVote.fromJSONObject(voter.vote, ELECTION);
+                    BALLOTS_LOADED[voter.voter_id] = true;
+                });
+            });
+            
+            when_ready_verify_ballots_and_tally();
+        });
+    });
+}
+
+function when_ready_verify_ballots_and_tally() {
+    var result = verify_ballots_and_tally();
+    
+    if (!result)
+        setTimeout('when_ready_verify_ballots_and_tally()', 2000);
+}
+
+function verify_ballots_and_tally() {
+    // check that ballots are here
+    for (var i=0; i<VOTER_LIST.length; i++) {
+        if (BALLOTS_LOADED[VOTER_LIST[i].voter_id] == null) {
+            // not all ballots have been downloaded
+            return false;
+        }
+    }
+    
+    // initialize the tallies
+    TALLY = [];
+    $(ELECTION.questions).each(function(qnum, q) {
+        TALLY[qnum] = $(q.answers).map(function(anum, a) {
+            return 1;
+        });
+    });
+    
+    var VALID_P = true;
+    pretty_result = function(result) {return result? "VERIFIED" : "FAIL";};
+    
+    // all ballots are here
+    $(VOTER_LIST).each(function(vnum, voter) {
+        var ballot = BALLOTS[voter.voter_id];
+        
+        // non-voter?
+        if (ballot == null) {
+            result_append("Voter - " + voter.name + " -- NO VOTE");
+            return;
+        }
+        
+        var voter_hash = ballot.get_hash();
+        result_append("Voter - " + voter.name + " - " + voter_hash);
+        
+        // verify the ballot
+        var this_vote_result = ballot.verifyProofs(ELECTION.pk, function(answer_num, choice_num, result, choice) {
+            if (choice_num != null) {
+                // keep track of tally
+                TALLY[answer_num][choice_num] = choice.multiply(TALLY[answer_num][choice_num]);
+
+                result_append("voter " + vnum + ", ea " + answer_num + ", choice " + choice_num + " -- " + pretty_result(result));                            
+            } else {
+                result_append("voter " + vnum + ", ea " + answer_num + " OVERALL -- " + pretty_result(result));            
+            }
+        });
+        
+        VALID_P = VALID_P && this_vote_result;        
+    });
+    
+    // now verify the tallies we computed
+    
+    // get the results
+    Helios.get_election_result({'election_id': ELECTION_ID}, function(results) {
+        // load the trustees in case there are some
+        Helios.get_election_trustees({'election_id' : ELECTION_ID}, function(trustees) {
+            // if length of trustees is 0, get the single proof
+            if (trustees.length ==0 ) {
+                // get the proof
+                Helios.get_election_result_proof({'election_id': ELECTION_ID}, function(results_proof) {
+                    $(TALLY).each(function(q_num, q) {
+                        result_append("Question #" + q_num + ": " + ELECTION.questions[q_num].short_name);
+                        $(q).each(function(a_num, a) {
+                            var plaintext = new ElGamal.Plaintext(ELECTION.pk.g.modPow(BigInt.fromInt(results[q_num][a_num]), ELECTION.pk.p), ELECTION.pk);
+                            var proof = ElGamal.Proof.fromJSONObject(results_proof[q_num][a_num]);
+                            var check = a.verifyDecryptionProof(plaintext, proof);
+
+                            VALID_P = VALID_P && check;
+
+                            result_append("- " + ELECTION.questions[q_num].answers[a_num] + " - " + results[q_num][a_num] + " -- " + pretty_result(check));
+                        });
+
+                    });
+
+                    if (VALID_P)
+                        result_append("ELECTION VERIFIED!");
+                    else
+                        result_append("ELECTION FAILED!");
+
+                });                
+            } else {
+                result_append("Trustees found.")
+                
+                trustees = $(trustees).map(function(i, trustee) {return HELIOS.Trustee.fromJSONObject(trustee)});
+
+                var combined_key = 1;
+                
+                // verify the keys
+                $(trustees).each(function(i, trustee) {
+                   if (trustee.public_key.verifyKnowledgeOfSecretKey(trustee.pok, ElGamal.fiatshamir_dlog_challenge_generator)) {
+                       result_append("Trustee PK for " + trustee.email + " VERIFIED.");
+                   } else {
+                       result_append("==== ERROR for PK of trustee " + trustee.email);
+                   }
+                   
+                   combined_key = trustee.public_key.multiply(combined_key);
+                });
+                
+                // verify the combination of the keys into the final public key
+                if (combined_key.equals(ELECTION.pk)) {
+                    result_append("election public key MATCHES");
+                } else {
+                    result_append("==== ERROR, election public key doesn't match");
+                }
+                
+                // verify the individual results.
+                $(TALLY).each(function(q_num, q) {
+                    result_append("Question #" + q_num + ": " + ELECTION.questions[q_num].short_name);
+                    $(q).each(function(a_num, a) {
+                        var check = true;
+                        result_append("Answer #" + a_num);
+                        var decryption_factors = [];
+                        // go through the trustees' decryption factors
+                        $(trustees).each(function(t_num, trustee) {
+                            if (trustee.public_key.verifyDecryptionFactor(a, trustee.decryption_factors[q_num][a_num],
+                                            trustee.decryption_proofs[q_num][a_num], ElGamal.fiatshamir_challenge_generator)) {
+                                result_append("-- Trustee " + trustee.email + " decryption factor verifies");
+                            } else {
+                                result_append("==== ERROR: Trustee " + trustee.email + " decryption factor does not verify");
+                                check= false;
+                            }
+                            
+                            decryption_factors.push(trustee.decryption_factors[q_num][a_num]);
+                        });
+                        
+                        // recheck decryption factors
+                        var expected_value = ELECTION.pk.g.modPow(BigInt.fromInt(results[q_num][a_num]), ELECTION.pk.p);                        
+                        var recomputed_value = a.decrypt(decryption_factors).getM();
+                        if (expected_value.equals(recomputed_value)) {
+                            result_append("--- choice VERIFIED");
+                        } else {
+                            result_append("==== ERROR: choice not verified");
+                            check = false;
+                        }
+
+                        result_append("- " + ELECTION.questions[q_num].answers[a_num] + " - " + results[q_num][a_num] + " -- " + pretty_result(check));
+                    });
+                });
+            }
+        });
+    });
+
+    return true;
+}
+</script>
+</head>
+<body>
+<div id="wrapper">
+<div id="banner">
+    Helios Election Verifier
+</div>
+<div id="content">
+
+<div align="center">
+Enter the Election ID:
+<form onsubmit="load_election_and_ballots(this.election_id.value); return false;">
+    <input type="text" size="50" name="election_id" /><br />
+    <input type="submit" value="start verification" />
+</form>
+</div>
+
+<br /><br />
+<div id="results">
+</div>
+</div>
+</div>
+<applet codebase="/static" mayscript name="bigint" code="bigint.class" width=1 height=1></applet>
+</body>
+</html>

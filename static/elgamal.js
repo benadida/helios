@@ -103,7 +103,7 @@ ElGamal.SecretKey = Class.extend({
   },
   
   toJSONObject: function() {
-    return {pk: this.pk.toJSONObject(), x: this.x.toJSONObject()};
+    return {public_key: this.pk.toJSONObject(), x: this.x.toJSONObject()};
   },
   
   // a decryption factor is *not yet* mod-inverted, because it needs to be part of the proof.
@@ -165,7 +165,7 @@ ElGamal.SecretKey = Class.extend({
 
 ElGamal.SecretKey.fromJSONObject = function(d) {
   var sk = new ElGamal.SecretKey();
-  sk.pk = ElGamal.PublicKey.fromJSONObject(d.pk);
+  sk.pk = ElGamal.PublicKey.fromJSONObject(d.public_key);
   sk.x = BigInt.fromJSONObject(d.x);
   return sk;
 }
@@ -246,6 +246,7 @@ ElGamal.Ciphertext = Class.extend({
     // go through all plaintexts and simulate the ones that must be simulated.
     // note how the interface is as such so that the result does not reveal which is the real proof.
     var self = this;
+    
     var proofs = $(list_of_plaintexts).map(function(p_num, plaintext) {
       if (p_num == real_index) {
         // no real proof yet
@@ -268,6 +269,7 @@ ElGamal.Ciphertext = Class.extend({
       var commitments = $(proofs).map(function(proof_num, proof) {
         return proof.commitment;
       });
+      
       var disjunctive_challenge = challenge_generator(commitments);
       
       // now we must subtract all of the other challenges from this challenge.
@@ -283,7 +285,7 @@ ElGamal.Ciphertext = Class.extend({
     
     // set the real proof
     proofs[real_index] = real_proof;
-    
+        
     return new ElGamal.DisjunctiveProof(proofs);
   },
   
@@ -378,8 +380,8 @@ ElGamal.Proof = Class.extend({
   
   toJSONObject: function() {
     return {
-      commitment : {A: this.commitment.A.toJSONObject(), B: this.commitment.B.toJSONObject()},
       challenge : this.challenge.toJSONObject(),
+      commitment : {A: this.commitment.A.toJSONObject(), B: this.commitment.B.toJSONObject()},
       response : this.response.toJSONObject()
     }
   },

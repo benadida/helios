@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h1>Admin - API Clients</h1>
+
+<table class="pretty">
+<tr><th>Consumer</th><th>Secret</th><th></th></tr>
+{% for client in clients %}
+<tr><td>{{client.consumer_key}}</td><td>{{client.consumer_secret}}</td>
+<td>
+<form method="post" action="delete" onsubmit="return confirm('You\'re about to delete {{client.consumer_key}}...');">
+<input type="hidden" name="consumer_key" value="{{client.consumer_key}}" />
+<input type="submit" value="delete" class="prettysmall" />
+</form>
+</td>
+</tr>
+{% endfor %}
+<form method="post" action="{% url helios.admin_views.admin_client_new %}">
+<tr>
+<td><input type="text" name="consumer_key" size="30" class="prettysmall" /></td>
+<td><input type="text" name="consumer_secret" size="30" class="prettysmall" /></td>
+<td><input type="submit" value="add" class="prettysmall" /></td>
+</tr>
+</form>
+</table>
+
+{% endblock %}

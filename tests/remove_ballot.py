@@ -15,7 +15,7 @@ from client import heliosclient
 # instantiate the client
 # modify variables here
 helios = heliosclient.HeliosClient({'consumer_key': 'test', 'consumer_secret': '123'},
-#                        host = '174.129.241.146',
+#                        host = '79.125.5.192',
                         host = "localhost",
                         port = 8000,
 #                         port = 80,
@@ -52,34 +52,11 @@ print "election questions set and frozen"
 election = helios.election_get(election_id)
 print "election hash is %s" % election.hash
 
-# create three ballots
-ballot_1 = electionalgs.EncryptedVote.fromElectionAndAnswers(election, [[1]])
-print "one ballot"
-ballot_2 = electionalgs.EncryptedVote.fromElectionAndAnswers(election, [[1]])
-print "two ballots"
-ballot_3 = electionalgs.EncryptedVote.fromElectionAndAnswers(election, [[0]])
+ballot = electionalgs.EncryptedVote.fromElectionAndAnswers(election, [[1]])
+print "ballot hash: %s" % ballot.get_hash()
 
-print "created 3 ballots"
+# open submit it
+print helios.open_submit(election_id, utils.to_json(ballot.toJSONDict()), 'ben@adida.net', None, 'Ben Adida', '')
 
-print "ballot #1 hash: %s" % ballot_1.get_hash()
-print "ballot #2 hash: %s" % ballot_2.get_hash()
-print "ballot #3 hash: %s" % ballot_3.get_hash()
-
-# open submit the three votes
-print "ballot #1 id: %s" % helios.open_submit(election_id, utils.to_json(ballot_1.toJSONDict()), 'ben@adida.net', None, 'Ben Adida', 'Foo Category')
-print "ballot #2 id: %s" % helios.open_submit(election_id, utils.to_json(ballot_2.toJSONDict()), 'ben2@adida.net', None, 'Ben2 Adida', 'Foo Category')
-print "ballot #3 id: %s" % helios.open_submit(election_id, utils.to_json(ballot_3.toJSONDict()), 'ben3@adida.net', None, 'Ben3 Adida', 'Bar Category')
-
-# the secret key
-sk = kp.sk
-
-# start tallying
-tally = election.init_tally()
-
-tally.add_vote_batch([ballot_1, ballot_2, ballot_3])
-
-result, proof = tally.decrypt_and_prove(sk)
-helios.set_tally(election_id, result, proof)
-
-print "tally is: "
-print result
+# open submit clear it
+print helios.open_submit(election_id, 'null', 'ben@adida.net', None, 'Ben Adida', '')

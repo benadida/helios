@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block content %}
+<script language="javascript">
+
+var PUBLIC_KEY, PROOF;
+
+function clear_keys() {
+    $('#sk_textarea').val("");
+    $('#pk_textarea').val("");
+    $('#sk_form').hide();
+    $('#pk_form').hide();
+    $('#buttons').show();
+    $('#clear_button').hide();
+}
+
+function generate_keypair() {
+    ELGAMAL_PARAMS = ElGamal.Params.fromJSONObject({{eg_params_json|safe}});
+
+    var secret_key;
+    
+    $('#buttons').hide();
+    
+    try {
+        secret_key = ELGAMAL_PARAMS.generate();
+    } catch (e) {
+        alert(e);
+    }
+    
+    // generate PoK of secret key
+    PROOF = secret_key.proveKnowledge(ElGamal.fiatshamir_dlog_challenge_generator);
+    PUBLIC_KEY = secret_key.pk;
+
+    $('#sk_textarea').val(jQuery.toJSON(secret_key));
+    $('#sk_form').show();
+    $('#pk_textarea').val(jQuery.toJSON({'pok': PROOF, 'public_key': PUBLIC_KEY}));
+    $('#pk_form').show();
+    $('#clear_button').show();
+}
+
+$(document).ready(function() {
+    clear_keys();
+});
+
+</script>
+
+<h2 class="title">Key Generator</h2>
+
+<p>
+
+<span id="buttons"><button onclick="generate_keypair(); return false;" id="generate_button">Generate Election Keys</button></span>
+
+<span id="clear_button"><button onclick="clear_keys(); return false;">Clear Keys</button></span>
+
+<form id="sk_form">
+Your Secret Key:<br />
+<textarea id="sk_textarea" cols="80" rows="10" readonly="readonly">
+</textarea>
+</form>
+
+<br /><br />
+<form id="pk_form">
+Your Public Key and Proof of Knowledge:<br />
+<textarea id="pk_textarea"  cols="80" rows="10">
+</textarea>
+</form>
+</p>
+
+<br /><br />
+{% endblock %}

@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <h2 class="title">{{user.email}}</h2>
+
+<p>
+[<a href="logout">Log out</a>]
+</p>
+
+  <h3>Elections you Manage
+{% if include_archived %} 
+<span style="font-size: 12pt;">[<a href="{% url helios.views.user_home %}">exclude archived</a>]</span>
+{% else %}
+<span style="font-size: 12pt;">[<a href="{% url helios.views.user_home %}?include_archived=1">include archived</a>]</span>
+{% endif %}
+</h3>
+  <ul>
+{% for e in elections %}
+  <li> <a href="{% url helios.views.one_election_view election_id=e.election_id %}">{{e.name}}</a></li>
+{% endfor %}
+<br />
+  <li> <a href="{% url helios.views.election_new %}">create a new election</a>
+  </ul>
+					
+{% endblock %}

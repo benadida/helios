@@ -1,0 +1,51 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=UTF-8" /> 
+  <title>Helios Voting System</title>
+  <link rel="stylesheet" type="text/css" href="/static/main.css" />
+  <link rel="stylesheet" type="text/css" href="/static/forms.css" />
+  <script language="javascript" src="/static/jquery-1.2.2.min.js"></script>
+  <script language="javascript" src="/static/jquery-jtemplates.js"></script>
+  <script language="javascript" src="/static/jquery.json.min.js"></script>
+  <script language="javascript" src="/static/class.js"></script>  
+  <script language="javascript" src="/static/date.js"></script>
+  <script language="javascript" src="/static/bigint.js"></script>
+  <script language="javascript" src="/static/random.js"></script>
+  <script language="javascript" src="/static/elgamal.js"></script>
+  <script language="javascript" src="/static/sha1.js"></script>
+  <script language="javascript" src="/static/helios.js"></script>
+<script language="javascript">
+var API_HOST = '{{utils.get_host}}';
+var API_PREFIX = '{{utils.get_prefix}}';
+</script>
+
+<script language="javascript" src="/static/helios-api.js"></script>
+</head>
+<body><div id="content"><div id="header">
+<h1>Helios Voting</h1>
+<h2>Elections <span style="border-bottom: 4px solid black;">you</span> can audit</h2>
+</div>
+
+<div id="page">
+{% block content %}{% endblock %}
+</div>
+
+<div id="footer" xmlns:cc="http://creativecommons.org/ns#">
+    <p style="font-size: 10pt; text-align: center;">
+        [<a href="{% url helios.views.home %}">Home</a>]&nbsp;
+        [<a href="{% url helios.views.user_home %}">{% if user %}My Elections{% else %}Login/Register{% endif %}</a>]
+        &nbsp;
+        [<a href="{% url helios.views.learn %}">Learn</a>] &nbsp;
+    [<a href="http://blog.heliosvoting.org/">Blog/Updates</a>]
+    </p>
+
+	<p>All content on this site is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by/3.0/">Creative Commons License</a>.<br />
+	If you redistribute this content, you should give credit to <a rel="cc:attributionURL" href="http://ben.adida.net/" property="cc:attributionName">Ben Adida and Harvard University</a>. 
+
+</div>
+</div>
+<div id="applet_div"></div>
+<!-- <applet codebase="/static" mayscript name="bigint" code="bigint.class" width=1 height=1></applet> -->
+</body>
+</html>

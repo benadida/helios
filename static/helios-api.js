@@ -33,28 +33,35 @@ _Helios_SameSite = Class.extend({
     }
   },
   
+  getJSON: function(url, callback) {
+    // get the JSON manually so that the raw source is still accessible
+    $.get(API_PREFIX + url, function(json_str) {
+      callback($.secureEvalJSON(json_str), json_str);
+    });
+  },
+  
   get_election: function(params, callback) {
-    $.getJSON("/elections/" + params['election_id'] + "?date=" + new Date().getTime(), callback);
+    this.getJSON("/elections/" + params['election_id'] + "?date=" + new Date().getTime(), callback);
   },
   
   get_election_voters: function(params, callback) {
-    $.getJSON("/elections/" + params['election_id'] + "/voters?date=" + new Date().getTime(), callback);
+    this.getJSON("/elections/" + params['election_id'] + "/voters?date=" + new Date().getTime(), callback);
   },
   
   get_election_voter: function(params, callback) {
-    $.getJSON("/elections/" + params['election_id'] + "/voters/" + params['voter_id'] + "?date=" + new Date().getTime(), callback);
+    this.getJSON("/elections/" + params['election_id'] + "/voters/" + params['voter_id'] + "?date=" + new Date().getTime(), callback);
   },
   
   get_election_trustees: function(params, callback) {
-    $.getJSON("/elections/" + params['election_id'] + "/trustees/?date=" + new Date().getTime(), callback);
+    this.getJSON("/elections/" + params['election_id'] + "/trustees/?date=" + new Date().getTime(), callback);
   },
   
   get_election_result: function(params, callback) {
-    $.getJSON("/elections/" + params['election_id'] + "/result?date=" + new Date().getTime(), callback);
+    this.getJSON("/elections/" + params['election_id'] + "/result?date=" + new Date().getTime(), callback);
   },
   
   get_election_result_proof: function(params, callback) {
-    $.getJSON("/elections/" + params['election_id'] + "/result_proof?date=" + new Date().getTime(), callback);
+    this.getJSON("/elections/" + params['election_id'] + "/result_proof?date=" + new Date().getTime(), callback);
   }
 });
 
@@ -76,7 +83,7 @@ _Helios_CrossSite = Class.extend({
     }
       
     this.API_FRAME = document.createElement('iframe');
-    this.API_FRAME.src = "http://" + API_HOST + "/elections/api";
+    this.API_FRAME.src = "http://" + API_HOST + API_PREFIX + "/elections/api";
     this.API_FRAME.style.width=0;
     this.API_FRAME.style.height=0;
     this.API_FRAME.style.border=0;

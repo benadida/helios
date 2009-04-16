@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block content %}
+  <h2 class="title">Freeze Election: {{election.name}}</h2>
+<p>
+Once frozen, an election's questions can no longer be modified.
+</p>
+
+<p>
+{% if election.openreg_enabled %}
+Since you have set up your election with <b>open registration</b>, you will be able to continue to manage the voter list while the election runs. You will <em>not</em> be able to switch back to a closed-registration setting.
+{% else %}
+Since you have set up your election with <b>closed registration</b>, you will also <em>not</em> be able to modify the voter list once you freeze the election, nor will you be able to switch your election to open registration.
+{% endif %}
+</p>    
+
+<p>
+You must freeze an election before you can contact voters.
+</p>
+
+<form method="post" action="">
+<input class="pretty" type="submit" value="freeze!" />
+<button onclick="document.location='./view'; return false;">never mind</button>
+</form>
+
+<br /><br />
+{% endblock %}

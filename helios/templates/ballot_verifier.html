@@ -1,0 +1,116 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=UTF-8" /> 
+  <title>Helios Voting System -- Single-Ballot Verifier</title>
+  <link rel="stylesheet" type="text/css" href="/static/booth.css" />
+  <link rel="stylesheet" type="text/css" href="/static/forms.css" />      
+  <script language="javascript" src="/static/jquery-1.2.2.min.js"></script>
+  <script language="javascript" src="/static/jquery-jtemplates.js"></script>
+  <script language="javascript" src="/static/jquery.json.min.js"></script>
+  <script language="javascript" src="/static/class.js"></script>  
+  <script language="javascript" src="/static/date.js"></script>
+  <script language="javascript" src="/static/bigint.js"></script>
+  <script language="javascript" src="/static/random.js"></script>
+  <script language="javascript" src="/static/elgamal.js"></script>
+  <script language="javascript" src="/static/sha1.js"></script>
+  <script language="javascript" src="/static/helios.js"></script>
+
+<script language="javascript">
+var API_HOST = '{{utils.get_host}}';
+var API_PREFIX = '{{utils.get_prefix}}';
+</script>
+
+  <script language="javascript" src="/static/helios-api.js"></script>
+
+<script language="javascript">
+Helios.setup();
+
+function result_append(str) {
+    $('#results').append(str).append("<br />");
+}
+
+function verify_single_ballot(audit_trail) {
+  var encrypted_vote_json = jQuery.secureEvalJSON(audit_trail);
+  
+  // go get the election
+  Helios.get_election({'election_id' : encrypted_vote_json.election_id}, function(election_json, election_raw_json) {
+      // display election fingerprint
+      var election = HELIOS.Election.fromJSONString(election_raw_json);
+      var election_hash = election.get_hash();
+      result_append("election fingerprint is " + election_hash);
+      
+      // check if the election ballot_type is homomorphic
+      if (election.ballot_type != "homomorphic") {
+          result_append("WARNING: the ballot type for this election is not homomorphic. Verification may fail because this verifier is only set up to handle homomorphic ballots.");
+      }
+      
+      // display ballot fingerprint
+      encrypted_vote = HELIOS.EncryptedVote.fromJSONObject(encrypted_vote_json, election);
+      result_append("ballot fingerprint is " + encrypted_vote.get_hash());
+
+      // check the hash
+      if (election_hash == encrypted_vote.election_hash) {
+          result_append("election fingerprint matches ballot");
+      } else {
+          result_append("PROBLEM = election fingerprint does not match");          
+      }
+      
+      // display the ballot as it is claimed to be
+      result_append("Ballot Contents:")
+      $(election.questions).each(function(qnum, q) {
+          var answer_pretty_list = jQuery.map(encrypted_vote.encrypted_answers[qnum].answer, function(aindex, anum) {
+              return q.answers[aindex];
+          });
+          result_append("Question #" + qnum + " - " + q.short_name + " : " + answer_pretty_list.join(", "));
+      });
+      
+      // verify the encryption
+      if (encrypted_vote.verifyEncryption(election.questions, election.pk)) {
+          result_append("Encryption Verified");
+      } else {
+          result_append("PROBLEM = Encryption doesn't match.");
+      }
+      
+      // verify the proofs
+      if (encrypted_vote.verifyProofs(election.pk, function(ea_num, choice_num, result) {
+      })) {
+          result_append("Proofs ok.");
+      } else {
+          result_append("PROBLEM = Proofs don't work.");
+      }
+  });
+}
+
+</script>
+</head>
+<body>
+<div id="wrapper">
+<div id="banner">
+    Helios Single-Ballot Verifier
+</div>
+<div id="content">
+<did id="page">
+<p style="font-size: 16pt;">
+    This single-ballot verifier lets you enter an audited ballot<br />and verify that it was prepared correctly.
+</p>
+
+<p>
+Your Ballot:
+</p>
+
+<form onsubmit="try {verify_single_ballot(this.audit_trail.value);} catch (e) {E = e;} return false;">
+<textarea name="audit_trail" cols="80" rows="7">
+</textarea><br /><br />
+<input type="submit" class="pretty" value="Verify" />
+</form>
+
+<br /><br />
+<div id="results">
+</div>
+</div>
+</div>
+<applet codebase="/static" mayscript name="bigint" code="bigint.class" width=1 height=1></applet>
+
+</body>
+</html>

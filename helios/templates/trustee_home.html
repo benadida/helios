@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block content %}
+<script language="javascript">
+
+var PUBLIC_KEY, PROOF;
+
+function clear() {
+    $('#sk_textarea').val("");
+    $('#pk_textarea').val("");
+    $('#sk_form').hide();
+    $('#pk_form').hide();
+    $('#submit_message_and_button').hide(); 
+    $('#buttons').show();
+}
+
+function generate_keypair() {
+    ELGAMAL_PARAMS = ElGamal.Params.fromJSONObject({{eg_params_json|safe}});
+
+    var secret_key;
+    
+    $('#buttons').hide();
+    
+    try {
+        secret_key = ELGAMAL_PARAMS.generate();
+    } catch (e) {
+        alert(e);
+    }
+    
+    // generate PoK of secret key
+    PROOF = secret_key.proveKnowledge(ElGamal.fiatshamir_dlog_challenge_generator);
+    PUBLIC_KEY = secret_key.pk;
+
+    $('#sk_textarea').val(jQuery.toJSON(secret_key));
+    $('#sk_form').show();
+    $('#pk_textarea').val(jQuery.toJSON({'pok': PROOF, 'public_key': PUBLIC_KEY}));
+    $('#pk_form').show();
+    $('#submit_message_and_button').show();
+}
+
+function download_sk_program() {
+    alert('python program in development, check back later');
+}
+
+function do_upload() {
+    // clear the sk textarea
+    $('#sk_textarea').val("");
+    
+    $.post("upload_pk", {'password' : $('#password').val(), 'public_key' : jQuery.toJSON(PUBLIC_KEY), 'pok' : jQuery.toJSON(PROOF)}, function(result) {
+        if (result != "SUCCESS")
+            alert('public key not uploaded, either because your password is bad or because election is already frozen.');
+        
+        document.location = './home';
+    });
+}
+
+$(document).ready(function() {
+    clear();
+});
+
+</script>
+
+<h2 class="title">{{election.name}} &mdash; Trustee {{keyshare.email}}</h2>
+
+<p>
+{% if keyshare.public_key %}
+Public key uploaded.<br />
+
+{% if election.public_key %}
+<br /><br />
+{% if keyshare.decryption_factors %}
+Tally Received
+{% else %}
+<a href="tally">Compute Tally</a>.
+{% endif %}
+{% else %}
+<br />
+Election not running yet. Come back when ready to tally.
+{% endif %}
+
+{% else %}
+You need to upload your public key.
+
+<form method="post" action="javascript:do_upload()">
+<span id="buttons"><button onclick="generate_keypair(); return false;" id="generate_button">Generate Election Keys</button>
+or <button onclick="download_sk_program(); return false;">download a program</button> to generate the key on your own.</span>
+
+<span id="submit_message_and_button">
+Your password: <input type="password" class="pretty" name="password" id="password" /><br /><br />
+Your key has been generated. Copy the secret key below and keep it safe (we can't recover it.)<br />
+Then click "submit" to send the public portion of the key to Helios servers.<br />
+<input class="pretty" type="submit" id="pk_submit" value="submit" /><br />
+<a href="javascript:clear()">clear keys and start again</a>.<br /><br />
+</span>
+</form>
+
+<form id="sk_form">
+Your Secret Key:<br />
+<textarea id="sk_textarea" cols="80" rows="10" readonly="readonly">
+</textarea>
+</form>
+
+<br /><br />
+<form id="pk_form">
+Your Public Key and Proof of Knowledge:<br />
+<textarea id="pk_textarea"  cols="80" rows="10">
+</textarea>
+</form>
+{% endif %}
+</p>
+
+<br /><br />
+{% endblock %}

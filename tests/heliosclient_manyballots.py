@@ -15,7 +15,7 @@ from client import heliosclient
 # instantiate the client
 # modify variables here
 helios = heliosclient.HeliosClient({'consumer_key': 'test', 'consumer_secret': '123'},
-#                        host = '174.129.241.146',
+#                        host = '79.125.5.192',
                         host = "localhost",
                         port = 8000,
 #                         port = 80,
@@ -52,23 +52,26 @@ print "election questions set and frozen"
 election = helios.election_get(election_id)
 print "election hash is %s" % election.hash
 
-# create three ballots
-ballot_1 = electionalgs.EncryptedVote.fromElectionAndAnswers(election, [[1]])
-print "one ballot"
-ballot_2 = electionalgs.EncryptedVote.fromElectionAndAnswers(election, [[1]])
-print "two ballots"
-ballot_3 = electionalgs.EncryptedVote.fromElectionAndAnswers(election, [[0]])
+all_votes = []
 
-print "created 3 ballots"
+plaintext_choices = [0, 0]
 
-print "ballot #1 hash: %s" % ballot_1.get_hash()
-print "ballot #2 hash: %s" % ballot_2.get_hash()
-print "ballot #3 hash: %s" % ballot_3.get_hash()
+# create 1000 ballots
+for i in range(100):
+  # random choice for the ballot
+  choice = algs.Utils.random_mpz_lt(1000) % 2
+  
+  ballot = electionalgs.EncryptedVote.fromElectionAndAnswers(election, [[choice]])
+  
+  # count the plaintexts
+  plaintext_choices[choice] += 1
+  
+  print "one ballot"
+  print "ballot hash: %s" % ballot.get_hash()
 
-# open submit the three votes
-print "ballot #1 id: %s" % helios.open_submit(election_id, utils.to_json(ballot_1.toJSONDict()), 'ben@adida.net', None, 'Ben Adida', 'Foo Category')
-print "ballot #2 id: %s" % helios.open_submit(election_id, utils.to_json(ballot_2.toJSONDict()), 'ben2@adida.net', None, 'Ben2 Adida', 'Foo Category')
-print "ballot #3 id: %s" % helios.open_submit(election_id, utils.to_json(ballot_3.toJSONDict()), 'ben3@adida.net', None, 'Ben3 Adida', 'Bar Category')
+  # open submit it
+  print "ballot #" + str(i) + " id: %s" % helios.open_submit(election_id, utils.to_json(ballot.toJSONDict()), 'ben' + str(i) + '@adida.net', None, 'Ben Adida - ' + str(i), 'Category ' + str(i%3 + 1))
+  all_votes.append(ballot)
 
 # the secret key
 sk = kp.sk
@@ -76,10 +79,17 @@ sk = kp.sk
 # start tallying
 tally = election.init_tally()
 
-tally.add_vote_batch([ballot_1, ballot_2, ballot_3])
+print "adding all votes"
+
+tally.add_vote_batch(all_votes)
+
+print "decrypting and proving"
 
 result, proof = tally.decrypt_and_prove(sk)
 helios.set_tally(election_id, result, proof)
 
-print "tally is: "
+print "expected tally is:"
+print plaintext_choices
+print "\n"
+print "computed tally is: "
 print result

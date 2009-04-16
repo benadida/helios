@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block content %}
+<script language="javascript">
+function combine_keys() {
+    // go fetch keyshares
+    Helios.get_election_trustees({'election_id' : '{{election.election_id}}'}, function(result) {
+       // we have the list of keyshares
+       // loop through them and combine them
+       var combined_key = 1;
+       $(result).each(function(i, keyshare) {
+           // FIXME: verify proof
+           var one_pk = ElGamal.PublicKey.fromJSONObject(keyshare.public_key);
+           combined_key = one_pk.multiply(combined_key);
+       });
+       
+       // submit the combined_pk
+       $.post("set_pk", {'public_key_json': jQuery.toJSON(combined_key)}, function(result) {
+           if (result != "SUCCESS")
+             alert('public key not set, probably because it was already set.');
+             
+           document.location = "./view";
+       });
+    });
+}
+</script>
+
+<h2 class="title">{{election.name}} &mdash; Key Shares <span style="font-size:0.7em;">[<a href="./view">done</a>]</span></h2>
+
+<ul>
+{% for keyshare in keyshares %}
+<li> <tt>{{keyshare.email}}</tt> &mdash;
+{% if keyshare.public_key %}
+public key submitted
+{% else %}
+waiting for public key
+{% endif %}
+</li>
+{% endfor %}
+</ul>
+
+{% if ready_p %}
+Ready to combine into one public key.<br /><br />
+<button onclick="combine_keys(); return false;">Combine Keys</button>
+{% else %}
+Not ready.
+{% endif %}
+
+{% endblock %}

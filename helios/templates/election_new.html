@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block content %}
+<script language="javascript">
+/*
+var checks = {};
+checks['voting_starts'] = false;
+checks['voting_ends'] = false;
+
+function parse_date(text_el, output_el, name) {
+	var date = Date.parse(text_el.val());
+	if (date != null) {
+		output_el.text(date.toString());
+		checks[name] = true;
+	} else {
+		output_el.text('-- enter a date in natural form, e.g. "next tuesday at 5pm" --');
+		checks[name] = false;
+	}	
+}
+
+\$(document).ready(function() {
+	\$('#voting_starts_at').keyup(function(e) {
+		parse_date(\$('#voting_starts_at'), \$('#voting_starts_at_parsed'), "voting_starts");
+	});
+
+	\$('#voting_ends_at').keyup(function(e) {
+		parse_date(\$('#voting_ends_at'), \$('#voting_ends_at_parsed'), "voting_ends");
+	});
+
+	parse_date(\$('#voting_starts_at'), \$('#voting_starts_at_parsed'), "voting_starts");	
+	parse_date(\$('#voting_ends_at'), \$('#voting_ends_at_parsed'), "voting_ends");	
+});
+
+function check_dates() {
+	if (!checks['voting_starts'] || !checks['voting_ends']) {
+		alert('Make sure you\'ve entered correct start and end dates');
+		return false;
+	}
+
+	// replace the values
+	\$('#voting_starts_at').val(Date.parse(\$('#voting_starts_at').val()).toString('yyyy-MM-dd hh:mm'));
+	\$('#voting_ends_at').val(Date.parse(\$('#voting_ends_at').val()).toString('yyyy-MM-dd hh:mm'));
+
+	return true;
+}
+*/
+
+// for now
+function check_dates() {
+    return true;
+}
+
+</script>
+
+  <h2 class="title">Create a New Election</h2>
+  <form class="prettyform" action="{% url helios.views.election_new_2 %}" onsubmit="return check_dates();" method="GET" id="create_election_form">
+  <label for="name">Name:</label><input type="text" name="name" size="40" /><br />
+<!--  <label for="voting_starts_at">Starts At:</label><input type="text" id="voting_starts_at" name="voting_starts_at" size="12" /><span style="font-size: 12pt;" id="voting_starts_at_parsed"></span><br />
+  <label for="voting_ends_at">Ends At:</label><input type="text" id="voting_ends_at" name="voting_ends_at" size="12" /><span style="font-size: 12pt;" id="voting_ends_at_parsed"></span><br /> -->
+
+  <div id="election_type">
+  <label for="">&nbsp;</label><input type="radio" name="election_type" value="helios" checked /> Helios administers your election<br />
+  <label for="">&nbsp;</label><input type="radio" name="election_type" value="one" /> You administer your election<br />
+  <label for="">&nbsp;</label><input type="radio" name="election_type" value="multiple" /> Multiple trustees administer your election<br />
+  <label for="">&nbsp;</label><input type="submit" value="Next &gt;&gt;" id="next_button" />
+  </div>
+
+{% endblock %}

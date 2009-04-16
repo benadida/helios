@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block content %}
+  <h2 class="title">{{election.name}} &mdash; Bulletin Board <span style="font-size:0.7em;">[<a href="{% url helios.views.one_election_view election_id=election.election_id %}">done</a>]</span></h2>
+
+<h3>Search</h3>
+<form method="get" action="">
+    Voter Email: <input type="text" name="voter_email" size="40" value="{{voter_email}}" />
+    <input type="submit" value="search" />
+</form>
+<br /><br />
+{% if voter_email %}
+<b>currently viewing voter {{voter_email}}</b>. [<a href="./bboard">Show All</a>]
+<br /><br />
+{% endif %}
+Voters {{offset_plus_one}} - {{offset_plus_limit}} &nbsp;&nbsp;
+{% if after %}
+<a href="./bboard">back to start</a> &nbsp;&nbsp;
+{% endif %}
+{% if more_p %}
+<a href="./bboard?after={{next_after}}&offset={{next_offset}}">next {{limit}}</a>
+{% endif %}
+<table class="pretty">
+<tr><th>Name</th><th>Ballot Fingerprint</th></tr>
+{% for voter in voters %}
+<tr><td>{{voter.name}}</td><td><tt style="font-size: 16pt;">{% if voter.vote_hash %}{{voter.vote_hash}}{% else %}&mdash;{% endif %}</tt></td></tr>
+{% endfor %}
+</table>
+
+{% endblock %}

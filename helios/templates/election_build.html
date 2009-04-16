@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <h2 class="title">{{election.name}} &mdash; Build <span style="font-size:0.7em;">[<a href="{% url helios.views.one_election_view election_id=election.election_id %}">done</a>]</span></h2>
+
+  <script language="javascript">
+    Helios.setup();
+    // utils
+    var UTILS = {};
+    UTILS.array_remove = function(arr, pos) {
+      var new_arr = [];
+      $(arr).each(function(i, v) {
+        if (i != pos)
+	  new_arr.push(v);
+      });
+
+      return new_arr;
+    };
+
+    var BUILDER = {};
+    
+    BUILDER.setup_templates = function() {
+      $('#election_div').setTemplateURL("/static/templates/builder/election.html")
+      $('#question_div').setTemplateURL("/static/templates/builder/question.html")
+    };
+
+
+    $(window).load(function() {
+        BUILDER.setup_templates();
+
+        // load the election JSON
+	    Helios.get_election({'election_id': '{{election.election_id}}'},
+	           function(data) {
+	               BUILDER.election = HELIOS.Election.fromJSONObject(data);
+
+	               BUILDER.show_election();
+	    });
+    });
+
+    BUILDER.show_election = function() {
+       $('#question_div').hide();
+       $('#election_div').show().processTemplate({'election' : BUILDER.election});
+    };
+
+    BUILDER.show_question = function(question_num) {
+      $('#election_div').hide();
+
+      var question = BUILDER.get_question(question_num);
+
+      $('#question_div').show().processTemplate({'question_num' : question_num, 'question' : question});
+    };
+
+    BUILDER.save_question = function() {
+      var form = BUILDER.get_current_question_form();
+      var question = BUILDER.get_current_question();
+
+      // attributes of a question
+      question['short_name'] = form['short_name'].value;
+      question['question'] = form['question'].value;
+
+      // integer
+      question['min'] = parseInt(form['min'].value);
+      question['max'] = parseInt(form['max'].value);
+      
+      $(question.answers).each(function(i, answer) {
+        question.answers[i] = form["answer_" + i].value;
+        question.answer_urls[i] = form["answer_url_" + i].value;
+      });
+    };
+
+    // committing is about really adding the question
+    BUILDER.save_and_commit_question = function() {
+      try {
+          BUILDER.save_question();
+      var question = BUILDER.get_current_question();
+      
+      if (BUILDER.is_new(question)) {
+        BUILDER.election.questions[BUILDER.election.questions.length] = question;
+	    BUILDER.stored_new_question = null;
+      }
+
+      // FIXME: now save this back up there
+      BUILDER.save();
+
+      BUILDER.show_election();
+  } catch (e) {
+      E = e;
+  }
+    };
+
+    BUILDER.save = function() {
+      $.post('{% url helios.views.one_election_save_questions election_id=election.election_id %}', {questions_json : $.toJSON(BUILDER.election.questions)}, function(result) {
+        alert('saved!');
+      });
+    };
+
+    BUILDER.new_question = function() {
+      BUILDER.show_question(null);
+    };
+
+    BUILDER.is_new = function(question) {
+      return (BUILDER.stored_new_question != null && BUILDER.stored_new_question == question);
+    };
+
+    BUILDER.get_question = function(question_num) {
+      var question;
+
+      if (question_num === null || question_num === "") {
+         BUILDER.stored_new_question = BUILDER.stored_new_question || {answers:[], answer_urls:[]};
+	     question = BUILDER.stored_new_question;
+      } else {
+         question = BUILDER.election.questions[question_num];
+      }
+
+      return question;	 
+    };
+
+    BUILDER.new_question_answer = function() {
+      BUILDER.save_question();
+      var form = BUILDER.get_current_question_form();
+      var question_num = form.question_num.value;
+
+      var question = BUILDER.get_question(question_num);
+
+      question.answers[question.answers.length] = "";
+
+      if (question_num == "")
+        question_num = null;
+
+      BUILDER.show_question(question_num);      
+    };
+
+    BUILDER.delete_answer = function(answer_num) {
+      var form = BUILDER.get_current_question_form();
+      var question = BUILDER.get_current_question();
+
+      question.answers = UTILS.array_remove(question.answers, answer_num);
+      BUILDER.show_question(form.question_num.value);
+    };
+
+    BUILDER.moveup_answer = function(answer_num) {
+      var form = BUILDER.get_current_question_form();
+      var question = BUILDER.get_current_question();
+
+      var tmp = question.answers[answer_num];
+      question.answers[answer_num] = question.answers[answer_num - 1];
+      question.answers[answer_num-1] = tmp;
+
+      BUILDER.show_question(form.question_num.value);
+    };
+
+    BUILDER.get_current_question = function() {
+       return BUILDER.get_question(BUILDER.get_current_question_form().question_num.value);
+    };
+    
+    BUILDER.get_current_question_form = function() {
+       return document.forms['question_form'];
+    };
+
+    BUILDER.moveup_question = function(question_num) {
+       var tmp = BUILDER.election.questions[question_num];
+       BUILDER.election.questions[question_num] = BUILDER.election.questions[question_num - 1];
+       BUILDER.election.questions[question_num - 1] = tmp;
+       BUILDER.save();
+       BUILDER.show_election();
+    };
+
+    BUILDER.delete_question = function(question_num) {
+       BUILDER.election.questions = UTILS.array_remove(BUILDER.election.questions, question_num);
+       BUILDER.show_election();
+       BUILDER.save();      
+    };
+  </script>
+
+  <div id="election_div">
+    Loading Election Builder...
+  </div>
+
+  <div id="question_div">
+  </div>
+					
+			<!-- end #content -->
+{% endblock %}

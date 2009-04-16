@@ -1,0 +1,311 @@
+{% extends "booth.html" %}
+{% block content %}
+<div id="header">
+    <h1>{{election.name}}</h1>
+    <h3>Fingerprint: <span id="election_hash"></span></h3>
+</div>
+
+<script language="javascript">
+// utils
+Helios.setup();
+BOOTH = {};
+
+BOOTH.setup_templates = function() {
+    $('#election_div').setTemplateURL("/static/templates/booth/election.html");
+    $('#question_div').setTemplateURL("/static/templates/booth/question.html");
+    $('#confirm_div').setTemplateURL("/static/templates/booth/confirm.html");
+    $('#seal_div').setTemplateURL("/static/templates/booth/seal.html");
+    $('#audit_div').setTemplateURL("/static/templates/booth/audit.html");
+    $('#login_div').setTemplateURL("/static/templates/booth/login.html");
+    $('#done_div').setTemplateURL("/static/templates/booth/done.html");
+};
+
+// set up the message when navigating away
+BOOTH.done_p = false;
+
+window.onbeforeunload = function(evt) {
+  if (BOOTH.done_p)
+    return;
+
+  if (typeof evt == 'undefined') {
+    evt = window.event;
+  }
+  
+  var message = "If you leave this page with an in-progress ballot, your ballot will be lost.";
+
+  if (evt) {
+    evt.returnValue = message;
+  }
+  
+  return message;
+};
+
+BOOTH.setup_ballot = function(election) {
+  BOOTH.ballot = {};
+
+  // each question starts out with an empty array answer
+  BOOTH.ballot.answers = [];
+  $(BOOTH.election.questions).each(function(i,x){
+    BOOTH.ballot.answers[i] = [];
+  });
+};
+
+BOOTH.setup_election = function(election, raw_json) {
+  // use the raw JSON for safer hash computation
+  BOOTH.election = HELIOS.Election.fromJSONString(raw_json);  
+  BOOTH.election_hash = BOOTH.election.get_hash();
+
+  $('#election_hash').html(BOOTH.election_hash);
+
+  BOOTH.setup_ballot();
+};
+
+BOOTH.show = function(el) {
+  $('.panel').hide();
+  el.show();
+  return el;
+};
+
+BOOTH.show_election = function() {
+  BOOTH.show($('#election_div')).processTemplate({'election' : BOOTH.election});
+};
+
+// check if the current question is ok
+BOOTH.validate_question = function(question_num) {
+    // check if enough answers are checked
+    if (BOOTH.ballot.answers[question_num].length < BOOTH.election.questions[question_num].min) {
+        alert('You need to select at least ' + BOOTH.election.questions[question_num].min + ' answer(s).');
+        return false;
+    }
+    
+    return true;
+};
+
+BOOTH.validate_and_confirm = function(question_num) {
+  if (BOOTH.validate_question(question_num)) {
+      BOOTH.show_confirm();
+  }
+};
+
+BOOTH.show_question = function(question_num) {
+  BOOTH.show_progress('1');
+  BOOTH.show($('#question_div')).processTemplate({'question_num' : question_num, 
+                      'last_question_num' : BOOTH.election.questions.length - 1,
+                      'question' : BOOTH.election.questions[question_num]
+                });
+  
+  // fake clicking through the answers, to trigger the disabling if need be
+  // first we remove the answers array
+  var answer_array = BOOTH.ballot.answers[question_num];
+  BOOTH.ballot.answers[question_num] = [];
+  $(answer_array).each(function(i, ans) {
+    BOOTH.click_checkbox_script(question_num, ans, true);
+  });
+
+};
+
+BOOTH.click_checkbox_script = function(question_num, answer_num) {
+  document.forms['answer_form']['answer_'+question_num+'_'+answer_num].click();
+};
+
+BOOTH.click_checkbox = function(question_num, answer_num, checked_p) {
+
+  if (checked_p) {
+     // multiple click events shouldn't screw this up
+     if ($(BOOTH.ballot.answers[question_num]).index(answer_num) == -1)
+    BOOTH.ballot.answers[question_num].push(answer_num);
+
+     $('#answer_label_' + question_num + "_" + answer_num).addClass('selected');
+  } else {
+     BOOTH.ballot.answers[question_num] = UTILS.array_remove_value(BOOTH.ballot.answers[question_num], answer_num);
+     $('#answer_label_' + question_num + "_" + answer_num).removeClass('selected');
+  }
+
+  if (BOOTH.ballot.answers[question_num].length >= BOOTH.election.questions[question_num].max) {
+     // disable the other checkboxes
+     $('.ballot_answer').each(function(i, checkbox) {
+        if (!checkbox.checked)
+       checkbox.disabled = true;
+     });
+  } else {
+     // enable the other checkboxes
+     $('.ballot_answer').each(function(i, checkbox) {
+       checkbox.disabled = false;
+     });
+  }
+};
+
+BOOTH.show_processing_before = function(str_to_execute) {
+    $('#processing_div').html("<h3 align='center'>Processing...</h3>");
+    BOOTH.show($('#processing_div'));
+    
+    // add a timeout so browsers like Safari actually display the processing message
+    setTimeout(str_to_execute, 100);    
+};
+
+BOOTH.load_and_setup_election = function() {
+    // the hash will be computed within the setup function call now
+    Helios.get_election({'election_id': "{{election.election_id}}"}, function(data, raw_json) {
+        BOOTH.setup_election(data, raw_json);
+        BOOTH.show_election();
+    });    
+};
+
+BOOTH.hide_progress = function() {
+  $('#progress_div').hide();
+};
+
+BOOTH.show_progress = function(step_num) {
+    $('#progress_div').show();
+    $(['1','2','3','4']).each(function(n, step) {
+        if (step == step_num)
+            $('#progress_' + step).attr('class', 'selected');
+        else 
+            $('#progress_' + step).attr('class', 'unselected');
+    });
+};
+
+$(document).ready(function () {
+    BOOTH.setup_templates();
+    BOOTH.load_and_setup_election();
+    
+    BOOTH.hide_progress();
+});  
+
+BOOTH.show_confirm = function() {
+    BOOTH.show_progress('1');
+    
+    // process the answers
+    var choices = BALLOT.pretty_choices(BOOTH.election, BOOTH.ballot);
+
+    BOOTH.show($('#confirm_div')).processTemplate({'questions' : BOOTH.election.questions, 'choices' : choices});
+};
+
+BOOTH.check_encryption_status = function() {
+    $('#processing_div').html("<h3 align='center'>Progress: " + BOOTH.progress.progress() + "%</h3>");
+};
+
+BOOTH.seal_ballot_raw = function() {
+    BOOTH.progress = new UTILS.PROGRESS();
+    var progress_interval = setInterval("BOOTH.check_encryption_status()", 1000);
+    BOOTH.encrypted_ballot = new HELIOS.EncryptedVote(BOOTH.election, BOOTH.ballot.answers, BOOTH.progress);
+    clearInterval(progress_interval);
+    $('#seal_div').processTemplate({'encrypted_vote_hash' : BOOTH.encrypted_ballot.get_hash()});
+    BOOTH.show($('#seal_div'));
+};
+
+BOOTH.seal_ballot = function() {
+    BOOTH.show_progress('2');    
+    BOOTH.show_processing_before("BOOTH.seal_ballot_raw()", true);
+};
+
+BOOTH.audit_ballot = function() {
+    BOOTH.show($('#audit_div')).processTemplate({'audit_trail' : $.toJSON(BOOTH.encrypted_ballot.get_audit_trail())});
+};
+
+BOOTH.cast_ballot = function() {
+    BOOTH.show_progress('3');
+    // at this point, we delete the plaintexts by resetting the ballot
+    BOOTH.setup_ballot(BOOTH.election);
+
+    // clear the plaintext from the encrypted 
+    BOOTH.encrypted_ballot.clearPlaintexts();
+
+    BOOTH.show($('#login_div')).processTemplate({'encrypted_vote_hash' : BOOTH.encrypted_ballot.get_hash()});
+};
+
+BOOTH.send_ballot_raw = function() {
+    var send_form = document.forms['send_ballot_form'];
+    var data = {
+      email : send_form.email.value,
+      password : send_form.password.value
+    };
+
+    data['encrypted_vote'] = jQuery.toJSON(BOOTH.encrypted_ballot);
+
+    $.ajax({
+        type: "GET",
+        url: API_PREFIX + "/elections/{{election.election_id}}/get_voter_by_email",
+        data: {email: data['email']},
+        success: function(result) {
+            var voter = jQuery.secureEvalJSON(result);
+
+            var submit_vote_p = true;
+            if (voter.vote != null) {
+                submit_vote_p = confirm('You have already submitted a vote. Would you like to override it?');
+            }
+            
+            if (submit_vote_p) {
+                // not the way to do an error, check this.
+                $.ajax({
+                    type: "POST",
+                    url: API_PREFIX + "/elections/{{election.election_id}}/voters/" + voter.voter_id + "/submit",
+                    data: data,
+                    success: function(result) {
+                        BOOTH.show_progress('4');
+                        BOOTH.show($("#done_div")).processTemplate();
+                        BOOTH.done_p = true;
+                    },
+                    error: function(xhr, status, error) {
+                        alert('Your vote was not recorded properly.\n\nYour email and password may be incorrect.\n\nAlternatively, the election may be already tabulated.');
+                        BOOTH.show($("#login_div"));
+                    }
+                });
+            } else {
+                BOOTH.show($("#login_div"));
+            }
+        },
+        error: function(xhr, status, error) {
+            alert('No such voter! Try again.');
+            BOOTH.show($("#login_div"));
+        }
+    });
+};
+
+BOOTH.send_ballot = function() {
+    BOOTH.show_processing_before("BOOTH.send_ballot_raw()");
+};
+
+BOOTH.show_receipt = function() {
+    UTILS.open_window_with_content("Your Voting Receipt for " + BOOTH.election.name + ": " + BOOTH.encrypted_ballot.get_hash());
+};
+
+//BOOTH.coerce_me = function() {
+//    window.open("mailto:?subject=" + encodeURIComponent("My Vote") + "&body=" + encodeURIComponent("My proof of vote is:\n\n" + $.toJSON(BOOTH.prepare_audit_trail(BOOTH.ballot.answers, BOOTH.encrypted_vote, BOOTH.randomness))));
+//};
+
+</script>
+<div id="page">
+  <div id="progress_div" style="display:none;">
+      <table width="100%">
+          <tr><td id="progress_1">(1) Select</td><td id="progress_2">(2) Encrypt</td><td id="progress_3">(3) Submit</td><td id="progress_4">(4) Done</td></tr>
+      </table>
+  </div>
+  <div id="election_div" class="panel">
+    Loading Election Booth...
+  </div>
+
+  <div id="question_div" class="panel">
+  </div>
+
+  <div id="confirm_div" class="panel">
+  </div>
+  
+  <div id="processing_div" class="panel">
+      <h3 align="center">Processing....</h3>
+  </div>
+
+  <div id="seal_div" class="panel">
+  </div>
+
+  <div id="audit_div" class="panel">
+  </div>
+
+  <div id="login_div" class="panel">
+  </div>
+
+  <div id="done_div" class="panel">
+  </div>
+</div>
+
+{% endblock %}

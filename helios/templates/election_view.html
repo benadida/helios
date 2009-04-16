@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <h2 class="title">{{ election.name }}</h2>
+
+{% if admin_p %}
+
+<div style="float:right; border-left: 1px dashed black; padding: 0px 20px 5px 20px;">
+<h3>Administration</h3>
+{% if election.is_frozen %}
+{% if election.in_progress_p %}
+<b>Election in Progress</b>
+{% else %}
+{% if election.result %}
+<b>Election Done</b>
+{% else %}
+<b>Election Done, Ready for Tally</b>
+{% endif %}
+{% endif %}
+{% else %}
+<b>Election under Construction</b>
+{% endif %}
+
+<ul>
+<li> <a href="{% url helios.views.one_election_voters_manage election_id=election.election_id %}">voters</a></li><br />
+
+{% if not election.is_frozen %}
+<li> <a href="{% url helios.views.one_election_build election_id=election.election_id %}">questions and answers</a></li>
+
+{% if election.public_key %}
+<li> <a href="{% url helios.views.one_election_freeze election_id=election.election_id %}"><em>freeze</em> election and start voting.</a></li>
+{% else %}
+<li> <a href="{% url helios.views.one_election_keyshares_manage election_id=election.election_id %}">manage trustees' key shares</a></li>
+{% endif %}
+
+{% else %}
+
+{% if election.has_keyshares %}
+<li> <a href="{% url helios.views.one_election_keyshares_tally_manage election_id=election.election_id %}">manage trustees' tally</a></li>
+{% else %}
+{% if election.in_progress_p %}
+{% if election.get_sk %}
+{% ifequal election.tally_type "homomorphic" %}
+<li> <a href="{% url helios.views.one_election_drive_tally_chunk election_id=election.election_id %}">compute tally</a></li>
+{% else %}
+<li> custom tally</li>
+{% endifequal %}
+{% else %}
+{% ifequal election.tally_type "homomorphic" %}
+<li> <a href="{% url helios.views.one_election_drive_tally election_id=election.election_id %}">compute tally</a></li>
+{% else %}
+<li> custom tally</li>
+{% endifequal %}
+{% endif %}
+{% endif %}
+{% endif %}
+
+{% if election.encrypted_tally %}
+{% if election.result %}
+{% else %}
+<li> <a href="{% url helios.views.one_election_decrypt_and_prove election_id=election.election_id %}">decrypt and prove</a></li>
+{% endif %}
+{% endif %}
+
+{% endif %}
+
+{% if election.has_keyshares %}
+<li> <a href="{% url helios.views.one_election_email_trustees election_id=election.election_id %}">email trustees</a></li>
+{% endif %}
+
+{% if election.archived_at %}
+<br /><br /><em>election archived</em><br />[<a href="{% url helios.views.one_election_archive election_id=election.election_id %}?archive_p=0">un-archive</a>]
+{% else %}
+<br /><li> <a href="{% url helios.views.one_election_archive election_id=election.election_id %}">archive election</a></li>
+{% endif %}
+</ul>
+</div>
+{% endif %}
+
+{%if election.is_frozen %}
+
+<div id="election_info">
+<p>Election ID<br />
+<b><tt>{{election.election_id}}</tt></b><br /><br />
+
+Election Fingerprint<br />
+<b><tt>{{election_obj.get_hash}}</tt></b></p>
+</div>
+
+<p ><a style="font-size: 18pt;" target="_blank" href="vote">Vote in this election</a> &nbsp;&nbsp;&nbsp;[<a style="font-size: 12pt;" target="_blank" href="../single_ballot_verifier">Audit a Single Ballot</a>] &nbsp; &nbsp; [<a style="font-size: 12pt;" href="bboard">Bulletin Board of Cast Votes</a>]
+<br />
+{% if election.result %}
+(the tally has already been computed, but you can view the voting interface anyways.)
+{% endif %}
+
+{% else %}
+<p><em>This election is not ready for voting yet. Stay tuned.</em></p>
+{% endif %}
+
+<br clear="right" />
+{%if election.result %}
+<h2>Tally</h2>
+{% for question in election.pretty_result %}
+<b>{{question.question}}</b>:
+<ul>
+{% for answer in question.answers %}
+<li> {{answer.answer}}: {{answer.count}}
+{% endfor %}
+</ul>
+{% endfor %}
+
+{% ifequal election.tally_type "homomorphic" %}
+<a style="font-size: 14pt;" target="_blank" href="{% url helios.views.election_verifier %}">Audit the Election Tally</a><br />
+{% else %}
+<b>This election uses a custom tallying mechanism, which must be audited by the custom code.</b>
+{% endifequal %}
+
+<br /><br />
+{% endif %}
+
+{% endblock %}
