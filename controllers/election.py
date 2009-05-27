@@ -101,7 +101,7 @@ class VoterController(REST.Resource):
     v.insert()
 
     raise cherrypy.HTTPRedirect("../voters_manage")
-
+    
   @web
   def submit(self, voter, email, password, encrypted_vote):
     """
@@ -441,7 +441,37 @@ class ElectionController(REST.Resource):
       
     return self.redirect("./voters_manage")
     
+  @web
+  def send_password(self, election, email):
+    """
+    send a copy of the password
+    """
     
+    election_obj = election.toElection()
+    
+    voter = do.Voter.selectByEmailOrOpenID(election, email, None)
+    if not voter:
+      return "no such voter"
+      
+    # send a confirmation email
+    mail_body = """
+    Dear %s,
+
+    You requested a copy of your election password for election %s. It is:
+    
+    %s
+
+    And, as a reminder, the fingerprint of the election itself is:
+    %s
+
+    --
+    The Helios Voting System
+    """ % (voter.name, election_obj.name, voter.password, election_obj.hash)
+
+    mail.simple_send([voter.name],[voter.email], "Helios", "ben@adida.net", "password reminder", mail_body)
+  
+    return SUCCESS
+  
   @web
   def open_submit(self, election, encrypted_vote, email=None, openid_url=None, name=None, category=None):
     """

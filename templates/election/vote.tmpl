@@ -244,7 +244,24 @@ BOOTH.send_ballot_raw = function() {
 };
 
 BOOTH.send_ballot = function() {
-    BOOTH.show_processing_before("BOOTH.send_ballot_raw()");
+  BOOTH.show_processing_before("BOOTH.send_ballot_raw()");
+};
+
+BOOTH.get_password = function() {
+  var send_form = document.forms['send_ballot_form'];
+  
+  var data = {
+    email : send_form.email.value
+  };
+  
+  \$.ajax({
+      type: "POST",
+      url: "/elections/$election.election_id/send_password",
+      data: data,
+      success: function(result) {
+        alert('password should be in your inbox');
+      }
+    });
 };
 
 BOOTH.show_receipt = function() {
