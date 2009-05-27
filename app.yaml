@@ -1,4 +1,4 @@
-application: heliosvoting
+application: dev-heliosvoting
 version: 1
 runtime: python
 api_version: 1
