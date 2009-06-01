@@ -2,7 +2,7 @@
 Create an Election
 
 usage:
-python client/electioncreator.py ELECTION_NAME election_questions.json voters.csv HELIOS_SERVER API_KEY_FILENAME.json SECRET_KEY_FILENAME.txt
+python client/creationelection.py ELECTION_NAME election_questions.json voters.csv HELIOS_SERVER API_KEY_FILENAME.json SECRET_KEY_FILENAME.txt
 """
 
 from base import utils
@@ -37,7 +37,7 @@ api_key = utils.from_json(open_and_read_file(API_KEY_FILE))
 # api_key_file should contain {consumer_key: 'test', consumer_secret: 'test', access_token: '123', access_token_secret : '123'}
 helios = heliosclient.HeliosClient(api_key,
                         host = HELIOS_SERVER,
-                        port = 8080)
+                        port = 80)
 
 # get the El Gamal Parameters
 params = helios.params()

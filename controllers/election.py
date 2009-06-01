@@ -140,7 +140,7 @@ And, as a reminder, the fingerprint of the election itself is:
 The Helios Voting System
 """ % (voter.name, election_obj.name, voter.get_vote_hash(), election_obj.hash)
 
-    mail.simple_send([voter.name],[voter.email], "Helios", "ben@adida.net", "your vote was recorded", mail_body)
+    mail.simple_send([voter.name],[voter.email], "Helios", "system@heliosvoting.org", "your vote was recorded", mail_body)
 
     return SUCCESS
 
@@ -458,20 +458,21 @@ class ElectionController(REST.Resource):
       
     # send a confirmation email
     mail_body = """
-    Dear %s,
+Dear %s,
 
-    You requested a copy of your election password for election %s. It is:
+You requested a copy of your election password for election %s. It is:
     
-    %s
+%s
 
-    And, as a reminder, the fingerprint of the election itself is:
-    %s
+And, as a reminder, the fingerprint of the election itself is:
 
-    --
-    The Helios Voting System
-    """ % (voter.name, election_obj.name, voter.password, election_obj.hash)
+%s
 
-    mail.simple_send([voter.name],[voter.email], "Helios", "ben@adida.net", "password reminder", mail_body)
+--
+The Helios Voting System
+""" % (voter.name, election_obj.name, voter.password, election_obj.hash)
+
+    mail.simple_send([voter.name],[voter.email], "Helios", "system@heliosvoting.org", "password reminder", mail_body)
   
     return SUCCESS
   
@@ -751,7 +752,7 @@ class ElectionController(REST.Resource):
     if user:
       sender_email = user.email_address
     else:
-      sender_email = "ben@adida.net"
+      sender_email = "system@heliosvoting.org"
 
     for voter in voters:
       logging.info("sending email to %s" % voter.email)
@@ -771,7 +772,7 @@ Your password: %s
 
 --
 %s
-via the Helios Voting System
+Helios Voting System
 www.heliosvoting.org
 """ % ((config.webroot + '/elections/%s/view')%election.election_id, (config.webroot + '/elections/%s/vote')%election.election_id, election.toElection().get_hash(), voter.email, voter.password, sender_email)
 
@@ -823,7 +824,7 @@ The Helios Voting System
       full_body = message % (body, election.name, config.webroot + ('/elections/%s/trustees/%s/home' % (election.election_id, utils.urlencode(trustee.email))), trustee.password)
 
       # send out the emails for the shares
-      mail.simple_send([trustee.email],[trustee.email],"Helios","ben@adida.net", subject, full_body)
+      mail.simple_send([trustee.email],[trustee.email],"Helios","system@heliosvoting.org", subject, full_body)
     
     return "DONE"
     

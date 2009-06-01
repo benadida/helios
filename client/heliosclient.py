@@ -51,6 +51,30 @@ class HeliosClient(object):
     result = self.post("/elections/%s/freeze_2" % election_id, {})
     return result == "SUCCESS"
     
+  def election_voters(self, election_id, after=None, limit=None):
+    params = {}
+    if after:
+      params['after'] = str(after)
+    if limit:
+      params['limit'] = str(limit)
+      
+    print params
+    result = self.get("/elections/%s/voters/" % election_id, params)
+    print result
+    return utils.from_json(result)
+    
+  def election_voters_send_email(self, election_id, subject, body, voter_ids=None, after=None, limit=None):
+    params = {'introductory_message' : body}
+    if voter_ids:
+      params['voter_ids'] = ",".join([str(v) for v in voter_ids])
+    if after:
+      params['after'] = after
+    if limit:
+      params['limit'] = str(limit)
+      
+    result = self.post("/elections/%s/voters_email_2" % election_id, params)
+    return result
+    
   def open_submit(self, election_id, encrypted_vote, email=None, openid_url=None, name=None, category=None):
     """
     encrypted_vote is a JSON string

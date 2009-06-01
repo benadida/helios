@@ -29,6 +29,12 @@ class MachineOAuthClient(object):
       headers['Content-Length'] = 0
       
     #print "headers: " + str(headers)
+    
+    if method == "GET" and parameters:
+      param_string = utils.dictToURLParams(parameters)
+      if param_string != '':
+        url += '?' + param_string
+      parameters = {}
       
     connection = httplib.HTTPConnection("%s:%d" % (self.server, self.port))
     connection.request(method, url, headers= headers, body = utils.dictToURLParams(parameters))
