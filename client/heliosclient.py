@@ -51,12 +51,14 @@ class HeliosClient(object):
     result = self.post("/elections/%s/freeze_2" % election_id, {})
     return result == "SUCCESS"
     
-  def election_voters(self, election_id, after=None, limit=None):
+  def election_voters(self, election_id, with_vote=False, after=None, limit=None):
     params = {}
     if after:
       params['after'] = str(after)
     if limit:
       params['limit'] = str(limit)
+    if with_vote:
+      params['with_vote'] = "1"
       
     print params
     result = self.get("/elections/%s/voters/" % election_id, params)

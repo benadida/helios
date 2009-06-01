@@ -16,10 +16,14 @@ To submit your encrypted vote, enter your login information below.<br />
 (Notice how we only ask for your login once your ballot plaintext has been discarded.)
 </p>
 
+<p>
+<b>IF YOU DO NOT HAVE YOUR ELECTION PASSWORD</b>: enter your email address in the email field, then click "get password", and wait a few seconds for a notification.
+</p>
+
 <form onsubmit="BOOTH.send_ballot(); return false;" action="#" id="send_ballot_form" class="prettyform">
 <label for="email">Email:</label>
 <input type="text" name="email" size="30" />
-(<a href="javascript:BOOTH.get_password();">get password</a>)
+[<a href="javascript:BOOTH.get_password();">get password</a>] 
 <br />
 <label for="password">Password:</label>
 <input type="password" name="password" size="30" /><br/>

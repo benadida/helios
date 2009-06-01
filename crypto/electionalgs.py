@@ -126,19 +126,23 @@ class EncryptedVote(object):
   def verify(self, election):
     # right number of answers
     if len(self.encrypted_answers) != len(election.questions):
+      print "bad length"
       return False
     
     # check hash
     if self.election_hash != election.hash:
-      return False
+      print "warning on hash %s vs %s" % (self.election_hash, election.hash)
+      # FIXME only a warning for now?
       
     # check ID
     if self.election_id != election.election_id:
+      print "bad election id"
       return False
       
     # check proofs on all of answers
     for ea in self.encrypted_answers:
       if not ea.verify(election.pk):
+        print "bad ea " + ea
         return False
         
     return True
