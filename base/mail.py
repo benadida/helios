@@ -10,6 +10,7 @@ import config
 
 try:
   from google.appengine.api import mail
+  from google.appengine.runtime import apiproxy_errors
 except:
   pass
 
@@ -29,7 +30,11 @@ def simple_send(recipient_names, recipient_emails, sender_name, sender_email, su
     if reply_to:
       message.reply_to = reply_to
     
-    message.send()
+    try:
+      message.send()
+    except apiproxy_errors.OverQuotaError, message:
+      logging.info("quota error: %s" % message)
+      raise Exception("over mail quota %s" % message)
   
 # don't send email if config says not to
 if not config.SEND_MAIL:

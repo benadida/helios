@@ -249,7 +249,9 @@ BOOTH.send_ballot = function() {
 
 BOOTH.get_password = function() {
   var send_form = document.forms['send_ballot_form'];
-  
+
+  \$('#get_password_span').hide();
+
   var data = {
     email : send_form.email.value
   };
@@ -259,7 +261,8 @@ BOOTH.get_password = function() {
       url: "/elections/$election.election_id/send_password",
       data: data,
       success: function(result) {
-        alert('password should be in your inbox');
+        alert('result of sending password: ' + result);
+        \$('#get_password_span').show();
       }
     });
 };

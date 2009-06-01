@@ -47,5 +47,10 @@ while True:
   if res == "DONE":
     break
     
+  if len(res) > 100:
+    print "PROBLEM!"
+    print res
+    break
+    
   # increment offset by LIMIT, continue
   last_voter_id = res
