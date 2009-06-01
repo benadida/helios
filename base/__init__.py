@@ -21,6 +21,8 @@ def web(func):
     but also that enables filters
     """
     def apply_before_filter(self, *args, **kwargs):
+        import logging
+        logging.info("in apply_before_filter on func " + str(func))
         self.before_filter()
         return func(self, *args, **kwargs)
 

@@ -68,7 +68,9 @@ def admin_protect(func, redirect_to = None):
   def ensure_admin(self, *args, **kwargs):
     if not get_session().is_admin():
       raise cherrypy.HTTPRedirect(redirect_to or users.create_login_url("/"))
-      
+    
+    import logging
+    logging.info("func is " + str(func))
     return func(self, *args, **kwargs)
   
   return ensure_admin

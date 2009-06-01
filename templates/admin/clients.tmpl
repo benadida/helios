@@ -8,7 +8,7 @@
 #for $client in $clients
 <tr><td>${client.consumer_key}</td><td>${client.consumer_secret}</td><td>${client.access_token}</td><td>${client.access_token_secret}</td>
 <td>
-<form method="post" action="delete" onsubmit="return confirm('You\'re about to delete $client.consumer_key...');">
+<form method="post" action="client_delete" onsubmit="return confirm('You\'re about to delete $client.consumer_key...');">
 <input type="hidden" name="consumer_key" value="${client.consumer_key}" />
 <input type="submit" value="delete" class="prettysmall" />
 </form>

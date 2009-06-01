@@ -100,7 +100,10 @@ class VoterController(REST.Resource):
     v.generate_password()
     v.insert()
 
-    raise cherrypy.HTTPRedirect("../voters_manage")
+    if user:
+      raise cherrypy.HTTPRedirect("../voters_manage")
+    else:
+      return SUCCESS
     
   @web
   def submit(self, voter, email, password, encrypted_vote):

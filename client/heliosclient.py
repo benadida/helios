@@ -42,6 +42,10 @@ class HeliosClient(object):
   def election_questions_save(self, election_id, questions):
     result = self.post("/elections/%s/save_questions" % election_id, {'questions_json' : utils.to_json(questions)})
     return result == "SUCCESS"
+  
+  def election_voter_add(self, election_id, name, email):
+    result = self.post("/elections/%s/voters/" % election_id, {'name' : name, 'email' : email})
+    return result == "SUCCESS"
     
   def election_freeze(self, election_id):
     result = self.post("/elections/%s/freeze_2" % election_id, {})

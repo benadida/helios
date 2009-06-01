@@ -31,16 +31,13 @@ class AdminController(Controller):
     Display admin homepage.
     """
     return self.render('index')
-    
+
   @web
   @session.admin_protect
-  def clients(self):
-    """
-    Display API clients
-    """
-    clients = do.APIClient.selectAll()
-    return self.render('clients')
-  
+  def client_delete(self,consumer_key):
+    do.APIClient.get_by_consumer_key(consumer_key).delete()
+    self.redirect("./")
+    
   @web
   @session.admin_protect
   def client_new(self, consumer_key, consumer_secret, access_token, access_token_secret):
@@ -51,4 +48,14 @@ class AdminController(Controller):
     new_client.access_token_secret = access_token_secret
     new_client.save()
     self.redirect("./")
-    
+
+  @web
+  @session.admin_protect
+  def clients(self):
+    """
+    Display API clients
+    """
+    clients = do.APIClient.selectAll()
+    return self.render('clients')
+
+
