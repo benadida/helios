@@ -773,8 +773,8 @@ Your password: %s
 --
 %s
 Helios Voting System
-www.heliosvoting.org
-""" % ((config.webroot + '/elections/%s/view')%election.election_id, (config.webroot + '/elections/%s/vote')%election.election_id, election.toElection().get_hash(), voter.email, voter.password, sender_email)
+%s
+""" % ((config.webroot + '/elections/%s/view')%election.election_id, (config.webroot + '/elections/%s/vote')%election.election_id, election.toElection().get_hash(), voter.email, voter.password, sender_email, config.webroot)
 
       message = message_header
       logging.info(introductory_message)

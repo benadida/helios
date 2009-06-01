@@ -4,7 +4,7 @@
 #
 
 root = '.'
-hostname = 'www.heliosvoting.org'
+hostname = 'dev.heliosvoting.org'
 #hostname = 'localhost:8082'
 webroot = 'http://' + hostname
 
