@@ -198,8 +198,8 @@ BOOTH.cast_ballot = function() {
 BOOTH.send_ballot_raw = function() {
     var send_form = document.forms['send_ballot_form'];
     var data = {
-      email : send_form.email.value,
-      password : send_form.password.value
+      email : jQuery.trim(send_form.email.value),
+      password : jQuery.trim(send_form.password.value)
     };
 
     data['encrypted_vote'] = jQuery.toJSON(BOOTH.encrypted_ballot);
@@ -253,7 +253,7 @@ BOOTH.get_password = function() {
   \$('#get_password_span').hide();
 
   var data = {
-    email : send_form.email.value
+    email : jQuery.trim(send_form.email.value)
   };
   
   \$.ajax({
