@@ -60,6 +60,9 @@ for voter_row in voter_reader:
   helios.election_voter_add(election_id, name = voter_row[0], email = voter_row[1])
   print "added " + voter_row[1]
 
+# download all the voters, make a list, use it to create the voters_hash
+# FIXME: do this later
+
 # freeze it
 helios.election_freeze(election_id)
 

@@ -30,11 +30,14 @@ class ElectionBase(DBObject):
     # with existing elections, let's not include it.
     if self.openreg_enabled:
       self.openreg = True
-    else:
-      ## FIXME: make this more efficient for large number of voters
-      self.voters_hash = self.get_voters_hash()
+
+    the_dict = DBObject.toJSONDict(self)
+    
+    # no voters hash if it's open reg
+    if self.openreg_enabled:
+      del the_dict['voters_hash']
       
-    return DBObject.toJSONDict(self)
+    return the_dict
 
   def save_questions(self, d):
     self.questions_json = utils.to_json(d)
@@ -83,14 +86,20 @@ class ElectionBase(DBObject):
   def get_cast_votes(self, after=None, limit=None):
     return [voter.get_vote() for voter in self.get_voters(after=after, limit = limit) if voter.cast_id != None]
 
-  def get_voters_hash(self):
-    voters = self.get_voters()
-    voters_json = utils.to_json([v.toJSONDict(with_vote=False, with_vote_hash=False) for v in voters])
-    # logging.info("json for voters is: " + voters_json)
-    return utils.hash_b64(voters_json)
+# we do not compute this live anymore
+#
+#  def get_voters_hash(self):
+#    voters = self.get_voters()
+#    voters_json = utils.to_json([v.toJSONDict(with_vote=False, with_vote_hash=False) for v in voters])
+#    # logging.info("json for voters is: " + voters_json)
+#    return utils.hash_b64(voters_json)
 
-  def freeze(self):
+  def freeze(self, voters_hash = None):
+    """
+    freeze the election, include a voters hash
+    """
     self.frozen_at = datetime.datetime.utcnow()
+    self.voters_hash = voters_hash
     self.update()
 
   def is_frozen(self):

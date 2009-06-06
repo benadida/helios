@@ -47,8 +47,12 @@ class HeliosClient(object):
     result = self.post("/elections/%s/voters/" % election_id, {'name' : name, 'email' : email})
     return result == "SUCCESS"
     
-  def election_freeze(self, election_id):
-    result = self.post("/elections/%s/freeze_2" % election_id, {})
+  def election_freeze(self, election_id, voters_hash = None):
+    params = {}
+    if voters_hash:
+      params['voters_hash'] = voters_hash
+      
+    result = self.post("/elections/%s/freeze_2" % election_id, params)
     return result == "SUCCESS"
     
   def election_voters(self, election_id, with_vote=False, after=None, limit=None):

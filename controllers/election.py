@@ -617,13 +617,13 @@ The Helios Voting System
 
   @web
   @session.login_protect
-  def freeze_2(self, election):
+  def freeze_2(self, election,  voters_hash = None):
     """
     Freeze the election.
     """
     user, api_client, election = self.check(election)
 
-    election.freeze()
+    election.freeze(voters_hash = voters_hash)
 
     if user:
       self.redirect("/elections/%s/view" % election.election_id)

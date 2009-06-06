@@ -56,6 +56,9 @@ class Election(mbase.ElectionBase):
   voting_ends_at = db.DateTimeProperty(auto_now_add=False)
   archived_at = db.DateTimeProperty(auto_now_add=False, default=None)
 
+  # the hash of all voters (stored for large numbers)
+  voters_hash = db.StringProperty(multiline=False)
+  
   # encrypted tally, each a JSON string
   # used only for homomorphic tallies
   encrypted_tally = db.TextProperty()
