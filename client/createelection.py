@@ -53,6 +53,11 @@ print "election ID is " + election_id
 # set questions
 helios.election_questions_save(election_id, questions)
 
+# secret key
+sk_file = open(SECRET_KEY_FILE, "w")
+sk_file.write(utils.to_json(kp.sk.toJSONDict()))
+sk_file.close()
+
 # upload the voters
 import csv
 voter_reader = csv.reader(open(VOTERS_FILE))
@@ -68,7 +73,3 @@ helios.election_freeze(election_id)
 
 print "election questions set and frozen"
 
-# secret key
-sk_file = open(SECRET_KEY_FILE, "w")
-sk_file.write(utils.to_json(kp.sk.toJSONDict()))
-sk_file.close()
