@@ -53,6 +53,9 @@ print "election ID is " + election_id
 # set questions
 helios.election_questions_save(election_id, questions)
 
+# set open reg
+helios.election_set_reg(election_id, open_reg= True)
+
 # secret key
 sk_file = open(SECRET_KEY_FILE, "w")
 sk_file.write(utils.to_json(kp.sk.toJSONDict()))
