@@ -12,5 +12,6 @@ urlpatterns = patterns('',
     # Uncomment the next line to enable the admin:
     (r'^admin/(.*)', admin.site.root),
     
-    (r'^$', include('helios.urls')),
+    (r'^twitter/', include('twitter.urls')),
+    (r'', include('helios.urls')),
 )
