@@ -16,6 +16,8 @@ import utils
 from models import *
 from view_utils import *
 
+# the storage abstraction
+import storage
 
 # Parameters for everything
 ELGAMAL_PARAMS = algs.ElGamal()
@@ -59,10 +61,7 @@ def user_home(request):
   
   user = get_user(request)
   
-  if include_archived:
-    elections = Election.objects.filter(admin = user)
-  else:
-    elections = Election.objects.filter(admin = user, archived_at = None)
+  elections = storage.elections_get_by_user(user, include_archived = include_archived)
     
   return render_template(request, "user_home", {'elections' : elections, 'include_archived':request.GET.get('include_archived', 0)})
   
@@ -144,11 +143,7 @@ def election_new_3(request):
   else:
     sk = None
     
-  election = Election.objects.create(ballot_type = ballot_type, tally_type = tally_type, name = name,
-                      admin = get_user(request), api_client= get_api_client(request),
-#                      voting_starts_at = utils.string_to_datetime(voting_starts_at),
-#                      voting_ends_at = utils.string_to_datetime(voting_ends_at),
-                      public_key = pk, private_key = sk)
+  election = storage.election_create(ballot_type, tally_type, name, get_user(request), get_api_client(request), pk, sk)
   
   ## FIXME: transaction!
   
@@ -158,13 +153,7 @@ def election_new_3(request):
       if t.strip() == "":
         continue
       # create the keyshare
-      keyshare = KeyShare.objects.create(election = election, email = t)
-      keyshare.generate_password()
-      keyshare.save()
-      
-    # send out the email
-    ## NO LONGER BY DEFAULT - must send the mail manually
-    # send_trustees_email(election, 'Trustee for Election %s' % election.name, 'You have been designated as a trustee of the Helios Election "%s".' % election.name)
+      trustee = storage.trustee_create(election, email)
   
   # user or api_client?
   if get_user(request):
@@ -178,20 +167,20 @@ def election_new_3(request):
 
 @election_admin()
 def one_election_keyshares_manage(request, election):
-  keyshares = election.get_keyshares()
+  trustees = storage.trustees_get(election)
   ready_p = True
-  for keyshare in keyshares:
-    ready_p = ready_p and (keyshare.public_key != None)
-  return render_template(request, "keyshares_manage", {'election' : election, 'keyshares': keyshares, 'ready_p': ready_p})
+  for trustee in trustees:
+    ready_p = ready_p and (trustee.public_key != None)
+  return render_template(request, "keyshares_manage", {'election' : election, 'keyshares': trustees, 'ready_p': ready_p})
 
 @election_admin()
 def one_election_keyshares_tally_manage(request, election):
   election_pk_json = utils.to_json(election.public_key.toJSONDict())
-  keyshares = election.get_keyshares()
+  trustees = storage.trustees_get(election)
   
   ready_p = True
-  for keyshare in keyshares:
-    ready_p = ready_p and (keyshare.decryption_factors != None)
+  for trustee in trustees:
+    ready_p = ready_p and (trustee.decryption_factors != None)
   
   return render_template(request,"keyshares_tally_manage", {'election': election, 'election_pk_json': election_pk_json, 'ready_p' : ready_p})
   
@@ -199,14 +188,13 @@ def one_election_keyshares_tally_manage(request, election):
 @election_view()
 @json
 def one_election(request, election):
-  return election.toElection().toJSONDict()
+  return election.toJSONDict()
 
 @election_view()
 def one_election_view(request, election):
   user = get_user(request)
   admin_p = user_can_admin_election(user, election)
-  election_obj = election.toElection()
-  return render_template(request, 'election_view', {'election' : election, 'election_obj' : election_obj, 'admin_p': admin_p})
+  return render_template(request, 'election_view', {'election' : election, 'admin_p': admin_p})
 
 @login_required
 @election_view(frozen=True,newvoters=True)
@@ -220,22 +208,20 @@ def one_election_open_submit(request, election):
   # API client is authenticated to manage this election
   
   # see if there is already a voter for this email and/or openid_url
-  try:
-    voter= Voter.selectByEmailOrOpenID(election, request.POST.get('email',None), request.POST.get('openid_url',None))
-
+  voter= storage.voter_get(election, voter_type='email', voter_id = request.POST.get('email',None))
+  
+  if voter:
     # set parameters that may be updates to the existing voter
-    voter.email = request.POST.get('email',None)
-    voter.openid_url = request.POST.get('openid_url', None)
     voter.name = request.POST.get('name', None)
     voter.category = request.POST.get('category', None)
-    voter.save()    
-  except Voter.DoesNotExist:
-    voter = Voter.objects.create(election = election, email=request.POST.get('email',None), openid_url = request.POST.get('openid_url',None),
+    storage.voter_update(voter)
+  else:
+    voter = storage.voter_create(election = election, voter_type = 'email', voter_id = request.POST.get('email',None),
                         name=request.POST.get('name',None), category=request.POST.get('category',None))
   
   # set the encrypted vote
   voter.set_encrypted_vote(request.POST['encrypted_vote'])
-    
+
   return HttpResponse(voter.voter_id)
   
 @election_view()
@@ -252,11 +238,7 @@ def one_election_result_proof(request, election):
 @election_view()
 @json
 def one_election_get_voter_by_email(request, election):
-  return Voter.objects.get(election = election, email = request.GET['email']).toJSONDict()
-
-@election_view()
-def one_election_get_voter_by_openid(request, election):
-  return HttpResponse("election get voter by openid %s" % election.election_id)
+  return storage.voter_get(election = election, voter_type = 'email', voter_id = request.GET['email']).toJSONDict()
 
 @election_view(frozen=True)
 def one_election_vote(request, election):
@@ -270,8 +252,12 @@ def one_election_bboard(request, election):
   """
   UI to show election bboard
   """
-  offset = int(request.GET.get('offset', 0))
+  after = request.GET.get('after', None)
   limit = int(request.GET.get('limit', 20))
+
+  ##
+  ## WORK HERE
+  ##
 
   if not election.is_frozen():
     return HttpResponseRedirect(reverse(one_election_view, args=[election.election_id]))
