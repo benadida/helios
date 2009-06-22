@@ -11,17 +11,18 @@ from django.http import *
 from django.core.exceptions import *
 from django.conf import settings
 
-from models import *
+from helios.models import *
 
 import oauth
     
-# get authenticated user
-def get_user(request):
-  if request.user.is_authenticated():
-    return request.user
-  else:
-    return None
-
+# see if this is google app engine or not
+try:
+  from google.appengine.ext.webapp import util
+  
+  #from gaesecurity import *
+except:
+  from djangosecurity import *
+  
 ##
 ## OAuth and API clients
 ##

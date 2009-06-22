@@ -12,4 +12,4 @@ handlers:
   upload: static/favicon.ico
 
 - url: .*
-  script: heliosvoting.py
+  script: helios-gae.py

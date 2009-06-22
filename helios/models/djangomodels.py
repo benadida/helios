@@ -8,7 +8,7 @@ Ben Adida (ben@adida.net)
 from django.db import models
 from django.utils import simplejson
 import datetime, logging
-import utils
+from helios   import utils
 
 from django.contrib.auth import models as auth_models
 

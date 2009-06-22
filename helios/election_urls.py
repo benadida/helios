@@ -22,7 +22,6 @@ urlpatterns = patterns('',
     (r'^result$', one_election_result),
     (r'^result_proof$', one_election_result_proof),
     (r'^get_voter_by_email$', one_election_get_voter_by_email),
-    (r'^get_voter_by_openid$', one_election_get_voter_by_openid),
     (r'^vote$', one_election_vote),
     (r'^bboard$', one_election_bboard),
 
