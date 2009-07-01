@@ -64,9 +64,7 @@ class HeliosClient(object):
     if with_vote:
       params['with_vote'] = "1"
       
-    print params
     result = self.get("/elections/%s/voters/" % election_id, params)
-    print result
     return utils.from_json(result)
     
   def election_voters_send_email(self, election_id, subject, body, voter_ids=None, after=None, limit=None):

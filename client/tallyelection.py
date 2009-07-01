@@ -68,7 +68,9 @@ sk = algs.EGSecretKey.fromJSONDict(utils.from_json(open_and_read_file(SECRET_KEY
 # decrypt and prove
 result, proof = tally.decrypt_and_prove(sk)
 
+print result
+print proof
+
 # upload result
 helios.set_tally(ELECTION_ID, result, proof)
 
-print result

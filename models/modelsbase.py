@@ -70,7 +70,7 @@ class ElectionBase(DBObject):
     if not self.private_key_json: return None
     return algs.EGSecretKey.fromJSONDict(utils.from_json(self.private_key_json))
 
-  def get_voters(self, category=None, after=None, limit=None):
+  def get_voters(self, with_vote=False, category=None, after=None, limit=None):
     keys = {'election': self}
     if category:
       keys['category'] = category
