@@ -4,7 +4,7 @@
 </head>
 <body>
 
-<h1 id="title">Helios Verification Specifications</h1>
+<h1 id="title">Helios 3.0 Verification Specifications</h1>
 by Ben Adida.
 <hr />
 
@@ -22,14 +22,41 @@ by Ben Adida.
     This document specifies all data formats and the exact verification protocols and algorithms. Using this document, it should be possible for an able programmer to build a complete verification program in any modern programming language. For the sake of concreteness, instead of pseudo-code, we use Python (2.3 or above.)
 </p>
 
-<h2>Accessing Data</h2>
+<p>
+  This document covers Helios 3.0, due out for release in Fall 2009. The single biggest change is the introduction of modularity of both services (election preparation, ballot preparation, ballot casting) and algorithms, and the additional verbosity required in the data formats to indicate which module is used for each component of an election.
+</p>
+
+<h2>Components</h2>
+
+Helios is split into 3 major components:
+
+<ul>
+  <li> <b>election builder</b>: a web-based tool to create an election.</li>
+  <li> <b>ballot builder</b>: a web-based ballot preparation tool.</li>
+  <li> <b>ballot casting server</b>: the server where filled-out ballots are submitted.</li>
+  <li> <b>audit server</b>: the place where all data is posted at the end of an election.</li>
+</ul>
 
 <p>
-    All data for an election is easily accessible using simple HTTP GET requests. Consider an election with election id <tt>&lt;ELECTION_ID&gt;</tt>. The election data structure, including the election public key, questions, etc., can be obtained by requesting the following URL:
+  When running an election at <tt>www.heliosvoting.org</tt>, the following components are active:
+</p>
+<ul>
+  <li> <tt>www.heliosvoting.org/electionbuilder/</tt></li>
+  <li> <tt>vote.heliosvoting.org</tt></li>
+  <li> <tt>www.heliosvoting.org/cast/</tt></li>
+  <li> <tt>audit.heliosvoting.org</tt></li>
+</ul>
+
+  
+<h2>Audit Data</h2>
+
+<p>
+    All data for an election is easily accessible using simple HTTP GET requests. The HTTP interface for accessing all data from a given election is
+    built so as to enable static storage of this data in a simple filesystem made available over the web, to simplify long-term robustness. Consider an election with election id <tt>&lt;ELECTION_ID&gt;</tt>. The election data structure, including the election public key, questions, etc., can be obtained by requesting the following URL:
 </p>
 
 <pre>
-    http://www.heliosvoting.org/elections/&lt;ELECTION_ID&gt;
+    https://audit.heliosvoting.org/elections/&lt;ELECTION_ID&gt;/election
 </pre>
 
 <p>
@@ -37,7 +64,7 @@ by Ben Adida.
 </p>
 
 <pre>
-    http://www.heliosvoting.org/elections/&lt;ELECTION_ID&gt;/voters
+    https://audit.heliosvoting.org/elections/&lt;ELECTION_ID&gt;/voters/
 </pre>
 
 <p>
@@ -45,38 +72,31 @@ by Ben Adida.
 </p>
 
 <pre>
-    http://www.heliosvoting.org/elections/&lt;ELECTION_ID&gt;/voters/&lt;VOTER_ID&gt;
+    https://audit.heliosvoting.org/elections/&lt;ELECTION_ID&gt;/voters/&lt;VOTER_ID&gt;
 </pre>    
 
 <p>
-    When downloading multiple ballots at the same time, it is possible to request a list of voters <em>with</em> their encrypted vote:
+    The list of cast ballots is available at:
 </p>
 
 <pre>
-    http://www.heliosvoting.org/elections/&lt;ELECTION_ID&gt;/voters?with_vote=1</pre>
-
-<p>
-    It is recommended that lists of voters with their votes be downloaded in batches of no more than 50, which can be done with an additional URL argument:
-</p>
-
-<pre>
-    http://www.heliosvoting.org/elections/&lt;ELECTION_ID&gt;/voters?with_vote=1&amp;limit=50
+    https://audit.heliosvoting.org/elections/&lt;ELECTION_ID&gt;/ballots/
 </pre>
 
 <p>
-    And the next batch can be requested using the <tt>after</tt> parameter:
+  and an individual ballot is reachable at:
 </p>
 
 <pre>
-    http://www.heliosvoting.org/elections/&lt;ELECTION_ID&gt;/voters?with_vote=1&amp;after=&lt;PREVIOUS_BATCH_LAST_VOTER_ID&gt;&amp;limit=50
+    https://audit.heliosvoting.org/elections/&lt;ELECTION_ID&gt;/ballots/&lt;VOTER_ID&gt;
 </pre>
-
+  
 <p>
     The result of an election is available at:
 </p>
 
 <pre>
-    http://www.heliosvoting.org/elections/&lt;ELECTION_ID&gt;/result
+    https://audit.heliosvoting.org/elections/&lt;ELECTION_ID&gt;/result/
 </pre>    
 
 <p>
@@ -84,30 +104,41 @@ by Ben Adida.
 </p>
 
 <pre>
-    http://www.heliosvoting.org/elections/&lt;ELECTION_ID&gt;/result_proof
+    https://audit.heliosvoting.org/elections/&lt;ELECTION_ID&gt;/result/proof
 </pre>    
-    
+
 <p>
-    For testing purposes, the following election identifier can be used:
+  If an election has trustees, then the list of trustees is available at:
 </p>
 
 <pre>
-    agxoZWxpb3N2b3RpbmdyDwsSCEVsZWN0aW9uGOAQDA
+    https://audit.heliosvoting.org/elections/&lt;ELECTION_ID&gt;/trustees/
 </pre>
 
 <p>
-    which means that its election information is at<br />
-    <a href="http://www.heliosvoting.org/elections/agxoZWxpb3N2b3RpbmdyDwsSCEVsZWN0aW9uGOAQDA">http://www.heliosvoting.org/elections/agxoZWxpb3N2b3RpbmdyDwsSCEVsZWN0aW9uGOAQDA</a>.
+  And an individual trustee's public key and proof of knowledge is available at:  
 </p>
+
+<pre>
+    https://audit.heliosvoting.org/elections/&lt;ELECTION_ID&gt;/trustees/&lt;TRUSTEE_ID&gt;/pk
+</pre>
 
 <p>
-    All data for this election was generated using the Helios system, and a verification program, built to the guidelines that follow, should be able to check all of the results.
+  While the trustee's robustness information (e.g. Lagrange coeff) is at:
 </p>
+
+<pre>
+    https://audit.heliosvoting.org/elections/&lt;ELECTION_ID&gt;/trustees/&lt;TRUSTEE_ID&gt;/robustness_factor
+</pre>
 
 <p>
-    If one wants to check the audit trail of a ballot, a new ballot audit trail can be generated at any time <a target="_blank" href="http://www.heliosvoting.org/elections/agxoZWxpb3N2b3RpbmdyDwsSCEVsZWN0aW9uGOAQDA/vote">using the voting booth interface for this election</a>. For convenience, one such ballot audit trail is available <a href="verification-specs-ballot-audit-trail.txt">here</a>, with choices 2 (Drummond) and 3 (Axel). The ballot fingerprint is <tt>6PkosgVAYO11FbVvqHGBeRo1SNs</tt>.
+  And his partial proof of decryption is at:
 </p>
 
+<pre>
+    https://audit.heliosvoting.org/elections/&lt;ELECTION_ID&gt;/trustees/&lt;TRUSTEE_ID&gt;/result_proof
+</pre>
+    
 <h2>Data Formats</h2>
 
 <p>
