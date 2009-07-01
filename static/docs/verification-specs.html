@@ -170,51 +170,72 @@ Helios is split into 3 major components:
     In Helios, all ciphertexts are <em>Exponential ElGamal</em>, so <tt>alpha = g^r mod p</tt>, and <tt>beta = g^m y^r mod p</tt>.
 </p>
 
+<p>
+    In Helios, all hash values are base-64 encoded, prefixed with the algorithm used for hashing, e.g:
+</p>
+
+<div class="codeblock"><div class="codetitle">Hash value example</div>
+{"election_hash": "sha256:8bndn23ksdlsdf234234"}
+</div>
+
 <h3>Voter</h3>
 
 <p>
-    A single voter in Helios is represented using a few fields that identify the voter:
+    A single voter in Helios is represented using a few fields that identify the voter. <em>This data structure has changed from prior versions of Helios</em> in order to accommodate multiple types of users, not just users identified by email address.
 </p>
 
 <div class="codeblock"><div class="codetitle">&lt;VOTER&gt;</div>
-{"email": "benadida@gmail.com", "name": "Ben Adida",
-"vote_hash": null, "voter_id": "agxoZWxpb3N2b3RpbmdyCwsSBVZvdGVyGCcM"}</div>
+{"id": "benadida@gmail.com", "name": "Ben Adida", "type": "email",
+"uuid": "60435862-65e3-11de-8c90-001b63948875"}</div>
 
 <p>
-    The <tt>voter_id</tt> is unique across all elections hosted at this particular Helios server. The <tt>vote_hash</tt> is the SHA1 hash of the voter's encrypted ballot. Until the voter casts a ballot, <tt>vote_hash</tt> is null.
+Together, the <tt>type</tt> and <tt>id</tt> identify the voter via some external authentication mechanism. In the example above, this is a user whose email address is <tt>benadida@gmail.com</tt>. Another example might be:    
+</p>
+
+<div class="codeblock"><div class="codetitle">&lt;VOTER&gt;</div>
+{"id": "benadida", "name": "Ben Adida", "type": "twitter",
+"uuid": "4e8674e2-65e3-11de-8c90-001b63948875"}</div>
+
+<p>
+    where this is a voter identified by the Twitter user id <tt>benadida</tt>.
+</p>
+
+<p>
+    The <tt>uuid</tt> field is used as a reference key within Helios.
 </p>
 
 <p>
     Voters may be identified by OpenID URL rather than email address, in which case their JSON representation is:
 </p>
 
-<div class="codeblock"><div class="codetitle">&lt;VOTER&gt; (2)</div>
-{"name": "Ben Adida", "openid": "http://benadida.myopenid.com",
-"vote_hash": null, "voter_id": "agxoZWxpb3N2b3RpbmdyCwsSBVZvdGVyGCcM"}</div>
+<div class="codeblock"><div class="codetitle">&lt;VOTER&gt;</div>
+{"id": "http://benadida.myopenid.com", "name": "Ben Adida", "type": "openid",
+"uuid": "b7dbd90a-65e3-11de-8c90-001b63948875"}</div>
 
 <p>
-    In elections where voters are placed in categories (e.g. precincts), an additional <tt>category</tt> field is present:
+    Other fields may be present in a <tt>&lt;VOTER&gt;</tt> data structure, e.g. <tt>category</tt>. These do not affect the cryptographic processing, but if present, they become part of the hash of the voter list.
 </p>
-
-<div class="codeblock"><div class="codetitle">&lt;VOTER&gt; (3)</div>
-{"category": "02139", "email": "benadida@gmail.com", "name": "Ben Adida",
-"vote_hash": null, "voter_id": "agxoZWxpb3N2b3RpbmdyCwsSBVZvdGVyGCcM"}</div>
 
 <p>
-    Once a voter has cast a ballot, their JSON representation is augmented with their encrypted vote:
+    Once a voter has cast a ballot, the encrypted vote representation is then:
 </p>
 
-<div class="codeblock"><div class="codetitle">&lt;VOTER_WITH_VOTE&gt;</div>
-{"category": "02139", "name": "Ben Adida", "openid": "http://benadida.myopenid.com",
-"vote" : &lt;VOTE&gt;, "vote_hash": "f1d2d2f924e986ac86fdf7b36c94bcdf32beec15",
-"voter_id": "agxoZWxpb3N2b3RpbmdyCwsSBVZvdGVyGCcM"}</div>
+<div class="codeblock"><div class="codetitle">&lt;CAST_VOTE&gt;</div>
+{"vote": &lt;VOTE&gt;, "vote_hash": "sha256:8bncn23nsfsdk234234", "uuid": "b7dbd90a-65e3-11de-8c90-001b63948875"}</div>
 
 <p>
     We describe the details of the <tt>&lt;VOTE&gt;</tt> data structure later in this document, once we have described all of the required components.
-    </p>
+</p>
     
 <p>
-    It may be confusing to note that <tt>vote_hash</tt> and <tt>vote</tt> are both present within the data structure, when the hash is clearly derived from the vote. The reason for the presence of both is that, when voters are listed in a <tt>&lt;VOTER_LIST&gt;</tt>, only the <tt>vote_hash</tt> is listed, not the complete <tt>vote</tt>, for efficiency purposes.
+    <tt>vote_hash</tt> is available to enable a shorter version of this data structure:
+</p>
+
+<div class="codeblock"><div class="codetitle">&lt;SHORT_CAST_VOTE&gt;</div>
+{"vote_hash": "sha256:8bncn23nsfsdk234234", "uuid": "b7dbd90a-65e3-11de-8c90-001b63948875"}</div>
+
+<p>
+    where only the hash and not the full vote is listed.
 </p>
 
 <h3>Election</h3>
@@ -222,14 +243,14 @@ Helios is split into 3 major components:
 <p>An election is represented as:</p>
 
 <div class="codeblock"><div class="codetitle">&lt;ELECTION&gt;</div>
-{"election_id": "agxoZWxpb3N2b3RpbmdyDgsSCEVsZWN0aW9uGAYM", "name": "foo234234",
-"pk": &lt;ELGAMAL_PUBLIC_KEY&gt;,
+{"name": "foo234234",
+"public_key": &lt;ELGAMAL_PUBLIC_KEY&gt;,
 "questions": &lt;QUESTION_LIST&gt;,
-"voters_hash": "G6yS\/dAZm5hKnCn5cRgBGdw3yGo",
-"voting_ends_at": null, "voting_starts_at": null}
+"uuid": "1882f79c-65e5-11de-8c90-001b63948875",
+"voters_hash": "G6yS\/dAZm5hKnCn5cRgBGdw3yGo"}
 </div>
 
-<p><tt>election_id</tt> is a unique identifier for the election, and <tt>name</tt> is the election's name.</p>
+<p><tt>uuid</tt> is a unique identifier for the election, and <tt>name</tt> is the election's name.</p>
 
 <p><tt>&lt;ELGAMAL_PUBLIC_KEY&gt;</tt> is, as detailed earlier, the JSON data structure that represents an El-Gamal public key.</p>
 
@@ -243,33 +264,36 @@ Helios is split into 3 major components:
 </p>
 
 <div class="codeblock"><div class="codetitle">&lt;QUESTION&gt;</div>
-{"answer_urls": ["http://example.com/alice", null], "answers": ["alice", "bob"], "max": 1,
+{"answer_urls": ["http://example.com/alice", null], "answers": ["alice", "bob"],
+"max": 1, "min": 0,
 "question": "Who Should be President?", "short_name": "President"}</div>
 
-<p>which, in this case, contains two possible answers (alice and bob), URLs that describe these answers in greater detail, the text of the question, and a short name for the question. The parameter <tt>max</tt> indicates the maximum number of options that a voter can select, most often 1. Note how, given that this <tt>max</tt> value should be a small integer, it is in fact serialized as an integer, not as a string.</p>
+<p>which, in this case, contains two possible answers (alice and bob), URLs that describe these answers in greater detail, the text of the question, and a short name for the question. The parameter <tt>max</tt> indicates the maximum number of options that a voter can select, most often 1. The parameter <tt>min</tt> indicates the minimum number of options that a voter must select, most often 0. Note how, given that <tt>max</tt> and <tt>min</tt> should be small integers, they are in fact serialized as integers, not as strings.</p>
 
-<p><tt>voters_hash</tt> is the base64 encoding of the SHA1 hash of the list of voters for the election. The list of voters is a JSON array, where each voter is represented <em>without</em> a cast ballot and <em>without</em> the <tt>vote_hash</tt>, of course (otherwise <tt>voters_hash</tt> changes as voters cast their ballot). For example, a list of voters might be:
+<p><tt>voters_hash</tt> is the hash of the list of voters for the election. The list of voters is a JSON array of <tt>&lt;VOTER&gt;</tt> data structures. For example, a list of voters might be:
     
 <div class="codeblock"><div class="codetitle">&lt;VOTER_LIST&gt; (example)</div>
-[{"email": "ben@adida.net", "name": "Ben Adida", "voter_id": "453"},
-{"name": "Ella", "openid": "http://ella.example.com", "voter_id": "834"}]</div>
+[{"id": "benadida@gmail.com", "name": "Ben Adida", "type": "email",
+"uuid": "60435862-65e3-11de-8c90-001b63948875"},
+{"id": "benadida", "name": "Ben2 Adida", "type": "twitter",
+"uuid": "4e8674e2-65e3-11de-8c90-001b63948875"}]</div>
 
 <p>
     <b>Note:</b> we strictly follow the JSON specification, so the forward-slash character "/" is escaped as "\/". Not all JSON toolkits do this correctly, given that escaping the forward-slash is not necessary given JavaScript specifications, but for interoperability, we choose the strict interpretation. Python's <tt>simplejson</tt> does the right thing.
 </p>
 
-<h4>Open Registration</h3>
+<h4>Open Registration</h4>
     
 <p>
     Helios supports "open registration elections", when the election administrator so desires. In those elections, the voter list is not set ahead of time. In that case, an election data structure does not contain <tt>voters_hash</tt>, but does contain a new field, <tt>openreg</tt>:
 </p>
 
-<div class="codeblock"><div class="codetitle">&lt;ELECTION&gt;</div>
-{"election_id": "agxoZWxpb3N2b3RpbmdyDgsSCEVsZWN0aW9uGAYM", "name": "foo234234",
+<div class="codeblock"><div class="codetitle">&lt;ELECTION&gt; with open registration</div>
+{"name": "foo234234",
 "openreg": True,
-"pk": &lt;ELGAMAL_PUBLIC_KEY&gt;,
+"public_key": &lt;ELGAMAL_PUBLIC_KEY&gt;,
 "questions": &lt;QUESTION_LIST&gt;,
-"voting_ends_at": null, "voting_starts_at": null}
+"uuid": "1882f79c-65e5-11de-8c90-001b63948875"}
 </div>
 
 <h3>Election Fingerprint</h3>
@@ -279,7 +303,7 @@ Helios is split into 3 major components:
 </p>
 
 <p>
-    Such a frozen election can be designated by its <b>Helios Election Fingerprint</b>, which is the base-64-string-encoded SHA1 of the election data structure serialized as JSON (with properly alphabetized field names). Note how this fingerprint depends on the list of voters if the election registration status is closed, but not if it is open. In any case, this fingerprint does <em>not</em> depend on any cast vote or cast-vote hash.
+    Such a frozen election can be designated by its <b>Helios Election Fingerprint</b>, which is the base-64-string-encoded SHA256 of the election data structure serialized as JSON (with properly alphabetized field names). Note how this fingerprint depends on the list of voters if the election registration status is closed, but not if it is open. In any case, this fingerprint does <em>not</em> depend on any cast vote or cast-vote hash.
 </p>
 
 <h3>Vote</h3>
@@ -288,8 +312,8 @@ Helios is split into 3 major components:
 
 <div class="codeblock"><div class="codetitle">&lt;VOTE&gt;</div>
 {"answers": [&lt;ENCRYPTED_ANSWER&gt;, &lt;ENCRYPTED_ANSWER&gt;, ...],
-"election_hash": "Nz1fWLvVLH3eY3Ox7u5hxfLZPdw",
-"election_id": "agxoZWxpb3N2b3RpbmdyDgsSCEVsZWN0aW9uGAYM"}</div>
+"election_hash": "sha256:Nz1fWLvVLH3eY3Ox7u5hxfLZPdw",
+"election_uuid": "1882f79c-65e5-11de-8c90-001b63948875"}</div>
 
 <p> Each "encrypted answer" corresponds to one election question: it contains a list of ciphertexts (one for each possible choice for that question), a list of corresponding proofs that the ciphertext is correctly formed, and an overall proof that all of the ciphertexts for that election question, taken together, are correctly formed.</p>
 
@@ -339,7 +363,7 @@ Helios is split into 3 major components:
 <div class="codeblock"><div class="codetitle">&lt;VOTE_WITH_PLAINTEXTS&gt;</div>
 {"answers": [&lt;ENCRYPTED_ANSWER_WITH_PLAINTEXT&gt;, &lt;ENCRYPTED_ANSWER_WITH_PLAINTEXT&gt;, ...],
 "election_hash": &lt;B64_HASH&gt;,
-"election_id": &lt;ELECTION_ID&gt;}</div>
+"election_uuid": &lt;ELECTION_UUID&gt;}</div>
 
 <p>
     And the contained <tt>&lt;ENCRYPTED_ANSWER_WITH_PLAINTEXT&gt;</tt> is as follows.
@@ -630,6 +654,9 @@ return {
 
 <h2>Election with Multiple Trustees</h2>
 
+<b>BEING REWRITTEN</b>
+
+<!--
 <p>
     A Helios election can be configured to have multiple trustees, each of which holds a share of the election secret key.
 </p>
@@ -744,6 +771,7 @@ Once all trustees have submitted their public key shares,
     <li> The final tally for a given candidate is obtained by multiplying the partial decryption factors, and dividing it out of the corresponding encrypted tally's <tt>beta</tt>.</li>
 </ul>
 
+-->
 <p>
     &nbsp;
 </p>
