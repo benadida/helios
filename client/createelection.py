@@ -2,7 +2,7 @@
 Create an Election
 
 usage:
-python client/creationelection.py ELECTION_NAME election_questions.json voters.csv HELIOS_SERVER API_KEY_FILENAME.json SECRET_KEY_FILENAME.txt
+python client/createelection.py ELECTION_NAME election_questions.json voters.csv HELIOS_SERVER API_KEY_FILENAME.json SECRET_KEY_FILENAME.txt
 """
 
 from base import utils

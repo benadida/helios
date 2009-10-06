@@ -2,7 +2,7 @@
 Tally Election
 
 usage:
-python client/tallyelection.py HELIOS_SERVER ELECTION_ID
+python client/electioninfo.py HELIOS_SERVER ELECTION_ID
 """
 
 from base import utils

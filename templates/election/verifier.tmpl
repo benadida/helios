@@ -49,19 +49,45 @@ function load_election_and_ballots(election_id) {
         var election_hash = election.get_hash();
         result_append("Fingerprint: " + election_hash);
         
-        // get the voters
-        Helios.get_election_voters({'election_id': election_id}, function(voters) {
-            VOTER_LIST = voters;
-            \$(voters).each(function(v_num, v) {
+        // get the full voter list
+        VOTER_LIST = [];
+        var get_next_voter_list_chunk = function(after, callback) {
+          var params = {'election_id': election_id};
+          if (after)
+            params['after'] = after;
+        
+          alert('getting list of voters with after ' + after);
+        
+          Helios.get_election_voters(params, function(voters) {
+             if (voters.length == 0) {
+                 result_append(VOTER_LIST.length + " voters.");
+                 callback();
+                 return;
+             }
+            
+             // append to voter list
+             VOTER_LIST = VOTER_LIST.concat(voters);
+             
+             // get the next chunk
+             get_next_voter_list_chunk(voters[voters.length-1].voter_id, callback);
+          });
+        };
+        
+        // get the individual votes
+        var get_individual_votes = function() {
+            \$(VOTER_LIST).each(function(v_num, v) {
                 // download each voter's data, stuffing into BALLOTS
                 Helios.get_election_voter({'election_id': election_id, 'voter_id': v.voter_id}, function(voter) {
                     BALLOTS[voter.voter_id] = HELIOS.EncryptedVote.fromJSONObject(voter.vote, ELECTION);
                     BALLOTS_LOADED[voter.voter_id] = true;
                 });
             });
-            
+
             when_ready_verify_ballots_and_tally();
-        });
+        };
+        
+        // start it off
+        get_next_voter_list_chunk(null, get_individual_votes);
     });
 }
 

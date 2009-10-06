@@ -58,10 +58,17 @@ print "%s cast vote(s)" % str(len(vote_list))
 # tally them
 tally = election.init_tally()
 
+# set the tally to 0s to stop voting
+helios.set_tally(ELECTION_ID, [[0,0]], None)
+
+import pdb; pdb.set_trace()
+
 for v in vote_list:
   enc_ballot = electionalgs.EncryptedVote.fromJSONDict(v)
   tally.add_vote(enc_ballot)
   
+pdb.set_trace()
+
 # secret key load
 sk = algs.EGSecretKey.fromJSONDict(utils.from_json(open_and_read_file(SECRET_KEY_FILE)))
 
@@ -70,6 +77,8 @@ result, proof = tally.decrypt_and_prove(sk)
 
 print result
 print proof
+
+pdb.set_trace()
 
 # upload result
 helios.set_tally(ELECTION_ID, result, proof)

@@ -273,9 +273,9 @@ class Tally(object):
         self.tally[question_num][answer_num] = encrypted_vote.encrypted_answers[question_num].choices[answer_num] * self.tally[question_num][answer_num]
       
     # tally the vote
-    self.__increment_precomp()
+    self.increment_precomp()
 
-  def __increment_precomp(self):
+  def increment_precomp(self):
     # add to the discrete log pre-computation
     self.num_tallied += 1
     new_value = (self.last_dl_result * self.pk.g) % self.pk.p

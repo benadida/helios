@@ -38,7 +38,11 @@ _Helios_SameSite = Class.extend({
   },
   
   get_election_voters: function(params, callback) {
-    $.getJSON("/elections/" + params['election_id'] + "/voters?date=" + new Date().getTime(), callback);
+    var url = "/elections/" + params['election_id'] + "/voters?date=" + new Date().getTime();
+    if (params['after'])
+      url += "&after=" + params['after'];
+      
+    $.getJSON(url, callback);
   },
   
   get_election_voter: function(params, callback) {
